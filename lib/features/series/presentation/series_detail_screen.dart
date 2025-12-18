@@ -1,0 +1,644 @@
+import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
+import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/widgets/media_detail_view.dart';
+import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/status_badge.dart';
+import 'package:seekarr/core/widgets/file_info_section.dart';
+import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
+import 'package:seekarr/core/widgets/delete_media_dialog.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/series/presentation/series_provider.dart';
+import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+class SeriesDetailScreen extends ConsumerStatefulWidget {
+  final SonarrSeries series;
+  final String heroTag;
+
+  const SeriesDetailScreen({
+    super.key,
+    required this.series,
+    required this.heroTag,
+  });
+
+  @override
+  ConsumerState<SeriesDetailScreen> createState() => _SeriesDetailScreenState();
+}
+
+class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
+  bool _isSearching = false;
+  bool _isLoadingReleases = false;
+  bool _isDeleting = false;
+  List<dynamic> _episodes = [];
+  bool _episodesLoaded = false;
+  List<Map<String, dynamic>> _qualityProfiles = [];
+  String? _currentProfileName;
+  int? _currentProfileId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEpisodes();
+    _loadQualityProfiles();
+  }
+
+  Future<void> _loadQualityProfiles() async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      final profiles = await sonarrService.getQualityProfiles();
+      if (mounted) {
+        setState(() {
+          _qualityProfiles = profiles;
+          _currentProfileId = widget.series.qualityProfileId;
+          _currentProfileName = _getProfileName(_currentProfileId);
+        });
+      }
+    } catch (e) {
+      // Ignore profile loading errors
+    }
+  }
+
+  String? _getProfileName(int? profileId) {
+    if (profileId == null) return null;
+    final profile = _qualityProfiles
+        .where((p) => p['id'] == profileId)
+        .firstOrNull;
+    return profile?['name'] as String?;
+  }
+
+  Future<void> _loadEpisodes() async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      final episodes = await sonarrService.getEpisodes(widget.series.id);
+      if (mounted) {
+        setState(() {
+          _episodes = episodes;
+          _episodesLoaded = true;
+        });
+      }
+    } catch (e) {
+      // Episodes loading failed, continue without them
+      if (mounted) setState(() => _episodesLoaded = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    final series = widget.series;
+    final title = series.title;
+    final network = series.network ?? '';
+    final overview = series.overview ?? 'No description available.';
+    final status = series.status;
+    final genres = series.genres.join(', ');
+    final seasons = List<dynamic>.from(series.seasons);
+
+    seasons.sort(
+      (a, b) => (a['seasonNumber'] as int).compareTo(b['seasonNumber'] as int),
+    );
+
+    final imageUrl = ImageUtils.extractPosterUrl(
+      series.images,
+      baseUrl: settings.sonarrUrl,
+      apiKey: settings.sonarrApiKey,
+    );
+
+    // Determine status based on episode files
+    final stats = series.statistics;
+    final episodeFileCount = stats?['episodeFileCount'] as int? ?? 0;
+    final hasFiles = episodeFileCount > 0;
+
+    final tags = <Widget>[];
+    // Status badge first
+    tags.add(StatusBadge.fromMedia(hasFile: hasFiles, status: status));
+    if (network.isNotEmpty) tags.add(TagChip(text: network));
+    tags.add(
+      Text(
+        genres,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+      ),
+    );
+
+    return MediaDetailView(
+      title: title,
+      heroTag: widget.heroTag,
+      posterUrl: imageUrl,
+      overview: overview,
+      tags: tags,
+      actions: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _isSearching
+                    ? null
+                    : () => _triggerSearch(context, series.id),
+                icon: _isSearching
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.search),
+                label: const Text('Automatic Search'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _isLoadingReleases
+                    ? null
+                    : () => _showInteractiveSearch(context, series.id),
+                icon: _isLoadingReleases
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.list),
+                label: const Text('Interactive Search'),
+              ),
+            ],
+          ),
+          // Quality Profile (tappable)
+          if (_currentProfileName != null) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showProfileSelector(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.high_quality,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _currentProfileName!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.edit,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          // File info section (only when available)
+          if (hasFiles && series.path != null) ...[
+            const SizedBox(height: 16),
+            FileInfoSection(path: series.path),
+          ],
+          // Delete button
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: _isDeleting ? null : () => _confirmDelete(context),
+            icon: _isDeleting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.delete_outline),
+            label: const Text('Delete Series'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Seasons', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                _buildSeasonsAccordion(context, seasons),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeasonsAccordion(BuildContext context, List<dynamic> seasons) {
+    return Column(
+      children: seasons.map((season) {
+        final seasonNumber = season['seasonNumber'] as int;
+        final stats = season['statistics'];
+        final episodeCount = stats?['episodeFileCount'] ?? 0;
+        final totalCount = stats?['totalEpisodeCount'] ?? 0;
+        final percent = totalCount > 0 ? (episodeCount / totalCount) : 0.0;
+        final isMonitored = season['monitored'] as bool? ?? false;
+
+        // Get episodes for this season
+        final seasonEpisodes =
+            _episodes.where((e) => e['seasonNumber'] == seasonNumber).toList()
+              ..sort(
+                (a, b) => (a['episodeNumber'] as int).compareTo(
+                  b['episodeNumber'] as int,
+                ),
+              );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ExpansionTile(
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
+              child: Text(
+                seasonNumber.toString(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              seasonNumber == 0 ? 'Specials' : 'Season $seasonNumber',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text('$episodeCount / $totalCount Episodes'),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: percent.toDouble(),
+                    backgroundColor: Colors.white10,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      percent == 1.0 ? Colors.green : Colors.orange,
+                    ),
+                    minHeight: 4,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSearchMenu(
+                  context: context,
+                  onAutoSearch: () => _searchSeason(context, seasonNumber),
+                  onInteractiveSearch: () =>
+                      _interactiveSearchSeason(context, seasonNumber),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  isMonitored ? Icons.bookmark : Icons.bookmark_border,
+                  color: isMonitored
+                      ? Theme.of(context).colorScheme.secondary
+                      : Colors.grey,
+                ),
+              ],
+            ),
+            children: !_episodesLoaded
+                ? [
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ]
+                : seasonEpisodes.map<Widget>((episode) {
+                    final epNumber = episode['episodeNumber'] as int;
+                    final epTitle =
+                        episode['title'] as String? ?? 'Episode $epNumber';
+                    final hasFile = episode['hasFile'] as bool? ?? false;
+                    final episodeId = episode['id'] as int;
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: hasFile ? Colors.green : Colors.grey,
+                        child: Text(
+                          epNumber.toString(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        epTitle,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      trailing: _buildSearchMenu(
+                        context: context,
+                        onAutoSearch: () => _searchEpisode(context, episodeId),
+                        onInteractiveSearch: () =>
+                            _interactiveSearchEpisode(context, episodeId),
+                      ),
+                      dense: true,
+                    );
+                  }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSearchMenu({
+    required BuildContext context,
+    required VoidCallback onAutoSearch,
+    required VoidCallback onInteractiveSearch,
+  }) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.search, size: 20),
+      tooltip: 'Search options',
+      onSelected: (value) {
+        if (value == 'auto') onAutoSearch();
+        if (value == 'interactive') onInteractiveSearch();
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'auto', child: Text('Automatic Search')),
+        const PopupMenuItem(
+          value: 'interactive',
+          child: Text('Interactive Search'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _triggerSearch(BuildContext context, int seriesId) async {
+    setState(() => _isSearching = true);
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.searchSeries(seriesId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Search started for entire series')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
+  }
+
+  Future<void> _showInteractiveSearch(
+    BuildContext context,
+    int seriesId, {
+    int? seasonNumber,
+  }) async {
+    setState(() => _isLoadingReleases = true);
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      // For series-wide search, use first season or specials (0)
+      final releases = await sonarrService.getReleases(
+        seriesId: seriesId,
+        seasonNumber: seasonNumber ?? 1,
+      );
+      if (!context.mounted) return;
+
+      await InteractiveSearchSheet.show(
+        context: context,
+        releases: releases,
+        title: seasonNumber != null
+            ? 'Releases for ${widget.series.title} - Season $seasonNumber'
+            : 'Releases for ${widget.series.title}',
+        onGrabRelease: (guid, indexerId) async {
+          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load releases: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoadingReleases = false);
+    }
+  }
+
+  Future<void> _searchSeason(BuildContext context, int seasonNumber) async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.searchSeason(widget.series.id, seasonNumber);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Search started for Season $seasonNumber')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _interactiveSearchSeason(
+    BuildContext context,
+    int seasonNumber,
+  ) async {
+    await _showInteractiveSearch(
+      context,
+      widget.series.id,
+      seasonNumber: seasonNumber,
+    );
+  }
+
+  Future<void> _searchEpisode(BuildContext context, int episodeId) async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.searchEpisodes([episodeId]);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Episode search started')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _interactiveSearchEpisode(
+    BuildContext context,
+    int episodeId,
+  ) async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      final releases = await sonarrService.getReleases(episodeId: episodeId);
+      if (!context.mounted) return;
+
+      await InteractiveSearchSheet.show(
+        context: context,
+        releases: releases,
+        title: 'Episode Releases',
+        onGrabRelease: (guid, indexerId) async {
+          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load releases: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showProfileSelector(BuildContext context) async {
+    if (_qualityProfiles.isEmpty) return;
+
+    final selectedId = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Quality Profile'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _qualityProfiles.length,
+            itemBuilder: (context, index) {
+              final profile = _qualityProfiles[index];
+              final id = profile['id'] as int;
+              final name = profile['name'] as String;
+              final isSelected = id == _currentProfileId;
+
+              return ListTile(
+                title: Text(name),
+                leading: isSelected
+                    ? Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : const Icon(Icons.circle_outlined),
+                onTap: () => Navigator.pop(context, id),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedId != null && selectedId != _currentProfileId) {
+      await _updateProfile(selectedId);
+    }
+  }
+
+  Future<void> _updateProfile(int profileId) async {
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.updateSeriesProfile(widget.series.id, profileId);
+      if (mounted) {
+        setState(() {
+          _currentProfileId = profileId;
+          _currentProfileName = _getProfileName(profileId);
+        });
+        // Invalidate series provider so list refreshes with new data
+        ref.invalidate(seriesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quality profile updated')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final result = await showDeleteMediaDialog(
+      context: context,
+      title: widget.series.title,
+      mediaType: 'series',
+    );
+
+    if (!result.confirmed || !context.mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.deleteSeries(
+        widget.series.id,
+        deleteFiles: result.deleteFiles,
+        addImportListExclusion: result.addExclusion,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Series deleted')));
+      context.pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete series: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+}

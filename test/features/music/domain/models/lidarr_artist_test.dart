@@ -1,0 +1,92 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+
+void main() {
+  group('LidarrArtist', () {
+    group('fromJson', () {
+      test('parses complete JSON correctly', () {
+        final json = {
+          'id': 1,
+          'artistName': 'Test Artist',
+          'status': 'active',
+          'overview': 'A test artist overview.',
+          'monitored': true,
+          'images': [
+            {
+              'coverType': 'poster',
+              'remoteUrl': 'https://example.com/poster.jpg',
+            },
+          ],
+          'statistics': {'albumCount': 5, 'trackCount': 50},
+          'genres': ['Rock', 'Alternative'],
+        };
+
+        final artist = LidarrArtist.fromJson(json);
+
+        expect(artist.id, 1);
+        expect(artist.artistName, 'Test Artist');
+        expect(artist.status, 'active');
+        expect(artist.overview, 'A test artist overview.');
+        expect(artist.monitored, true);
+        expect(artist.images.length, 1);
+        expect(artist.statistics?['albumCount'], 5);
+        expect(artist.genres, ['Rock', 'Alternative']);
+      });
+
+      test('handles missing optional fields', () {
+        final json = {
+          'id': 1,
+          'artistName': 'Test Artist',
+          'status': 'unknown',
+          'monitored': false,
+          'images': [],
+          'genres': [],
+        };
+
+        final artist = LidarrArtist.fromJson(json);
+
+        expect(artist.overview, isNull);
+        expect(artist.statistics, isNull);
+      });
+
+      test('handles null values with defaults', () {
+        final json = <String, dynamic>{};
+
+        final artist = LidarrArtist.fromJson(json);
+
+        expect(artist.id, 0);
+        expect(artist.artistName, 'Unknown');
+        expect(artist.status, 'unknown');
+        expect(artist.monitored, false);
+        expect(artist.images, isEmpty);
+        expect(artist.genres, isEmpty);
+      });
+    });
+
+    group('toMediaPreview', () {
+      test('converts to MediaPreview correctly', () {
+        final artist = LidarrArtist(
+          id: 1,
+          artistName: 'Test Artist',
+          status: 'active',
+          overview: 'Overview',
+          monitored: true,
+          images: [
+            {
+              'coverType': 'poster',
+              'remoteUrl': 'https://example.com/poster.jpg',
+            },
+          ],
+          genres: ['Rock'],
+        );
+
+        final preview = artist.toMediaPreview();
+
+        expect(preview.id, 1);
+        expect(preview.title, 'Test Artist');
+        expect(preview.overview, 'Overview');
+        expect(preview.mediaType, 'music');
+      });
+    });
+  });
+}

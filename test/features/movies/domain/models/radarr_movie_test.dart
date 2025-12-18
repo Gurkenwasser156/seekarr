@@ -1,0 +1,126 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+
+void main() {
+  group('RadarrMovie', () {
+    group('fromJson', () {
+      test('parses complete JSON correctly', () {
+        final json = {
+          'id': 1,
+          'title': 'Test Movie',
+          'sortTitle': 'test movie',
+          'sizeOnDisk': 5000000000,
+          'status': 'released',
+          'overview': 'A test movie overview.',
+          'path': '/movies/Test Movie (2023)',
+          'hasFile': true,
+          'monitored': true,
+          'year': 2023,
+          'images': [
+            {
+              'coverType': 'poster',
+              'remoteUrl': 'https://example.com/poster.jpg',
+            },
+          ],
+          'tmdbId': 123456,
+          'runtime': 120,
+          'studio': 'Test Studio',
+          'genres': ['Action', 'Drama'],
+        };
+
+        final movie = RadarrMovie.fromJson(json);
+
+        expect(movie.id, 1);
+        expect(movie.title, 'Test Movie');
+        expect(movie.sortTitle, 'test movie');
+        expect(movie.sizeOnDisk, 5000000000);
+        expect(movie.status, 'released');
+        expect(movie.overview, 'A test movie overview.');
+        expect(movie.path, '/movies/Test Movie (2023)');
+        expect(movie.hasFile, true);
+        expect(movie.monitored, true);
+        expect(movie.year, 2023);
+        expect(movie.images.length, 1);
+        expect(movie.tmdbId, 123456);
+        expect(movie.runtime, 120);
+        expect(movie.studio, 'Test Studio');
+        expect(movie.genres, ['Action', 'Drama']);
+      });
+
+      test('handles missing optional fields', () {
+        final json = {
+          'id': 1,
+          'title': 'Test Movie',
+          'sortTitle': 'test movie',
+          'sizeOnDisk': 0,
+          'status': 'unknown',
+          'hasFile': false,
+          'monitored': false,
+          'year': 2023,
+          'images': [],
+          'tmdbId': 123,
+          'runtime': 0,
+          'genres': [],
+        };
+
+        final movie = RadarrMovie.fromJson(json);
+
+        expect(movie.overview, isNull);
+        expect(movie.path, isNull);
+        expect(movie.studio, isNull);
+      });
+
+      test('handles null values with defaults', () {
+        final json = <String, dynamic>{};
+
+        final movie = RadarrMovie.fromJson(json);
+
+        expect(movie.id, 0);
+        expect(movie.title, 'Unknown');
+        expect(movie.sortTitle, '');
+        expect(movie.sizeOnDisk, 0);
+        expect(movie.status, 'unknown');
+        expect(movie.hasFile, false);
+        expect(movie.monitored, false);
+        expect(movie.year, 0);
+        expect(movie.images, isEmpty);
+        expect(movie.tmdbId, 0);
+        expect(movie.runtime, 0);
+        expect(movie.genres, isEmpty);
+      });
+    });
+
+    group('toMediaPreview', () {
+      test('converts to MediaPreview correctly', () {
+        final movie = RadarrMovie(
+          id: 1,
+          title: 'Test Movie',
+          sortTitle: 'test movie',
+          sizeOnDisk: 0,
+          status: 'released',
+          overview: 'Overview',
+          hasFile: true,
+          monitored: true,
+          year: 2023,
+          images: [
+            {
+              'coverType': 'poster',
+              'remoteUrl': 'https://example.com/poster.jpg',
+            },
+          ],
+          tmdbId: 123,
+          runtime: 120,
+          genres: ['Action'],
+        );
+
+        final preview = movie.toMediaPreview();
+
+        expect(preview.id, 1);
+        expect(preview.title, 'Test Movie');
+        expect(preview.overview, 'Overview');
+        expect(preview.releaseDate, '2023');
+        expect(preview.mediaType, 'movie');
+      });
+    });
+  });
+}
