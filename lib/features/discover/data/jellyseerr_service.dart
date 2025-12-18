@@ -1,0 +1,243 @@
+import 'package:seekarr/core/api/api_client.dart';
+import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/core/models/media_preview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final jellyseerrServiceProvider = Provider<JellyseerrService>((ref) {
+  final settings = ref.watch(settingsProvider);
+  if (settings.jellyseerrUrl.isEmpty || settings.jellyseerrApiKey.isEmpty) {
+    throw Exception('Jellyseerr not configured');
+  }
+  return JellyseerrService(
+    ApiClient(
+      baseUrl: settings.jellyseerrUrl,
+      apiKey: settings.jellyseerrApiKey,
+    ),
+  );
+});
+
+class JellyseerrService {
+  final ApiClient _client;
+
+  JellyseerrService(this._client);
+
+  Future<List<JellyseerrRequest>> getRequests() async {
+    try {
+      final response = await _client.get(
+        '/api/v1/request',
+        queryParameters: {
+          'take': 20,
+          'skip': 0,
+          'sort': 'added',
+          'filter': 'all',
+        },
+      );
+      final results = response.data['results'] as List<dynamic>;
+      final requests = results
+          .map((e) {
+            try {
+              return JellyseerrRequest.fromJson(e);
+            } catch (e) {
+              return null;
+            }
+          })
+          .whereType<JellyseerrRequest>()
+          .toList();
+
+      // Hydrate missing titles
+      return await Future.wait(
+        requests.map((request) async {
+          if (request.media?.title != null &&
+              request.media!.title != 'Unknown Media' &&
+              !request.media!.title!.startsWith('Unknown Media (')) {
+            return request;
+          }
+
+          try {
+            if (request.media?.mediaType == 'movie' &&
+                request.media?.tmdbId != null) {
+              final details = await getMovie(request.media!.tmdbId!);
+              return request.copyWith(
+                media: request.media?.copyWith(
+                  title: details['title'],
+                  year: details['releaseDate']?.toString().substring(0, 4),
+                ),
+              );
+            } else if (request.media?.mediaType == 'tv' &&
+                request.media?.tmdbId != null) {
+              final details = await getTv(request.media!.tmdbId!);
+              return request.copyWith(
+                media: request.media?.copyWith(
+                  title: details['name'],
+                  year: details['firstAirDate']?.toString().substring(0, 4),
+                ),
+              );
+            }
+          } catch (e) {
+            // Ignore hydration errors
+          }
+          return request;
+        }),
+      );
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> deleteRequest(int requestId) async {
+    await _client.delete('/api/v1/request/$requestId');
+  }
+
+  Future<List<MediaPreview>> getDiscoverMovies({int page = 1}) async {
+    try {
+      final response = await _client.get(
+        '/api/v1/discover/movies',
+        queryParameters: {'page': page},
+      );
+      final results = response.data['results'] as List<dynamic>;
+      return results
+          .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'movie'))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<MediaPreview>> getDiscoverTV({int page = 1}) async {
+    try {
+      final response = await _client.get(
+        '/api/v1/discover/tv',
+        queryParameters: {'page': page},
+      );
+      final results = response.data['results'] as List<dynamic>;
+      return results
+          .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'tv'))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<MediaPreview>> getDiscoverTrending({int page = 1}) async {
+    try {
+      final response = await _client.get(
+        '/api/v1/discover/trending',
+        queryParameters: {'page': page},
+      );
+      final results = response.data['results'] as List<dynamic>;
+      return results.map((e) => MediaPreview.fromJson(e)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getMovie(int movieId) async {
+    final response = await _client.get('/api/v1/movie/$movieId');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getTv(int tvId) async {
+    final response = await _client.get('/api/v1/tv/$tvId');
+    return response.data;
+  }
+
+  /// Searches for movies and TV shows by query string.
+  Future<List<MediaPreview>> search(String query, {int page = 1}) async {
+    if (query.isEmpty) return [];
+    try {
+      // URL-encode the query to handle spaces and special characters
+      final encodedQuery = Uri.encodeComponent(query);
+      final response = await _client.get(
+        '/api/v1/search',
+        queryParameters: {'query': encodedQuery, 'page': page},
+      );
+      final results = response.data['results'] as List<dynamic>;
+      return results.map((e) => MediaPreview.fromJson(e)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Gets available Radarr servers from Jellyseerr.
+  Future<List<Map<String, dynamic>>> getRadarrServers() async {
+    try {
+      final response = await _client.get('/api/v1/service/radarr');
+      final data = response.data as List<dynamic>;
+      return data.cast<Map<String, dynamic>>();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Gets available Sonarr servers from Jellyseerr.
+  Future<List<Map<String, dynamic>>> getSonarrServers() async {
+    try {
+      final response = await _client.get('/api/v1/service/sonarr');
+      final data = response.data as List<dynamic>;
+      return data.cast<Map<String, dynamic>>();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Gets quality profiles for a specific Radarr server.
+  Future<Map<String, dynamic>> getRadarrProfiles(int serverId) async {
+    final response = await _client.get('/api/v1/service/radarr/$serverId');
+    return response.data;
+  }
+
+  /// Gets quality profiles for a specific Sonarr server.
+  Future<Map<String, dynamic>> getSonarrProfiles(int serverId) async {
+    final response = await _client.get('/api/v1/service/sonarr/$serverId');
+    return response.data;
+  }
+
+  /// Creates a new media request.
+  /// [mediaType] should be 'movie' or 'tv'.
+  /// [mediaId] is the TMDB ID of the media.
+  Future<void> createRequest({
+    required String mediaType,
+    required int mediaId,
+    int? profileId,
+    String? rootFolder, // Root folder path
+    int? serverId,
+    bool is4k = false,
+    List<int>? seasons, // For TV shows - if null, requests all seasons
+  }) async {
+    final body = <String, dynamic>{
+      'mediaType': mediaType,
+      'mediaId': mediaId,
+      'is4k': is4k,
+    };
+
+    // For TV shows, seasons is required - use 'all' or specific season numbers
+    if (mediaType == 'tv') {
+      if (seasons != null && seasons.isNotEmpty) {
+        body['seasons'] = seasons;
+      } else {
+        body['seasons'] = 'all';
+      }
+    }
+
+    if (profileId != null) body['profileId'] = profileId;
+    if (rootFolder != null) body['rootFolder'] = rootFolder;
+    if (serverId != null) body['serverId'] = serverId;
+
+    await _client.post('/api/v1/request', data: body);
+  }
+
+  /// Deletes a media item from Jellyseerr tracking.
+  /// This removes the media record but does NOT delete files from Radarr/Sonarr.
+  /// [mediaId] is the Jellyseerr internal media ID (not TMDB ID).
+  Future<void> deleteMedia(int mediaId) async {
+    await _client.delete('/api/v1/media/$mediaId');
+  }
+
+  /// Deletes the media files from Radarr/Sonarr via Jellyseerr.
+  /// This removes the actual files from the media server.
+  /// [mediaId] is the Jellyseerr internal media ID (not TMDB ID).
+  Future<void> deleteMediaFile(int mediaId) async {
+    await _client.delete('/api/v1/media/$mediaId/file');
+  }
+}

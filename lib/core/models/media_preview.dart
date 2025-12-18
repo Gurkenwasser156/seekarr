@@ -1,0 +1,70 @@
+class MediaPreview {
+  final int id;
+  final String title;
+  final String? posterPath;
+  final String? overview;
+  final String? releaseDate;
+  final String mediaType; // 'movie' or 'tv'
+  final double? voteAverage;
+
+  const MediaPreview({
+    required this.id,
+    required this.title,
+    this.posterPath,
+    this.overview,
+    this.releaseDate,
+    required this.mediaType,
+    this.voteAverage,
+  });
+
+  factory MediaPreview.fromJson(
+    Map<String, dynamic> json, {
+    String? forcedMediaType,
+  }) {
+    // Handle both 'title' (movies) and 'name' (tv)
+    final title = json['title'] ?? json['name'] ?? 'Unknown';
+    // Handle both 'release_date' and 'first_air_date' (TMDB/Jellyseerr usually use snake_case or camelCase depending on endpoint,
+    // but the previous code used camelCase accessors like json['releaseDate'] suggesting the API client might not be normalizing it,
+    // OR the previous code was guessing.
+    // Jellyseerr API v1 usually returns mixed. Let's handle both camel and snake for safety.)
+    final releaseDate =
+        json['releaseDate'] ??
+        json['release_date'] ??
+        json['firstAirDate'] ??
+        json['first_air_date'];
+    final posterPath = json['posterPath'] ?? json['poster_path'];
+    final overview = json['overview'];
+    final voteAverage = (json['voteAverage'] ?? json['vote_average'])
+        ?.toDouble();
+
+    // Determine media type
+    var mediaType = forcedMediaType ?? json['mediaType'] ?? json['media_type'];
+    if (mediaType == null) {
+      // Infere based on keys if missing
+      if (json.containsKey('name') ||
+          json.containsKey('firstAirDate') ||
+          json.containsKey('first_air_date')) {
+        mediaType = 'tv';
+      } else {
+        mediaType = 'movie'; // Default to movie
+      }
+    }
+
+    return MediaPreview(
+      id: json['id'],
+      title: title,
+      posterPath: posterPath,
+      overview: overview,
+      releaseDate: releaseDate,
+      mediaType: mediaType,
+      voteAverage: voteAverage,
+    );
+  }
+
+  String get year {
+    if (releaseDate != null && releaseDate!.length >= 4) {
+      return releaseDate!.substring(0, 4);
+    }
+    return '';
+  }
+}
