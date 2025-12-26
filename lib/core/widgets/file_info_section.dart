@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
 
 /// A reusable widget to display file information (path and filename).
+///
+/// Uses Material Design 3 styling with proper color tokens.
 class FileInfoSection extends StatelessWidget {
   final String? path;
   final String? filename;
@@ -13,44 +17,48 @@ class FileInfoSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.surfaceContainer,
+        borderRadius: AppRadius.borderRadiusMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.folder_outlined,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
+              Icon(Icons.folder_rounded, size: 16, color: colorScheme.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
                 child: Text(
                   'File Information',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           if (path != null) ...[
-            _InfoRow(label: 'Path', value: path!, icon: Icons.folder),
+            _InfoRow(
+              label: 'Path',
+              value: path!,
+              icon: Icons.folder_outlined,
+              colorScheme: colorScheme,
+            ),
           ],
           if (filename != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.sm),
             _InfoRow(
               label: 'File',
               value: filename!,
-              icon: Icons.insert_drive_file,
+              icon: Icons.description_outlined,
+              colorScheme: colorScheme,
             ),
           ],
         ],
@@ -63,11 +71,13 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final ColorScheme colorScheme;
 
   const _InfoRow({
     required this.label,
     required this.value,
     required this.icon,
+    required this.colorScheme,
   });
 
   @override
@@ -75,12 +85,14 @@ class _InfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 6),
+        Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

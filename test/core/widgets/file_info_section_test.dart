@@ -25,8 +25,9 @@ void main() {
 
       expect(find.text('File Information'), findsOneWidget);
       expect(find.text('/movies/Avatar'), findsOneWidget);
+      // folder_rounded in header, folder_outlined in info row
+      expect(find.byIcon(Icons.folder_rounded), findsOneWidget);
       expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.folder), findsOneWidget);
     });
 
     testWidgets('renders filename when provided', (tester) async {
@@ -40,7 +41,7 @@ void main() {
 
       expect(find.text('File Information'), findsOneWidget);
       expect(find.text('Avatar.2009.1080p.mkv'), findsOneWidget);
-      expect(find.byIcon(Icons.insert_drive_file), findsOneWidget);
+      expect(find.byIcon(Icons.description_outlined), findsOneWidget);
     });
 
     testWidgets('renders both path and filename when provided', (tester) async {

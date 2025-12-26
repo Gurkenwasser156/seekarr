@@ -81,7 +81,7 @@ void main() {
       );
 
       expect(find.text('Available'), findsOneWidget);
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
 
     testWidgets('renders missing status correctly', (tester) async {
@@ -92,7 +92,7 @@ void main() {
       );
 
       expect(find.text('Missing'), findsOneWidget);
-      expect(find.byIcon(Icons.cancel), findsOneWidget);
+      expect(find.byIcon(Icons.cancel_rounded), findsOneWidget);
     });
 
     testWidgets('renders downloading status correctly', (tester) async {
@@ -103,7 +103,7 @@ void main() {
       );
 
       expect(find.text('Downloading'), findsOneWidget);
-      expect(find.byIcon(Icons.download), findsOneWidget);
+      expect(find.byIcon(Icons.downloading_rounded), findsOneWidget);
     });
 
     testWidgets('renders queued status correctly', (tester) async {
@@ -114,7 +114,7 @@ void main() {
       );
 
       expect(find.text('Queued'), findsOneWidget);
-      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
     });
 
     testWidgets('renders unknown status correctly', (tester) async {
@@ -125,7 +125,7 @@ void main() {
       );
 
       expect(find.text('Unknown'), findsOneWidget);
-      expect(find.byIcon(Icons.help_outline), findsOneWidget);
+      expect(find.byIcon(Icons.help_outline_rounded), findsOneWidget);
     });
   });
 }

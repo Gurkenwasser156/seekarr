@@ -10,7 +10,7 @@ void main() {
       );
 
       expect(find.byType(ContentCard), findsOneWidget);
-      expect(find.byIcon(Icons.movie), findsOneWidget);
+      expect(find.byIcon(Icons.movie_outlined), findsOneWidget);
     });
 
     testWidgets('renders placeholder when imageUrl is empty', (tester) async {
@@ -21,7 +21,7 @@ void main() {
       );
 
       expect(find.byType(ContentCard), findsOneWidget);
-      expect(find.byIcon(Icons.movie), findsOneWidget);
+      expect(find.byIcon(Icons.movie_outlined), findsOneWidget);
     });
 
     testWidgets('renders badge when provided', (tester) async {
@@ -67,6 +67,7 @@ void main() {
       );
 
       final decoration = container.decoration as BoxDecoration?;
+      // AppRadius.borderRadiusMd = 12
       expect(decoration?.borderRadius, BorderRadius.circular(12));
     });
   });
