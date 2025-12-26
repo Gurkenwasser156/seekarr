@@ -1,3 +1,4 @@
+import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
@@ -12,7 +13,7 @@ typedef StatusExtractor<T> = ({bool hasFile, String status})? Function(T item);
 /// A reusable grid widget for displaying media items (movies, series, music).
 ///
 /// This widget provides a consistent 3-column grid layout with poster images,
-/// status badges, and Hero transition support.
+/// status badges, and Hero transition support. Following Material Design 3.
 class MediaGrid<T> extends StatelessWidget {
   /// The list of media items to display.
   final List<T> items;
@@ -44,6 +45,9 @@ class MediaGrid<T> extends StatelessWidget {
   /// Scroll physics. Use AlwaysScrollableScrollPhysics for RefreshIndicator.
   final ScrollPhysics? physics;
 
+  /// Number of columns in the grid
+  final int crossAxisCount;
+
   const MediaGrid({
     super.key,
     required this.items,
@@ -56,22 +60,43 @@ class MediaGrid<T> extends StatelessWidget {
     this.onItemTap,
     this.coverTypes = const ['poster', 'cover'],
     this.physics,
+    this.crossAxisCount = 3,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (items.isEmpty) {
-      return const Center(child: Text('No items found'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.movie_filter_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'No items found',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return GridView.builder(
       physics: physics ?? const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
         childAspectRatio: 2 / 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: AppSpacing.gridGap,
+        mainAxisSpacing: AppSpacing.gridGap,
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {

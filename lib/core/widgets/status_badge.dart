@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/theme.dart';
 
 /// Represents the status of a media item.
 enum MediaStatus { available, missing, downloading, queued, unknown }
 
 /// A badge widget to display media status on poster cards.
+///
+/// Uses Material Design 3 styling with semantic colors from the Jellyseerr palette.
 class StatusBadge extends StatelessWidget {
   final MediaStatus status;
   final bool compact;
@@ -31,41 +36,36 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = _getConfig();
+    final colorScheme = Theme.of(context).colorScheme;
+    final config = _getConfig(colorScheme);
 
-    // Both compact and full mode now show text badge for better visibility
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 6,
-        vertical: compact ? 2 : 3,
+        horizontal: compact ? AppSpacing.xs : AppSpacing.sm,
+        vertical: compact ? 2 : AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: config.color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.8),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        color: config.backgroundColor,
+        borderRadius: AppRadius.borderRadiusSm,
+        border: Border.all(color: config.borderColor, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(config.icon, size: compact ? 10 : 12, color: Colors.white),
+          Icon(
+            config.icon,
+            size: compact ? 10 : 12,
+            color: config.foregroundColor,
+          ),
           if (!compact) ...[
-            const SizedBox(width: 3),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               config.label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                color: config.foregroundColor,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -74,36 +74,46 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  _StatusConfig _getConfig() {
+  _StatusConfig _getConfig(ColorScheme colorScheme) {
     switch (status) {
       case MediaStatus.available:
         return _StatusConfig(
-          color: Colors.green.shade700,
-          icon: Icons.check_circle,
+          backgroundColor: AppColors.success.withValues(alpha: 0.9),
+          foregroundColor: Colors.white,
+          borderColor: AppColors.success,
+          icon: Icons.check_circle_rounded,
           label: 'Available',
         );
       case MediaStatus.missing:
         return _StatusConfig(
-          color: Colors.red.shade700,
-          icon: Icons.cancel,
+          backgroundColor: colorScheme.error.withValues(alpha: 0.9),
+          foregroundColor: Colors.white,
+          borderColor: colorScheme.error,
+          icon: Icons.cancel_rounded,
           label: 'Missing',
         );
       case MediaStatus.downloading:
         return _StatusConfig(
-          color: Colors.blue.shade700,
-          icon: Icons.download,
+          backgroundColor: AppColors.info.withValues(alpha: 0.9),
+          foregroundColor: Colors.white,
+          borderColor: AppColors.info,
+          icon: Icons.downloading_rounded,
           label: 'Downloading',
         );
       case MediaStatus.queued:
         return _StatusConfig(
-          color: Colors.orange.shade700,
-          icon: Icons.schedule,
+          backgroundColor: AppColors.warning.withValues(alpha: 0.9),
+          foregroundColor: Colors.white,
+          borderColor: AppColors.warning,
+          icon: Icons.schedule_rounded,
           label: 'Queued',
         );
       case MediaStatus.unknown:
         return _StatusConfig(
-          color: Colors.grey.shade700,
-          icon: Icons.help_outline,
+          backgroundColor: colorScheme.surfaceContainerHighest,
+          foregroundColor: colorScheme.onSurfaceVariant,
+          borderColor: colorScheme.outline,
+          icon: Icons.help_outline_rounded,
           label: 'Unknown',
         );
     }
@@ -111,12 +121,16 @@ class StatusBadge extends StatelessWidget {
 }
 
 class _StatusConfig {
-  final Color color;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color borderColor;
   final IconData icon;
   final String label;
 
   const _StatusConfig({
-    required this.color,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.borderColor,
     required this.icon,
     required this.label,
   });

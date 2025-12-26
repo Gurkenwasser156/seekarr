@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 
+/// Settings screen for configuring service URLs and API keys.
+///
+/// Uses Material Design 3 styling with grouped card sections.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -59,6 +65,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _saveSettings() async {
+    HapticFeedback.mediumImpact();
+
     if (_formKey.currentState!.validate()) {
       final newSettings = SettingsModel(
         jellyseerrUrl: _jellyseerrUrlController.text.trim(),
@@ -73,7 +81,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref.read(settingsProvider.notifier).updateSettings(newSettings);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings saved successfully')),
+          SnackBar(
+            content: const Text('Settings saved successfully'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: AppRadius.borderRadiusMd,
+            ),
+          ),
         );
       }
     }
@@ -81,82 +95,167 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         actions: [
-          IconButton(onPressed: _saveSettings, icon: const Icon(Icons.save)),
+          FilledButton.icon(
+            onPressed: _saveSettings,
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: const Text('Save'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
         ],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            _buildSectionHeader('Jellyseerr (Discover)'),
-            _buildTextField(
-              _jellyseerrUrlController,
-              'URL',
-              'http://localhost:8080',
+            _buildServiceSection(
+              context: context,
+              title: 'Jellyseerr',
+              subtitle: 'Discovery & Requests',
+              icon: Icons.explore_rounded,
+              iconColor: colorScheme.primary,
+              urlController: _jellyseerrUrlController,
+              apiKeyController: _jellyseerrApiKeyController,
             ),
-            _buildTextField(_jellyseerrApiKeyController, 'API Key', 'xxxxxxxx'),
-            const SizedBox(height: 24),
-            _buildSectionHeader('Radarr (Movies)'),
-            _buildTextField(
-              _radarrUrlController,
-              'URL',
-              'http://localhost:8080',
+            const SizedBox(height: AppSpacing.lg),
+            _buildServiceSection(
+              context: context,
+              title: 'Radarr',
+              subtitle: 'Movies',
+              icon: Icons.movie_rounded,
+              iconColor: Colors.orange,
+              urlController: _radarrUrlController,
+              apiKeyController: _radarrApiKeyController,
             ),
-            _buildTextField(_radarrApiKeyController, 'API Key', 'xxxxxxxx'),
-            const SizedBox(height: 24),
-            _buildSectionHeader('Sonarr (Series)'),
-            _buildTextField(
-              _sonarrUrlController,
-              'URL',
-              'http://localhost:8080',
+            const SizedBox(height: AppSpacing.lg),
+            _buildServiceSection(
+              context: context,
+              title: 'Sonarr',
+              subtitle: 'TV Series',
+              icon: Icons.tv_rounded,
+              iconColor: Colors.blue,
+              urlController: _sonarrUrlController,
+              apiKeyController: _sonarrApiKeyController,
             ),
-            _buildTextField(_sonarrApiKeyController, 'API Key', 'xxxxxxxx'),
-            const SizedBox(height: 24),
-            _buildSectionHeader('Lidarr (Music)'),
-            _buildTextField(
-              _lidarrUrlController,
-              'URL',
-              'http://localhost:8080',
+            const SizedBox(height: AppSpacing.lg),
+            _buildServiceSection(
+              context: context,
+              title: 'Lidarr',
+              subtitle: 'Music',
+              icon: Icons.library_music_rounded,
+              iconColor: Colors.green,
+              urlController: _lidarrUrlController,
+              apiKeyController: _lidarrApiKeyController,
             ),
-            _buildTextField(_lidarrApiKeyController, 'API Key', 'xxxxxxxx'),
+            const SizedBox(height: AppSpacing.xxxl),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
+  Widget _buildServiceSection({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required TextEditingController urlController,
+    required TextEditingController apiKeyController,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    String hint,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          border: const OutlineInputBorder(),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: AppRadius.borderRadiusMd,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.borderRadiusSm,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Divider(height: 1, color: colorScheme.outlineVariant),
+
+          // Form fields
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: urlController,
+                  decoration: InputDecoration(
+                    labelText: 'Server URL',
+                    hintText: 'http://localhost:8080',
+                    prefixIcon: const Icon(Icons.link_rounded),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: apiKeyController,
+                  decoration: InputDecoration(
+                    labelText: 'API Key',
+                    hintText: 'Enter API key',
+                    prefixIcon: const Icon(Icons.key_rounded),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                  ),
+                  obscureText: true,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

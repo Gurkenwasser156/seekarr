@@ -17,7 +17,21 @@ A Flutter mobile application for managing self-hosted media services including J
 - **Activity**: Monitor download queues, history, and wanted items across all services
 - **Pull-to-Refresh**: Swipe down on any screen to refresh data
 - **iOS-style Navigation**: Swipe from left edge to go back on detail screens
-- **Material You**: Dynamic theming based on system colors
+- **Material Design 3**: Modern design with Jellyseerr-inspired color palette
+
+## Design System
+
+Seekarr uses a comprehensive Material Design 3 design system:
+
+- **Colors**: Jellyseerr-inspired palette (Indigo primary with dark theme surfaces)
+- **Typography**: Outfit font family with M3 type scale
+- **Spacing**: 4dp grid system (`AppSpacing`)
+- **Radius**: M3-aligned border radius tokens (`AppRadius`)
+- **Animation**: Standard M3 durations and easing curves (`AppAnimation`)
+
+Core design tokens are in `lib/core/`:
+- `theme.dart` - ColorScheme, component themes
+- `app_spacing.dart`, `app_radius.dart`, `app_animation.dart` - Design tokens
 
 ## Architecture
 

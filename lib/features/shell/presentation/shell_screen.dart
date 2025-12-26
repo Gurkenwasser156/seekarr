@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+/// Main shell screen with bottom navigation following Material Design 3.
+///
+/// Uses outlined icons for unselected state and filled icons for selected state,
+/// following M3 navigation bar guidelines.
 class ShellScreen extends StatelessWidget {
   final Widget child;
 
@@ -8,27 +13,37 @@ class ShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = _calculateSelectedIndex(context);
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _calculateSelectedIndex(context),
+        selectedIndex: selectedIndex,
         onDestinationSelected: (int idx) => _onItemTapped(idx, context),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.explore_rounded),
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
             label: 'Discover',
           ),
           NavigationDestination(
-            icon: Icon(Icons.movie_rounded),
+            icon: Icon(Icons.movie_outlined),
+            selectedIcon: Icon(Icons.movie),
             label: 'Movies',
           ),
-          NavigationDestination(icon: Icon(Icons.tv_rounded), label: 'Series'),
           NavigationDestination(
-            icon: Icon(Icons.music_note_rounded),
+            icon: Icon(Icons.tv_outlined),
+            selectedIcon: Icon(Icons.tv),
+            label: 'Series',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.library_music_outlined),
+            selectedIcon: Icon(Icons.library_music),
             label: 'Music',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_rounded),
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
@@ -47,22 +62,20 @@ class ShellScreen extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    // Add light haptic feedback on tab change
+    HapticFeedback.selectionClick();
+
     switch (index) {
       case 0:
         context.go('/discover');
-        break;
       case 1:
         context.go('/movies');
-        break;
       case 2:
         context.go('/series');
-        break;
       case 3:
         context.go('/music');
-        break;
       case 4:
         context.go('/settings');
-        break;
     }
   }
 }

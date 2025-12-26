@@ -1,6 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:seekarr/core/app_spacing.dart';
 
+/// A reusable view for displaying media details with hero poster,
+/// gradient overlay, and sliver-based scrollable content.
+///
+/// Follows Material Design 3 styling with proper color tokens.
 class MediaDetailView extends StatelessWidget {
   final String title;
   final String heroTag;
@@ -25,16 +30,21 @@ class MediaDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 500,
             pinned: true,
+            backgroundColor: colorScheme.surface,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Hero poster image
                   Hero(
                     tag: heroTag,
                     child: Material(
@@ -43,13 +53,22 @@ class MediaDetailView extends StatelessWidget {
                           ? CachedNetworkImage(
                               imageUrl: posterUrl!,
                               fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  Container(color: Colors.grey[900]),
+                              errorWidget: (context, url, error) => Container(
+                                color: colorScheme.surfaceContainer,
+                              ),
                             )
-                          : Container(color: Colors.grey[900]),
+                          : Container(
+                              color: colorScheme.surfaceContainer,
+                              child: Icon(
+                                Icons.movie_outlined,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                     ),
                   ),
-                  // Gradient Overlay
+
+                  // Gradient overlay for text readability
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -57,70 +76,80 @@ class MediaDetailView extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Theme.of(context).scaffoldBackgroundColor,
+                          colorScheme.surface.withValues(alpha: 0.5),
+                          colorScheme.surface,
                         ],
-                        stops: const [0.5, 1.0],
+                        stops: const [0.4, 0.7, 1.0],
                       ),
                     ),
                   ),
+
                   if (background != null) background!,
                 ],
               ),
             ),
           ),
+
+          // Main content
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title Area
+                  // Title
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
 
+                  // Tags (genres, year, etc.)
                   if (tags.isNotEmpty) ...[
-                    Wrap(spacing: 12, runSpacing: 8, children: tags),
-                    const SizedBox(height: 24),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: tags,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
 
-                  // Actions
+                  // Actions (buttons)
                   if (actions != null) ...[
                     actions!,
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
 
-                  // Description
+                  // Overview section
                   if (overview.isNotEmpty) ...[
                     Text(
                       'Overview',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       overview,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(height: 1.5),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        height: 1.6,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
 
-                  // Extra content padding before slivers if needed,
-                  // but slivers come next in the CustomScrollView list
-                  // so here we just end the "Header" box.
-                  if (slivers.isEmpty)
-                    const SizedBox(
-                      height: 100,
-                    ), // Bottom padding if no extra slivers
+                  // Bottom padding if no extra slivers
+                  if (slivers.isEmpty) const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
+
+          // Additional slivers
           ...slivers,
+
           if (slivers.isNotEmpty)
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],

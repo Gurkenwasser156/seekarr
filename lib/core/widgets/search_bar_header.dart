@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
 
 /// A reusable, always-visible search bar widget for the top of screens.
 ///
-/// Provides debounced text input, clear button, and Material 3 styling.
+/// Provides debounced text input, clear button, and Material Design 3 styling.
+/// Uses the M3 SearchBar widget with proper color tokens.
 class SearchBarHeader extends StatefulWidget {
   /// Callback when the search query changes (debounced).
   final ValueChanged<String> onQueryChanged;
@@ -17,12 +20,16 @@ class SearchBarHeader extends StatefulWidget {
   /// Debounce duration for search input.
   final Duration debounceDuration;
 
+  /// Whether to autofocus the search field
+  final bool autofocus;
+
   const SearchBarHeader({
     super.key,
     required this.onQueryChanged,
     this.hintText = 'Search...',
     this.initialQuery,
     this.debounceDuration = const Duration(milliseconds: 400),
+    this.autofocus = false,
   });
 
   @override
@@ -32,24 +39,33 @@ class SearchBarHeader extends StatefulWidget {
 class _SearchBarHeaderState extends State<SearchBarHeader> {
   late final TextEditingController _controller;
   Timer? _debounceTimer;
+  bool _hasText = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
+    _hasText = _controller.text.isNotEmpty;
+    _controller.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
 
-  void _onTextChanged(String value) {
+  void _onTextChanged() {
+    final hasText = _controller.text.isNotEmpty;
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
+    }
+
     _debounceTimer?.cancel();
     _debounceTimer = Timer(widget.debounceDuration, () {
-      widget.onQueryChanged(value.trim());
+      widget.onQueryChanged(_controller.text.trim());
     });
   }
 
@@ -63,25 +79,43 @@ class _SearchBarHeaderState extends State<SearchBarHeader> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: SearchBar(
         controller: _controller,
         hintText: widget.hintText,
-        onChanged: _onTextChanged,
+        autoFocus: widget.autofocus,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+          padding: const EdgeInsets.only(left: AppSpacing.sm),
+          child: Icon(
+            Icons.search_rounded,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         trailing: [
-          if (_controller.text.isNotEmpty)
-            IconButton(icon: const Icon(Icons.clear), onPressed: _clearQuery),
+          if (_hasText)
+            IconButton(
+              icon: Icon(
+                Icons.close_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              onPressed: _clearQuery,
+              tooltip: 'Clear',
+            ),
         ],
         elevation: WidgetStateProperty.all(0),
         backgroundColor: WidgetStateProperty.all(
           colorScheme.surfaceContainerHighest,
         ),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusXl),
+        ),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         ),
       ),
     );
