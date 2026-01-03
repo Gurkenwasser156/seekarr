@@ -87,6 +87,67 @@ void main() {
         expect(selectedId, null);
       });
     });
+
+    group('search result filtering', () {
+      test('filters out person mediaType', () {
+        final results = [
+          {'id': 1, 'mediaType': 'movie', 'title': 'Test Movie'},
+          {'id': 2, 'mediaType': 'person', 'name': 'Test Actor'},
+          {'id': 3, 'mediaType': 'tv', 'name': 'Test Show'},
+        ];
+
+        final filtered = _filterSearchResults(results);
+
+        expect(filtered.length, 2);
+        expect(filtered.any((e) => e['mediaType'] == 'person'), false);
+      });
+
+      test('keeps movie results', () {
+        final results = [
+          {'id': 1, 'mediaType': 'movie', 'title': 'Test Movie'},
+        ];
+
+        final filtered = _filterSearchResults(results);
+
+        expect(filtered.length, 1);
+        expect(filtered.first['mediaType'], 'movie');
+      });
+
+      test('keeps tv results', () {
+        final results = [
+          {'id': 1, 'mediaType': 'tv', 'name': 'Test Show'},
+        ];
+
+        final filtered = _filterSearchResults(results);
+
+        expect(filtered.length, 1);
+        expect(filtered.first['mediaType'], 'tv');
+      });
+
+      test('handles snake_case media_type', () {
+        final results = [
+          {'id': 1, 'media_type': 'movie', 'title': 'Test Movie'},
+          {'id': 2, 'media_type': 'person', 'name': 'Test Actor'},
+          {'id': 3, 'media_type': 'tv', 'name': 'Test Show'},
+        ];
+
+        final filtered = _filterSearchResults(results);
+
+        expect(filtered.length, 2);
+        expect(filtered.any((e) => e['media_type'] == 'person'), false);
+      });
+
+      test('returns empty list when all results are persons', () {
+        final results = [
+          {'id': 1, 'mediaType': 'person', 'name': 'Actor 1'},
+          {'id': 2, 'mediaType': 'person', 'name': 'Actor 2'},
+        ];
+
+        final filtered = _filterSearchResults(results);
+
+        expect(filtered.isEmpty, true);
+      });
+    });
   });
 
   // Run additional test groups
@@ -191,4 +252,14 @@ String _buildMediaDeleteUrl(int mediaId) {
 
 String _buildMediaFileDeleteUrl(int mediaId) {
   return '/api/v1/media/$mediaId/file';
+}
+
+/// Helper to simulate search result filtering (mirrors JellyseerrService.search logic)
+List<Map<String, dynamic>> _filterSearchResults(
+  List<Map<String, dynamic>> results,
+) {
+  return results.where((e) {
+    final mediaType = e['mediaType'] ?? e['media_type'];
+    return mediaType == 'movie' || mediaType == 'tv';
+  }).toList();
 }

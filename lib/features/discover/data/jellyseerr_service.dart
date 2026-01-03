@@ -143,6 +143,7 @@ class JellyseerrService {
   }
 
   /// Searches for movies and TV shows by query string.
+  /// Filters out 'person' results to only return movies and TV shows.
   Future<List<MediaPreview>> search(String query, {int page = 1}) async {
     if (query.isEmpty) return [];
     try {
@@ -153,7 +154,14 @@ class JellyseerrService {
         queryParameters: {'query': encodedQuery, 'page': page},
       );
       final results = response.data['results'] as List<dynamic>;
-      return results.map((e) => MediaPreview.fromJson(e)).toList();
+      // Filter out 'person' results - only keep movies and TV shows
+      return results
+          .where((e) {
+            final mediaType = e['mediaType'] ?? e['media_type'];
+            return mediaType == 'movie' || mediaType == 'tv';
+          })
+          .map((e) => MediaPreview.fromJson(e))
+          .toList();
     } catch (e) {
       return [];
     }

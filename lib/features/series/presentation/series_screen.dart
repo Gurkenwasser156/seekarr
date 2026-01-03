@@ -1,4 +1,5 @@
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
@@ -18,6 +19,16 @@ class SeriesScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final searchQuery = ref.watch(seriesSearchQueryProvider);
     final searchResults = ref.watch(seriesSearchResultsProvider);
+
+    // Listen for navigation refresh trigger
+    ref.listen<int>(navigationRefreshProvider(NavigationSection.series), (
+      previous,
+      next,
+    ) {
+      // Clear search query and invalidate provider
+      ref.read(seriesSearchQueryProvider.notifier).state = '';
+      ref.invalidate(seriesProvider);
+    });
 
     return Scaffold(
       appBar: AppBar(
