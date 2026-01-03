@@ -1,4 +1,5 @@
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
@@ -18,6 +19,16 @@ class MusicScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final searchQuery = ref.watch(musicSearchQueryProvider);
     final searchResults = ref.watch(musicSearchResultsProvider);
+
+    // Listen for navigation refresh trigger
+    ref.listen<int>(navigationRefreshProvider(NavigationSection.music), (
+      previous,
+      next,
+    ) {
+      // Clear search query and invalidate provider
+      ref.read(musicSearchQueryProvider.notifier).state = '';
+      ref.invalidate(musicProvider);
+    });
 
     return Scaffold(
       appBar: AppBar(

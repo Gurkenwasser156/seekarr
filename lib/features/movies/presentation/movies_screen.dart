@@ -1,4 +1,5 @@
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
@@ -18,6 +19,16 @@ class MoviesScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final searchQuery = ref.watch(moviesSearchQueryProvider);
     final searchResults = ref.watch(moviesSearchResultsProvider);
+
+    // Listen for navigation refresh trigger
+    ref.listen<int>(navigationRefreshProvider(NavigationSection.movies), (
+      previous,
+      next,
+    ) {
+      // Clear search query and invalidate provider
+      ref.read(moviesSearchQueryProvider.notifier).state = '';
+      ref.invalidate(moviesProvider);
+    });
 
     return Scaffold(
       appBar: AppBar(

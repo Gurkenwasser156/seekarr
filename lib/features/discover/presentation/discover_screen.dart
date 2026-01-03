@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/models/media_preview.dart';
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
@@ -21,6 +22,18 @@ class DiscoverScreen extends ConsumerWidget {
     final searchQuery = ref.watch(discoverSearchQueryProvider);
     final searchResults = ref.watch(discoverSearchResultsProvider);
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Listen for navigation refresh trigger
+    ref.listen<int>(navigationRefreshProvider(NavigationSection.discover), (
+      previous,
+      next,
+    ) {
+      // Clear search query and invalidate providers
+      ref.read(discoverSearchQueryProvider.notifier).state = '';
+      ref.invalidate(discoverTrendingProvider);
+      ref.invalidate(discoverMoviesProvider);
+      ref.invalidate(discoverTVProvider);
+    });
 
     return Scaffold(
       appBar: AppBar(
