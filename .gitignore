@@ -46,6 +46,8 @@ app.*.map.json
 
 # Agent configuration
 .agent/
+AGENTS.md
+/AGENTS.md
 
 # Environment files (se ne creerai in futuro)
 .env
