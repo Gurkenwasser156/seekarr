@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/release_list_widgets.dart';
 
+/// Sort options for releases
+enum ReleaseSortType {
+  score('CF Score', Icons.star_rounded),
+  size('Size', Icons.storage_rounded),
+  seeders('Seeders', Icons.arrow_upward_rounded),
+  age('Age', Icons.schedule_rounded);
+
+  final String label;
+  final IconData icon;
+  const ReleaseSortType(this.label, this.icon);
+}
+
 /// A reusable bottom sheet for displaying and selecting releases (Interactive Search).
-class InteractiveSearchSheet extends StatelessWidget {
+class InteractiveSearchSheet extends StatefulWidget {
   final List<dynamic> releases;
   final String title;
   final Future<void> Function(String guid, int indexerId) onGrabRelease;
@@ -34,7 +47,74 @@ class InteractiveSearchSheet extends StatelessWidget {
   }
 
   @override
+  State<InteractiveSearchSheet> createState() => _InteractiveSearchSheetState();
+}
+
+class _InteractiveSearchSheetState extends State<InteractiveSearchSheet> {
+  ReleaseSortType _sortType = ReleaseSortType.score;
+  bool _sortAscending = false;
+  bool _hideRejected = false;
+  String? _selectedIndexer;
+
+  List<dynamic> get _filteredAndSortedReleases {
+    var result = List<dynamic>.from(widget.releases);
+
+    // Apply filters
+    if (_hideRejected) {
+      result = result.where((r) {
+        final rejections = r['rejections'] as List<dynamic>? ?? [];
+        return rejections.isEmpty;
+      }).toList();
+    }
+
+    if (_selectedIndexer != null) {
+      result = result.where((r) {
+        return r['indexer'] == _selectedIndexer;
+      }).toList();
+    }
+
+    // Apply sorting
+    result.sort((a, b) {
+      int comparison;
+      switch (_sortType) {
+        case ReleaseSortType.score:
+          final aScore = (a['customFormatScore'] as num?)?.toInt() ?? 0;
+          final bScore = (b['customFormatScore'] as num?)?.toInt() ?? 0;
+          comparison = bScore.compareTo(aScore); // Default desc for score
+          break;
+        case ReleaseSortType.size:
+          final aSize = (a['size'] as num?)?.toInt() ?? 0;
+          final bSize = (b['size'] as num?)?.toInt() ?? 0;
+          comparison = bSize.compareTo(aSize); // Default desc for size
+          break;
+        case ReleaseSortType.seeders:
+          final aSeeders = (a['seeders'] as num?)?.toInt() ?? 0;
+          final bSeeders = (b['seeders'] as num?)?.toInt() ?? 0;
+          comparison = bSeeders.compareTo(aSeeders); // Default desc
+          break;
+        case ReleaseSortType.age:
+          final aAge = (a['ageMinutes'] as num?)?.toInt() ?? 0;
+          final bAge = (b['ageMinutes'] as num?)?.toInt() ?? 0;
+          comparison = aAge.compareTo(bAge); // Default asc (newest first)
+          break;
+      }
+      return _sortAscending ? -comparison : comparison;
+    });
+
+    return result;
+  }
+
+  Set<String> get _availableIndexers {
+    return widget.releases
+        .map((r) => r['indexer'] as String? ?? 'Unknown')
+        .toSet();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final filteredReleases = _filteredAndSortedReleases;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.5,
@@ -45,50 +125,84 @@ class InteractiveSearchSheet extends StatelessWidget {
           children: [
             // Handle bar
             Container(
-              margin: const EdgeInsets.only(top: 8),
+              margin: const EdgeInsets.only(top: AppSpacing.sm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
 
             // Header
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Theme.of(context).dividerColor),
+                  bottom: BorderSide(color: colorScheme.outlineVariant),
                 ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      title,
+                      widget.title,
                       style: Theme.of(context).textTheme.titleLarge,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
-                    '${releases.length} releases',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    '${filteredReleases.length}/${widget.releases.length}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
 
+            // Sort & Filter controls
+            _buildSortFilterBar(context, colorScheme),
+
             // Releases list
             Expanded(
-              child: releases.isEmpty
-                  ? const Center(child: Text('No releases found'))
+              child: filteredReleases.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            _hideRejected || _selectedIndexer != null
+                                ? 'No releases match filters'
+                                : 'No releases found',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                          if (_hideRejected || _selectedIndexer != null) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _hideRejected = false;
+                                _selectedIndexer = null;
+                              }),
+                              child: const Text('Clear Filters'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
                   : ListView.builder(
                       controller: scrollController,
-                      itemCount: releases.length,
+                      itemCount: filteredReleases.length,
                       itemBuilder: (context, index) {
-                        final release = releases[index];
+                        final release = filteredReleases[index];
                         return ReleaseListItem(
                           release: release,
                           onGrab: () => _handleGrab(context, release),
@@ -99,6 +213,151 @@ class InteractiveSearchSheet extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSortFilterBar(BuildContext context, ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // Sort dropdown
+            PopupMenuButton<ReleaseSortType>(
+              initialValue: _sortType,
+              onSelected: (type) => setState(() => _sortType = type),
+              child: Chip(
+                avatar: Icon(_sortType.icon, size: 18),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_sortType.label),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _sortAscending
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+              itemBuilder: (context) => ReleaseSortType.values.map((type) {
+                return PopupMenuItem(
+                  value: type,
+                  child: Row(
+                    children: [
+                      Icon(type.icon, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(type.label),
+                      if (type == _sortType) ...[
+                        const Spacer(),
+                        Icon(
+                          Icons.check_rounded,
+                          size: 20,
+                          color: colorScheme.primary,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+
+            // Sort direction toggle
+            IconButton(
+              icon: Icon(
+                _sortAscending
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                size: 20,
+              ),
+              onPressed: () => setState(() => _sortAscending = !_sortAscending),
+              tooltip: _sortAscending ? 'Ascending' : 'Descending',
+              style: IconButton.styleFrom(
+                backgroundColor: colorScheme.surfaceContainerHighest,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            // Hide rejected filter
+            FilterChip(
+              label: const Text('Hide Rejected'),
+              selected: _hideRejected,
+              onSelected: (selected) =>
+                  setState(() => _hideRejected = selected),
+              avatar: _hideRejected
+                  ? const Icon(Icons.check_rounded, size: 18)
+                  : const Icon(Icons.block_rounded, size: 18),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+
+            // Indexer filter
+            if (_availableIndexers.length > 1)
+              PopupMenuButton<String?>(
+                initialValue: _selectedIndexer,
+                onSelected: (indexer) =>
+                    setState(() => _selectedIndexer = indexer),
+                child: Chip(
+                  avatar: const Icon(Icons.dns_rounded, size: 18),
+                  label: Text(_selectedIndexer ?? 'All Indexers'),
+                  deleteIcon: _selectedIndexer != null
+                      ? const Icon(Icons.close_rounded, size: 18)
+                      : null,
+                  onDeleted: _selectedIndexer != null
+                      ? () => setState(() => _selectedIndexer = null)
+                      : null,
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: null,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.all_inclusive_rounded, size: 20),
+                        const SizedBox(width: AppSpacing.sm),
+                        const Text('All Indexers'),
+                        if (_selectedIndexer == null) ...[
+                          const Spacer(),
+                          Icon(
+                            Icons.check_rounded,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  ..._availableIndexers.map((indexer) {
+                    return PopupMenuItem(
+                      value: indexer,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.dns_outlined, size: 20),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(indexer),
+                          if (indexer == _selectedIndexer) ...[
+                            const Spacer(),
+                            Icon(
+                              Icons.check_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -127,7 +386,7 @@ class InteractiveSearchSheet extends StatelessWidget {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Download'),
           ),
@@ -138,13 +397,13 @@ class InteractiveSearchSheet extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await onGrabRelease(guid, indexerId);
+      await widget.onGrabRelease(guid, indexerId);
       if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Download started'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Download started'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -182,7 +441,7 @@ class InteractiveSearchSheet extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.orange,
+            backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 5),
           ),
         );

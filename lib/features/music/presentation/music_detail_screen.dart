@@ -1,13 +1,17 @@
-import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
-import 'package:seekarr/core/utils/image_utils.dart';
-import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/tag_chip.dart';
-import 'package:seekarr/core/widgets/status_badge.dart';
-import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
-import 'package:seekarr/features/music/data/lidarr_service.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
+import 'package:seekarr/core/widgets/media_detail_view.dart';
+import 'package:seekarr/core/widgets/status_badge.dart';
+import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/features/music/data/lidarr_service.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+import 'package:seekarr/features/music/presentation/music_provider.dart';
+import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 
 class MusicDetailScreen extends ConsumerStatefulWidget {
   final LidarrArtist artist;
@@ -27,13 +31,43 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   List<dynamic> _albums = [];
-  final Map<int, List<dynamic>> _tracksByAlbum = {};
+  final Map<int, List<dynamic>?> _tracksByAlbum = {};
+  final Set<int> _tracksLoadingError = {};
   bool _albumsLoaded = false;
+  List<Map<String, dynamic>> _qualityProfiles = [];
+  String? _currentProfileName;
+  int? _currentProfileId;
+  final Set<int> _searchingAlbums = {};
 
   @override
   void initState() {
     super.initState();
     _loadAlbums();
+    _loadQualityProfiles();
+  }
+
+  Future<void> _loadQualityProfiles() async {
+    try {
+      final lidarrService = ref.read(lidarrServiceProvider);
+      final profiles = await lidarrService.getQualityProfiles();
+      if (mounted) {
+        setState(() {
+          _qualityProfiles = profiles;
+          _currentProfileId = widget.artist.qualityProfileId;
+          _currentProfileName = _getProfileName(_currentProfileId);
+        });
+      }
+    } catch (e) {
+      // Ignore profile loading errors
+    }
+  }
+
+  String? _getProfileName(int? profileId) {
+    if (profileId == null) return null;
+    final profile = _qualityProfiles
+        .where((p) => p['id'] == profileId)
+        .firstOrNull;
+    return profile?['name'] as String?;
   }
 
   Future<void> _loadAlbums() async {
@@ -53,6 +87,13 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
   Future<void> _loadTracksForAlbum(int albumId) async {
     if (_tracksByAlbum.containsKey(albumId)) return;
+
+    // Mark as loading (null means loading)
+    setState(() {
+      _tracksByAlbum[albumId] = null;
+      _tracksLoadingError.remove(albumId);
+    });
+
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
       final tracks = await lidarrService.getTracks(albumId);
@@ -62,7 +103,12 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
         });
       }
     } catch (e) {
-      // Track loading failed
+      // Set error state
+      if (mounted) {
+        setState(() {
+          _tracksLoadingError.add(albumId);
+        });
+      }
     }
   }
 
@@ -116,39 +162,46 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
       posterUrl: imageUrl,
       overview: overview,
       tags: tags,
-      actions: Wrap(
-        spacing: 12,
-        runSpacing: 12,
+      actions: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ElevatedButton.icon(
-            onPressed: _isSearching
-                ? null
-                : () => _triggerSearch(context, artist.id),
-            icon: _isSearching
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.search),
-            label: const Text('Automatic Search'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: _isLoadingReleases
-                ? null
-                : () => _showInteractiveSearch(context, artist.id),
-            icon: _isLoadingReleases
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.list),
-            label: const Text('Interactive Search'),
+          // Quality Profile (tappable) - FIRST
+          if (_currentProfileName != null) ...[
+            _buildProfileSelector(context),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          // Action buttons
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            children: [
+              FilledButton.icon(
+                onPressed: _isSearching
+                    ? null
+                    : () => _triggerSearch(context, artist.id),
+                icon: _isSearching
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.search_rounded),
+                label: const Text('Automatic Search'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _isLoadingReleases
+                    ? null
+                    : () => _showInteractiveSearch(context, artist.id),
+                icon: _isLoadingReleases
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.list_rounded),
+                label: const Text('Interactive Search'),
+              ),
+            ],
           ),
         ],
       ),
@@ -180,7 +233,10 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
     return Column(
       children: _albums.map((album) {
-        final albumId = album['id'] as int;
+        final albumId = album['id'] as int?;
+        if (albumId == null) {
+          return const SizedBox.shrink(); // Skip invalid albums
+        }
         final albumTitle = album['title'] as String? ?? 'Unknown Album';
         final releaseDate = album['releaseDate'] as String?;
         final year = releaseDate != null && releaseDate.length >= 4
@@ -261,6 +317,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
                   onAutoSearch: () => _searchAlbum(context, albumId),
                   onInteractiveSearch: () =>
                       _interactiveSearchAlbum(context, albumId),
+                  isLoading: _searchingAlbums.contains(albumId),
                 ),
                 const SizedBox(width: 8),
                 Icon(
@@ -288,12 +345,57 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
   }
 
   List<Widget> _buildTracksList(int albumId) {
+    // Check for error state first
+    if (_tracksLoadingError.contains(albumId)) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Failed to load tracks',
+                style: TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _tracksByAlbum.remove(albumId);
+                    _tracksLoadingError.remove(albumId);
+                  });
+                  _loadTracksForAlbum(albumId);
+                },
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
     final tracks = _tracksByAlbum[albumId];
     if (tracks == null) {
       return [
         const Padding(
           padding: EdgeInsets.all(16),
           child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+
+    if (tracks.isEmpty) {
+      return [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: Text(
+              'No tracks found',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
         ),
       ];
     }
@@ -341,11 +443,135 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
+  Widget _buildProfileSelector(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => _showProfileSelector(context),
+      borderRadius: AppRadius.borderRadiusSm,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: AppRadius.borderRadiusSm,
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.high_quality_rounded,
+              size: 18,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              _currentProfileName!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(Icons.edit_rounded, size: 14, color: colorScheme.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showProfileSelector(BuildContext context) async {
+    if (_qualityProfiles.isEmpty) return;
+
+    HapticFeedback.selectionClick();
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final selectedId = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Quality Profile'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _qualityProfiles.length,
+            itemBuilder: (context, index) {
+              final profile = _qualityProfiles[index];
+              final id = profile['id'] as int;
+              final name = profile['name'] as String;
+              final isSelected = id == _currentProfileId;
+
+              return ListTile(
+                title: Text(name),
+                leading: isSelected
+                    ? Icon(
+                        Icons.check_circle_rounded,
+                        color: colorScheme.primary,
+                      )
+                    : Icon(
+                        Icons.circle_outlined,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                onTap: () => Navigator.pop(context, id),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.borderRadiusSm,
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedId != null && selectedId != _currentProfileId) {
+      await _updateProfile(selectedId);
+    }
+  }
+
+  Future<void> _updateProfile(int profileId) async {
+    try {
+      final lidarrService = ref.read(lidarrServiceProvider);
+      await lidarrService.updateArtistProfile(widget.artist.id, profileId);
+      if (mounted) {
+        setState(() {
+          _currentProfileId = profileId;
+          _currentProfileName = _getProfileName(profileId);
+        });
+        ref.invalidate(musicProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quality profile updated')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
   Widget _buildSearchMenu({
     required BuildContext context,
     required VoidCallback onAutoSearch,
     required VoidCallback onInteractiveSearch,
+    bool isLoading = false,
   }) {
+    if (isLoading) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
     return PopupMenuButton<String>(
       icon: const Icon(Icons.search, size: 20),
       tooltip: 'Search options',
@@ -417,6 +643,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
   }
 
   Future<void> _searchAlbum(BuildContext context, int albumId) async {
+    setState(() => _searchingAlbums.add(albumId));
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
       await lidarrService.searchAlbums([albumId]);
@@ -432,6 +659,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _searchingAlbums.remove(albumId));
     }
   }
 
@@ -439,6 +668,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     BuildContext context,
     int albumId,
   ) async {
+    setState(() => _searchingAlbums.add(albumId));
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
       final releases = await lidarrService.getReleases(albumId: albumId);
@@ -460,6 +690,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _searchingAlbums.remove(albumId));
     }
   }
 }

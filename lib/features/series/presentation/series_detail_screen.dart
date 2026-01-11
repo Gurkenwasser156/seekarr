@@ -1,17 +1,19 @@
-import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
-import 'package:seekarr/core/utils/image_utils.dart';
-import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/tag_chip.dart';
-import 'package:seekarr/core/widgets/status_badge.dart';
-import 'package:seekarr/core/widgets/file_info_section.dart';
-import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
-import 'package:seekarr/core/widgets/delete_media_dialog.dart';
-import 'package:seekarr/features/series/data/sonarr_service.dart';
-import 'package:seekarr/features/series/presentation/series_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/widgets/delete_media_dialog.dart';
+import 'package:seekarr/core/widgets/file_info_section.dart';
+import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
+import 'package:seekarr/core/widgets/media_detail_view.dart';
+import 'package:seekarr/core/widgets/status_badge.dart';
+import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
+import 'package:seekarr/features/series/presentation/series_provider.dart';
+import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 
 class SeriesDetailScreen extends ConsumerStatefulWidget {
   final SonarrSeries series;
@@ -36,6 +38,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   List<Map<String, dynamic>> _qualityProfiles = [];
   String? _currentProfileName;
   int? _currentProfileId;
+  final Set<int> _searchingSeasons = {};
+  final Set<int> _searchingEpisodes = {};
 
   @override
   void initState() {
@@ -132,105 +136,64 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Quality Profile (tappable) - FIRST
+          if (_currentProfileName != null) ...[
+            _buildProfileSelector(context),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          // Action buttons
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
             children: [
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: _isSearching
                     ? null
                     : () => _triggerSearch(context, series.id),
                 icon: _isSearching
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.search),
+                    : const Icon(Icons.search_rounded),
                 label: const Text('Automatic Search'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                ),
               ),
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
                 onPressed: _isLoadingReleases
                     ? null
                     : () => _showInteractiveSearch(context, series.id),
                 icon: _isLoadingReleases
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.list),
+                    : const Icon(Icons.list_rounded),
                 label: const Text('Interactive Search'),
               ),
             ],
           ),
-          // Quality Profile (tappable)
-          if (_currentProfileName != null) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => _showProfileSelector(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.high_quality,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _currentProfileName!,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.edit,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           // File info section (only when available)
           if (hasFiles && series.path != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xl),
             FileInfoSection(path: series.path),
           ],
           // Delete button
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
           OutlinedButton.icon(
             onPressed: _isDeleting ? null : () => _confirmDelete(context),
             icon: _isDeleting
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.delete_outline),
+                : const Icon(Icons.delete_outline_rounded),
             label: const Text('Delete Series'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+              foregroundColor: Theme.of(context).colorScheme.error,
+              side: BorderSide(color: Theme.of(context).colorScheme.error),
             ),
           ),
         ],
@@ -322,6 +285,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   onAutoSearch: () => _searchSeason(context, seasonNumber),
                   onInteractiveSearch: () =>
                       _interactiveSearchSeason(context, seasonNumber),
+                  isLoading: _searchingSeasons.contains(seasonNumber),
                 ),
                 const SizedBox(width: 8),
                 Icon(
@@ -367,6 +331,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                         onAutoSearch: () => _searchEpisode(context, episodeId),
                         onInteractiveSearch: () =>
                             _interactiveSearchEpisode(context, episodeId),
+                        isLoading: _searchingEpisodes.contains(episodeId),
                       ),
                       dense: true,
                     );
@@ -381,7 +346,15 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     required BuildContext context,
     required VoidCallback onAutoSearch,
     required VoidCallback onInteractiveSearch,
+    bool isLoading = false,
   }) {
+    if (isLoading) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
     return PopupMenuButton<String>(
       icon: const Icon(Icons.search, size: 20),
       tooltip: 'Search options',
@@ -460,6 +433,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   }
 
   Future<void> _searchSeason(BuildContext context, int seasonNumber) async {
+    setState(() => _searchingSeasons.add(seasonNumber));
     try {
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.searchSeason(widget.series.id, seasonNumber);
@@ -475,6 +449,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _searchingSeasons.remove(seasonNumber));
     }
   }
 
@@ -482,14 +458,20 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     BuildContext context,
     int seasonNumber,
   ) async {
-    await _showInteractiveSearch(
-      context,
-      widget.series.id,
-      seasonNumber: seasonNumber,
-    );
+    setState(() => _searchingSeasons.add(seasonNumber));
+    try {
+      await _showInteractiveSearch(
+        context,
+        widget.series.id,
+        seasonNumber: seasonNumber,
+      );
+    } finally {
+      if (mounted) setState(() => _searchingSeasons.remove(seasonNumber));
+    }
   }
 
   Future<void> _searchEpisode(BuildContext context, int episodeId) async {
+    setState(() => _searchingEpisodes.add(episodeId));
     try {
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.searchEpisodes([episodeId]);
@@ -505,6 +487,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _searchingEpisodes.remove(episodeId));
     }
   }
 
@@ -534,6 +518,42 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildProfileSelector(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => _showProfileSelector(context),
+      borderRadius: AppRadius.borderRadiusSm,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: AppRadius.borderRadiusSm,
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.high_quality_rounded,
+              size: 18,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              _currentProfileName!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(Icons.edit_rounded, size: 14, color: colorScheme.primary),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showProfileSelector(BuildContext context) async {

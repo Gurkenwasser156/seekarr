@@ -157,7 +157,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.search_rounded),
-              label: const Text('Search'),
+              label: const Text('Automatic Search'),
             ),
             FilledButton.tonalIcon(
               onPressed: _isLoadingReleases
@@ -170,7 +170,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.list_rounded),
-              label: const Text('Releases'),
+              label: const Text('Interactive Search'),
             ),
           ],
         ),
