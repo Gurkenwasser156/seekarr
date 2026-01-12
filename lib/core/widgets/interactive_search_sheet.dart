@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/release_utils.dart';
 import 'package:seekarr/core/widgets/release_list_widgets.dart';
 
-/// Sort options for releases
-enum ReleaseSortType {
-  score('CF Score', Icons.star_rounded),
-  size('Size', Icons.storage_rounded),
-  seeders('Seeders', Icons.arrow_upward_rounded),
-  age('Age', Icons.schedule_rounded);
-
-  final String label;
-  final IconData icon;
-  const ReleaseSortType(this.label, this.icon);
-}
+// Re-export ReleaseSortType for backwards compatibility
+export 'package:seekarr/core/utils/release_utils.dart' show ReleaseSortType;
 
 /// A reusable bottom sheet for displaying and selecting releases (Interactive Search).
 class InteractiveSearchSheet extends StatefulWidget {
@@ -56,58 +48,20 @@ class _InteractiveSearchSheetState extends State<InteractiveSearchSheet> {
   bool _hideRejected = false;
   String? _selectedIndexer;
 
+  /// Returns filtered and sorted releases using the pure function.
   List<dynamic> get _filteredAndSortedReleases {
-    var result = List<dynamic>.from(widget.releases);
-
-    // Apply filters
-    if (_hideRejected) {
-      result = result.where((r) {
-        final rejections = r['rejections'] as List<dynamic>? ?? [];
-        return rejections.isEmpty;
-      }).toList();
-    }
-
-    if (_selectedIndexer != null) {
-      result = result.where((r) {
-        return r['indexer'] == _selectedIndexer;
-      }).toList();
-    }
-
-    // Apply sorting
-    result.sort((a, b) {
-      int comparison;
-      switch (_sortType) {
-        case ReleaseSortType.score:
-          final aScore = (a['customFormatScore'] as num?)?.toInt() ?? 0;
-          final bScore = (b['customFormatScore'] as num?)?.toInt() ?? 0;
-          comparison = bScore.compareTo(aScore); // Default desc for score
-          break;
-        case ReleaseSortType.size:
-          final aSize = (a['size'] as num?)?.toInt() ?? 0;
-          final bSize = (b['size'] as num?)?.toInt() ?? 0;
-          comparison = bSize.compareTo(aSize); // Default desc for size
-          break;
-        case ReleaseSortType.seeders:
-          final aSeeders = (a['seeders'] as num?)?.toInt() ?? 0;
-          final bSeeders = (b['seeders'] as num?)?.toInt() ?? 0;
-          comparison = bSeeders.compareTo(aSeeders); // Default desc
-          break;
-        case ReleaseSortType.age:
-          final aAge = (a['ageMinutes'] as num?)?.toInt() ?? 0;
-          final bAge = (b['ageMinutes'] as num?)?.toInt() ?? 0;
-          comparison = aAge.compareTo(bAge); // Default asc (newest first)
-          break;
-      }
-      return _sortAscending ? -comparison : comparison;
-    });
-
-    return result;
+    return filterAndSortReleases(
+      widget.releases,
+      sortType: _sortType,
+      sortAscending: _sortAscending,
+      hideRejected: _hideRejected,
+      selectedIndexer: _selectedIndexer,
+    );
   }
 
+  /// Returns unique indexer names from all releases.
   Set<String> get _availableIndexers {
-    return widget.releases
-        .map((r) => r['indexer'] as String? ?? 'Unknown')
-        .toSet();
+    return extractAvailableIndexers(widget.releases);
   }
 
   @override
