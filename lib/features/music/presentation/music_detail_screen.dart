@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
 import 'package:seekarr/core/widgets/media_detail_view.dart';
+import 'package:seekarr/core/widgets/media_profile_selector.dart';
+import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
@@ -444,94 +444,12 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
   }
 
   Widget _buildProfileSelector(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => _showProfileSelector(context),
-      borderRadius: AppRadius.borderRadiusSm,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainer,
-          borderRadius: AppRadius.borderRadiusSm,
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.high_quality_rounded,
-              size: 18,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              _currentProfileName!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Icon(Icons.edit_rounded, size: 14, color: colorScheme.primary),
-          ],
-        ),
-      ),
+    return MediaProfileSelector(
+      currentProfileName: _currentProfileName!,
+      currentProfileId: _currentProfileId,
+      qualityProfiles: _qualityProfiles,
+      onProfileSelected: _updateProfile,
     );
-  }
-
-  Future<void> _showProfileSelector(BuildContext context) async {
-    if (_qualityProfiles.isEmpty) return;
-
-    HapticFeedback.selectionClick();
-
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final selectedId = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Quality Profile'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _qualityProfiles.length,
-            itemBuilder: (context, index) {
-              final profile = _qualityProfiles[index];
-              final id = profile['id'] as int;
-              final name = profile['name'] as String;
-              final isSelected = id == _currentProfileId;
-
-              return ListTile(
-                title: Text(name),
-                leading: isSelected
-                    ? Icon(
-                        Icons.check_circle_rounded,
-                        color: colorScheme.primary,
-                      )
-                    : Icon(
-                        Icons.circle_outlined,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                onTap: () => Navigator.pop(context, id),
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppRadius.borderRadiusSm,
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-
-    if (selectedId != null && selectedId != _currentProfileId) {
-      await _updateProfile(selectedId);
-    }
   }
 
   Future<void> _updateProfile(int profileId) async {
@@ -565,27 +483,10 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     required VoidCallback onInteractiveSearch,
     bool isLoading = false,
   }) {
-    if (isLoading) {
-      return const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
-    }
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.search, size: 20),
-      tooltip: 'Search options',
-      onSelected: (value) {
-        if (value == 'auto') onAutoSearch();
-        if (value == 'interactive') onInteractiveSearch();
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'auto', child: Text('Automatic Search')),
-        const PopupMenuItem(
-          value: 'interactive',
-          child: Text('Interactive Search'),
-        ),
-      ],
+    return MediaSearchPopupMenu(
+      onAutoSearch: onAutoSearch,
+      onInteractiveSearch: onInteractiveSearch,
+      isLoading: isLoading,
     );
   }
 
