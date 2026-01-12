@@ -14,7 +14,7 @@ import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 class SeriesDetailScreen extends ConsumerStatefulWidget {
   final SonarrSeries series;

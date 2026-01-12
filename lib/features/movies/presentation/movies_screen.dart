@@ -5,7 +5,7 @@ import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
 import 'package:seekarr/features/movies/presentation/movies_search_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,10 +15,9 @@ class MoviesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final moviesAsync = ref.watch(moviesProvider);
-    final settings = ref.watch(settingsProvider);
-    final searchQuery = ref.watch(moviesSearchQueryProvider);
-    final searchResults = ref.watch(moviesSearchResultsProvider);
+    final isSearching = ref.watch(
+      moviesSearchQueryProvider.select((value) => value.isNotEmpty),
+    );
 
     // Listen for navigation refresh trigger
     ref.listen<int>(navigationRefreshProvider(NavigationSection.movies), (
@@ -32,7 +31,7 @@ class MoviesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: searchQuery.isNotEmpty
+        leading: isSearching
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -59,21 +58,26 @@ class MoviesScreen extends ConsumerWidget {
             },
           ),
           Expanded(
-            child: searchQuery.isEmpty
-                ? _buildLibraryContent(context, ref, moviesAsync, settings)
-                : _buildSearchResults(context, ref, searchResults, settings),
+            child: isSearching
+                ? const _MoviesSearchResults()
+                : const _MoviesLibraryContent(),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildLibraryContent(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<RadarrMovie>> moviesAsync,
-    dynamic settings,
-  ) {
+class _MoviesLibraryContent extends ConsumerWidget {
+  const _MoviesLibraryContent();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final moviesAsync = ref.watch(moviesProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
+    );
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(moviesProvider);
@@ -87,8 +91,8 @@ class MoviesScreen extends ConsumerWidget {
           idExtractor: (movie) => movie.id,
           statusExtractor: (movie) =>
               (hasFile: movie.hasFile, status: movie.status),
-          baseUrl: settings.radarrUrl,
-          apiKey: settings.radarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'movie',
           onItemTap: (movie, heroTag) {
             context.push('/movies/${movie.id}?heroTag=$heroTag', extra: movie);
@@ -97,13 +101,18 @@ class MoviesScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildSearchResults(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<RadarrMovie>?> searchResults,
-    dynamic settings,
-  ) {
+class _MoviesSearchResults extends ConsumerWidget {
+  const _MoviesSearchResults();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchResults = ref.watch(moviesSearchResultsProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
+    );
+
     return searchResults.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text('Error: $error')),
@@ -118,8 +127,8 @@ class MoviesScreen extends ConsumerWidget {
           idExtractor: (movie) => movie.id,
           statusExtractor: (movie) =>
               (hasFile: movie.hasFile, status: movie.status),
-          baseUrl: settings.radarrUrl,
-          apiKey: settings.radarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'movie_search',
           onItemTap: (movie, heroTag) {
             context.push('/movies/${movie.id}?heroTag=$heroTag', extra: movie);

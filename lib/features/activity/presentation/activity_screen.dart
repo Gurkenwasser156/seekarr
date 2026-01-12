@@ -244,19 +244,38 @@ class _ActivityTabState extends ConsumerState<_ActivityTab>
       onRefresh: () async {
         _refresh();
       },
-      child: ListView(
+      child: CustomScrollView(
         key: _refreshKey,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          buildSectionHeader(context, 'Queue'),
-          buildAsyncList(queueAsync, _buildQueueItem),
-          const SizedBox(height: 24),
-          buildSectionHeader(context, 'History'),
-          buildAsyncList(historyAsync, _buildHistoryItem),
-          const SizedBox(height: 24),
-          buildSectionHeader(context, 'Blocklist'),
-          buildAsyncList(blocklistAsync, _buildBlocklistItem),
+        slivers: [
+          const SliverPadding(padding: EdgeInsets.only(top: 16)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildSectionHeaderSliver(context, 'Queue'),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildAsyncSliverList(queueAsync, _buildQueueItem),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildSectionHeaderSliver(context, 'History'),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildAsyncSliverList(historyAsync, _buildHistoryItem),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildSectionHeaderSliver(context, 'Blocklist'),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildAsyncSliverList(blocklistAsync, _buildBlocklistItem),
+          ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
         ],
       ),
     );
@@ -363,24 +382,37 @@ class _WantedTabState extends ConsumerState<_WantedTab>
       onRefresh: () async {
         _refresh();
       },
-      child: ListView(
+      child: CustomScrollView(
         key: _refreshKey,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          buildSectionHeader(context, 'Missing'),
-          buildAsyncListWithGrouping(
-            missingAsync,
-            _buildWantedItem,
-            groupingBuilder: useGrouping ? _buildGroupedSeriesList : null,
+        slivers: [
+          const SliverPadding(padding: EdgeInsets.only(top: 16)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildSectionHeaderSliver(context, 'Missing'),
           ),
-          const SizedBox(height: 24),
-          buildSectionHeader(context, 'Cutoff Unmet'),
-          buildAsyncListWithGrouping(
-            cutoffAsync,
-            _buildWantedItem,
-            groupingBuilder: useGrouping ? _buildGroupedSeriesList : null,
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildAsyncSliverListWithGrouping(
+              missingAsync,
+              _buildWantedItem,
+              groupingBuilder: useGrouping ? _buildGroupedSeriesList : null,
+            ),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildSectionHeaderSliver(context, 'Cutoff Unmet'),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: buildAsyncSliverListWithGrouping(
+              cutoffAsync,
+              _buildWantedItem,
+              groupingBuilder: useGrouping ? _buildGroupedSeriesList : null,
+            ),
+          ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
         ],
       ),
     );

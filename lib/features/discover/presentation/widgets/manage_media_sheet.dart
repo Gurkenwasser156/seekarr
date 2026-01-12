@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
 import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/presentation/widgets/manage_media_sections.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 
@@ -357,17 +358,30 @@ class _ManageMediaSheetState extends ConsumerState<ManageMediaSheet> {
                         padding: const EdgeInsets.all(20),
                         children: [
                           // Requests section
-                          _buildRequestsSection(theme),
+                          RequestsSection(
+                            requests: _requests,
+                            onDeleteRequest: _deleteRequest,
+                          ),
 
                           const SizedBox(height: 24),
 
                           // Media section
-                          _buildMediaSection(theme, isMovie),
+                          MediaSection(
+                            isMovie: isMovie,
+                            hasExternalService: _hasExternalService,
+                            isDeleting: _isDeleting,
+                            onOpen: _openInService,
+                            onRemove: _removeFromService,
+                          ),
 
                           const SizedBox(height: 24),
 
                           // Advanced section
-                          _buildAdvancedSection(theme, isMovie),
+                          AdvancedSection(
+                            isMovie: isMovie,
+                            isDeleting: _isDeleting,
+                            onClear: _clearAllData,
+                          ),
 
                           const SizedBox(height: 40),
                         ],
@@ -377,325 +391,6 @@ class _ManageMediaSheetState extends ConsumerState<ManageMediaSheet> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildRequestsSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Requests',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_requests.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text(
-                'No requests for this media',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          )
-        else
-          ...(_requests.map((request) => _buildRequestCard(theme, request))),
-      ],
-    );
-  }
-
-  Widget _buildRequestCard(ThemeData theme, JellyseerrRequest request) {
-    String formattedDate = '';
-    try {
-      final date = DateTime.parse(request.createdAt);
-      const months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      formattedDate = '${months[date.month - 1]} ${date.day}, ${date.year}';
-    } catch (_) {
-      formattedDate = request.createdAt;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Requester info
-                Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      size: 16,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      request.requestedBy?.displayName ?? 'Unknown',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-
-                // Status badges
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    if (request.is4k) _buildBadge('4K', Colors.amber),
-                    _buildStatusBadge(request.status),
-                  ],
-                ),
-
-                // Seasons (for TV)
-                if (request.seasons != null && request.seasons!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Seasons',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    children: request.seasons!.map((s) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${s.seasonNumber}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-
-                const SizedBox(height: 8),
-
-                // Date
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 14,
-                      color: Colors.grey[500],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      formattedDate,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Delete button
-          IconButton(
-            onPressed: () => _deleteRequest(request.id),
-            icon: const Icon(Icons.delete_outline),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.red.withValues(alpha: 0.1),
-              foregroundColor: Colors.red,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBadge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(RequestStatus status) {
-    Color color;
-    String text;
-
-    switch (status) {
-      case RequestStatus.approved:
-        color = Colors.green;
-        text = 'Completed';
-        break;
-      case RequestStatus.pendingApproval:
-        color = Colors.orange;
-        text = 'Pending';
-        break;
-      case RequestStatus.declined:
-        color = Colors.red;
-        text = 'Declined';
-        break;
-      default:
-        color = Colors.grey;
-        text = 'Unknown';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMediaSection(ThemeData theme, bool isMovie) {
-    final serviceName = isMovie ? 'Radarr' : 'Sonarr';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Media',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Open in service button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _hasExternalService ? _openInService : null,
-            icon: const Icon(Icons.open_in_new),
-            label: Text('Open in $serviceName'),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Remove from service button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _hasExternalService && !_isDeleting
-                ? _removeFromService
-                : null,
-            icon: _isDeleting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline),
-            label: Text('Remove from $serviceName'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-        Text(
-          '* This will irreversibly remove this ${isMovie ? 'movie' : 'series'} from $serviceName, including all files.',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdvancedSection(ThemeData theme, bool isMovie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Advanced',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Clear data button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _jellyseerrMediaId != null && !_isDeleting
-                ? _clearAllData
-                : null,
-            icon: const Icon(Icons.cleaning_services_outlined),
-            label: const Text('Clear Data'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade900,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-        Text(
-          '* This will irreversibly remove all data for this ${isMovie ? 'movie' : 'series'}, '
-          'including any requests. If this item exists in your Jellyfin library, '
-          'the media information will be recreated during the next scan.',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-        ),
-      ],
     );
   }
 }

@@ -5,7 +5,7 @@ import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
 import 'package:seekarr/features/music/presentation/music_search_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,10 +15,9 @@ class MusicScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final musicAsync = ref.watch(musicProvider);
-    final settings = ref.watch(settingsProvider);
-    final searchQuery = ref.watch(musicSearchQueryProvider);
-    final searchResults = ref.watch(musicSearchResultsProvider);
+    final isSearching = ref.watch(
+      musicSearchQueryProvider.select((value) => value.isNotEmpty),
+    );
 
     // Listen for navigation refresh trigger
     ref.listen<int>(navigationRefreshProvider(NavigationSection.music), (
@@ -32,7 +31,7 @@ class MusicScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: searchQuery.isNotEmpty
+        leading: isSearching
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -59,21 +58,26 @@ class MusicScreen extends ConsumerWidget {
             },
           ),
           Expanded(
-            child: searchQuery.isEmpty
-                ? _buildLibraryContent(context, ref, musicAsync, settings)
-                : _buildSearchResults(context, ref, searchResults, settings),
+            child: isSearching
+                ? const _MusicSearchResults()
+                : const _MusicLibraryContent(),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildLibraryContent(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<LidarrArtist>> musicAsync,
-    dynamic settings,
-  ) {
+class _MusicLibraryContent extends ConsumerWidget {
+  const _MusicLibraryContent();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final musicAsync = ref.watch(musicProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
+    );
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(musicProvider);
@@ -91,8 +95,8 @@ class MusicScreen extends ConsumerWidget {
             final trackFileCount = stats?['trackFileCount'] as int? ?? 0;
             return (hasFile: trackFileCount > 0, status: artist.status);
           },
-          baseUrl: settings.lidarrUrl,
-          apiKey: settings.lidarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'artist',
           coverTypes: const ['poster', 'fanart', 'banner'],
           onItemTap: (artist, heroTag) {
@@ -102,13 +106,18 @@ class MusicScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildSearchResults(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<LidarrArtist>?> searchResults,
-    dynamic settings,
-  ) {
+class _MusicSearchResults extends ConsumerWidget {
+  const _MusicSearchResults();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchResults = ref.watch(musicSearchResultsProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
+    );
+
     return searchResults.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text('Error: $error')),
@@ -126,8 +135,8 @@ class MusicScreen extends ConsumerWidget {
             final trackFileCount = stats?['trackFileCount'] as int? ?? 0;
             return (hasFile: trackFileCount > 0, status: artist.status);
           },
-          baseUrl: settings.lidarrUrl,
-          apiKey: settings.lidarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'artist_search',
           coverTypes: const ['poster', 'fanart', 'banner'],
           onItemTap: (artist, heroTag) {

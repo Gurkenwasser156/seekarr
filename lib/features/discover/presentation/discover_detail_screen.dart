@@ -7,7 +7,7 @@ import 'package:seekarr/features/discover/presentation/widgets/manage_media_shee
 import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sheet.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

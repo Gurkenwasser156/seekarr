@@ -5,7 +5,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 /// Settings screen for configuring service URLs and API keys.
 ///
