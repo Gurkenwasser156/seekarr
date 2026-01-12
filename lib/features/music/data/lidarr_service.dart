@@ -1,6 +1,7 @@
+import 'dart:isolate';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,7 +33,9 @@ class LidarrService with ArrActivityMixin {
     try {
       final response = await client.get('/api/v1/artist');
       final data = response.data as List<dynamic>;
-      return data.map((e) => LidarrArtist.fromJson(e)).toList();
+      return await Isolate.run(
+        () => data.map((e) => LidarrArtist.fromJson(e)).toList(),
+      );
     } catch (e) {
       return [];
     }
@@ -117,7 +120,9 @@ class LidarrService with ArrActivityMixin {
         queryParameters: {'term': encodedTerm},
       );
       final data = response.data as List<dynamic>;
-      return data.map((e) => LidarrArtist.fromJson(e)).toList();
+      return await Isolate.run(
+        () => data.map((e) => LidarrArtist.fromJson(e)).toList(),
+      );
     } catch (e) {
       return [];
     }

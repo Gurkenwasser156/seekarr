@@ -5,22 +5,24 @@ import 'package:flutter/material.dart';
 /// Includes common methods for building section headers and async list widgets
 /// used across both ActivityTab and WantedTab.
 mixin ActivityTabHelpers {
-  /// Builds a styled section header for activity lists.
-  Widget buildSectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
+  /// Builds a styled section header as a Sliver.
+  Widget buildSectionHeaderSliver(BuildContext context, String title) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
     );
   }
 
-  /// Builds a widget for async list data with loading and error states.
-  Widget buildAsyncList(
+  /// Builds a sliver list for async data with loading and error states.
+  Widget buildAsyncSliverList(
     Future<List<dynamic>> future,
     Widget Function(dynamic) itemBuilder,
   ) {
@@ -28,31 +30,54 @@ mixin ActivityTabHelpers {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
         }
         if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
         }
         final items = snapshot.data ?? [];
         if (items.isEmpty) {
-          return const Text(
-            'No items found.',
-            style: TextStyle(color: Colors.grey),
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'No items found.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
           );
         }
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          separatorBuilder: (context, index) => const Divider(),
-          itemBuilder: (context, index) => itemBuilder(items[index]),
+        return SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            if (index.isOdd) return const Divider();
+            return itemBuilder(items[index ~/ 2]);
+          }, childCount: (items.length * 2) - 1),
         );
       },
     );
   }
 
-  /// Builds an async list with custom handling for grouped items (e.g., series).
-  Widget buildAsyncListWithGrouping(
+  /// Builds a sliver list with grouping support.
+  ///
+  /// Since grouping often results in non-linear lists (like expansions),
+  /// this implementation wraps the grouped widget in a SliverToBoxAdapter for now.
+  /// For true sliver performance with grouping, the grouping logic needs to flatten
+  /// the structure into a list of sliver-compatible items, but that requires
+  /// significantly more logic change.
+  Widget buildAsyncSliverListWithGrouping(
     Future<List<dynamic>> future,
     Widget Function(dynamic) itemBuilder, {
     Widget Function(List<dynamic>)? groupingBuilder,
@@ -61,29 +86,47 @@ mixin ActivityTabHelpers {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
         }
         if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
         }
         final items = snapshot.data ?? [];
         if (items.isEmpty) {
-          return const Text(
-            'No items found.',
-            style: TextStyle(color: Colors.grey),
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'No items found.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
           );
         }
 
         if (groupingBuilder != null) {
-          return groupingBuilder(items);
+          // Grouping builds a single Column usually, so wrap in SliverToBoxAdapter
+          return SliverToBoxAdapter(child: groupingBuilder(items));
         }
 
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          separatorBuilder: (context, index) => const Divider(),
-          itemBuilder: (context, index) => itemBuilder(items[index]),
+        return SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            if (index.isOdd) return const Divider();
+            return itemBuilder(items[index ~/ 2]);
+          }, childCount: (items.length * 2) - 1),
         );
       },
     );

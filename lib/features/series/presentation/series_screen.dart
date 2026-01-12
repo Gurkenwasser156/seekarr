@@ -5,7 +5,7 @@ import 'package:seekarr/core/widgets/media_grid.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
 import 'package:seekarr/features/series/presentation/series_provider.dart';
 import 'package:seekarr/features/series/presentation/series_search_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,10 +15,9 @@ class SeriesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final seriesAsync = ref.watch(seriesProvider);
-    final settings = ref.watch(settingsProvider);
-    final searchQuery = ref.watch(seriesSearchQueryProvider);
-    final searchResults = ref.watch(seriesSearchResultsProvider);
+    final isSearching = ref.watch(
+      seriesSearchQueryProvider.select((value) => value.isNotEmpty),
+    );
 
     // Listen for navigation refresh trigger
     ref.listen<int>(navigationRefreshProvider(NavigationSection.series), (
@@ -32,7 +31,7 @@ class SeriesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: searchQuery.isNotEmpty
+        leading: isSearching
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -59,21 +58,26 @@ class SeriesScreen extends ConsumerWidget {
             },
           ),
           Expanded(
-            child: searchQuery.isEmpty
-                ? _buildLibraryContent(context, ref, seriesAsync, settings)
-                : _buildSearchResults(context, ref, searchResults, settings),
+            child: isSearching
+                ? const _SeriesSearchResults()
+                : const _SeriesLibraryContent(),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildLibraryContent(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<SonarrSeries>> seriesAsync,
-    dynamic settings,
-  ) {
+class _SeriesLibraryContent extends ConsumerWidget {
+  const _SeriesLibraryContent();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final seriesAsync = ref.watch(seriesProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
+    );
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(seriesProvider);
@@ -91,8 +95,8 @@ class SeriesScreen extends ConsumerWidget {
             final episodeFileCount = stats?['episodeFileCount'] as int? ?? 0;
             return (hasFile: episodeFileCount > 0, status: series.status);
           },
-          baseUrl: settings.sonarrUrl,
-          apiKey: settings.sonarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'series',
           onItemTap: (series, heroTag) {
             context.go('/series/${series.id}?heroTag=$heroTag', extra: series);
@@ -101,13 +105,18 @@ class SeriesScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildSearchResults(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<SonarrSeries>?> searchResults,
-    dynamic settings,
-  ) {
+class _SeriesSearchResults extends ConsumerWidget {
+  const _SeriesSearchResults();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchResults = ref.watch(seriesSearchResultsProvider);
+    final (url, apiKey) = ref.watch(
+      settingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
+    );
+
     return searchResults.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text('Error: $error')),
@@ -125,8 +134,8 @@ class SeriesScreen extends ConsumerWidget {
             final episodeFileCount = stats?['episodeFileCount'] as int? ?? 0;
             return (hasFile: episodeFileCount > 0, status: series.status);
           },
-          baseUrl: settings.sonarrUrl,
-          apiKey: settings.sonarrApiKey,
+          baseUrl: url,
+          apiKey: apiKey,
           heroTagPrefix: 'series_search',
           onItemTap: (series, heroTag) {
             context.go('/series/${series.id}?heroTag=$heroTag', extra: series);

@@ -11,7 +11,7 @@ import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 class MusicDetailScreen extends ConsumerStatefulWidget {
   final LidarrArtist artist;

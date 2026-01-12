@@ -1,5 +1,6 @@
+import 'dart:isolate';
 import 'package:seekarr/core/api/api_client.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -96,9 +97,11 @@ class JellyseerrService {
         queryParameters: {'page': page},
       );
       final results = response.data['results'] as List<dynamic>;
-      return results
-          .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'movie'))
-          .toList();
+      return await Isolate.run(
+        () => results
+            .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'movie'))
+            .toList(),
+      );
     } catch (e) {
       return [];
     }
@@ -111,9 +114,11 @@ class JellyseerrService {
         queryParameters: {'page': page},
       );
       final results = response.data['results'] as List<dynamic>;
-      return results
-          .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'tv'))
-          .toList();
+      return await Isolate.run(
+        () => results
+            .map((e) => MediaPreview.fromJson(e, forcedMediaType: 'tv'))
+            .toList(),
+      );
     } catch (e) {
       return [];
     }
@@ -126,7 +131,9 @@ class JellyseerrService {
         queryParameters: {'page': page},
       );
       final results = response.data['results'] as List<dynamic>;
-      return results.map((e) => MediaPreview.fromJson(e)).toList();
+      return await Isolate.run(
+        () => results.map((e) => MediaPreview.fromJson(e)).toList(),
+      );
     } catch (e) {
       return [];
     }

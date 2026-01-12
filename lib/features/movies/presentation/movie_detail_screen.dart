@@ -14,7 +14,7 @@ import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
-import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 /// Detail screen for a Radarr movie with M3 styling.
 class MovieDetailScreen extends ConsumerStatefulWidget {
