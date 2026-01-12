@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 
 /// A reusable view for displaying media details with hero poster,
 /// gradient overlay, and sliver-based scrollable content.
@@ -141,7 +142,12 @@ class MediaDetailView extends StatelessWidget {
                   ],
 
                   // Bottom padding if no extra slivers
-                  if (slivers.isEmpty) const SizedBox(height: 100),
+                  if (slivers.isEmpty)
+                    SizedBox(
+                      height: FloatingNavBarMetrics.getScrollViewBottomPadding(
+                        context,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -151,7 +157,13 @@ class MediaDetailView extends StatelessWidget {
           ...slivers,
 
           if (slivers.isNotEmpty)
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: FloatingNavBarMetrics.getScrollViewBottomPadding(
+                  context,
+                ),
+              ),
+            ),
         ],
       ),
     );
