@@ -33,3 +33,6 @@ export 'delete_media_dialog.dart';
 export 'interactive_search_sheet.dart';
 export 'media_profile_selector.dart';
 export 'media_search_popup_menu.dart';
+
+// Navigation
+export 'floating_bottom_nav_bar.dart';

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/providers/settings_provider.dart';
 
@@ -160,7 +161,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               urlController: _lidarrUrlController,
               apiKeyController: _lidarrApiKeyController,
             ),
-            const SizedBox(height: AppSpacing.xxxl),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              height: FloatingNavBarMetrics.getScrollViewBottomPadding(context),
+            ),
           ],
         ),
       ),

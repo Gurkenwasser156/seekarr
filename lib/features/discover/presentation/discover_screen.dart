@@ -6,6 +6,7 @@ import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/search_bar_header.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
@@ -82,7 +83,11 @@ class DiscoverScreen extends ConsumerWidget {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: EdgeInsets.only(
+          bottom:
+              AppSpacing.xl +
+              FloatingNavBarMetrics.getScrollViewBottomPadding(context),
+        ),
         child: Column(
           children: [
             _DiscoverSection(
@@ -169,7 +174,14 @@ class DiscoverScreen extends ConsumerWidget {
         }
 
         return GridView.builder(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.only(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            top: AppSpacing.lg,
+            bottom:
+                AppSpacing.lg +
+                FloatingNavBarMetrics.getScrollViewBottomPadding(context),
+          ),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             childAspectRatio: 2 / 3,

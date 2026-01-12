@@ -2,54 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 
-/// Main shell screen with bottom navigation following Material Design 3.
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
+
+/// Main shell screen with floating bottom navigation.
 ///
-/// Uses outlined icons for unselected state and filled icons for selected state,
-/// following M3 navigation bar guidelines.
+/// Uses a custom [FloatingBottomNavBar] with rounded corners and floating design.
+/// Outlined icons for unselected state and filled icons for selected state.
 class ShellScreen extends ConsumerWidget {
   final Widget child;
 
   const ShellScreen({super.key, required this.child});
+
+  static const _destinations = [
+    FloatingNavDestination(
+      icon: Icons.explore_outlined,
+      selectedIcon: Icons.explore,
+      label: 'Discover',
+    ),
+    FloatingNavDestination(
+      icon: Icons.movie_outlined,
+      selectedIcon: Icons.movie,
+      label: 'Movies',
+    ),
+    FloatingNavDestination(
+      icon: Icons.tv_outlined,
+      selectedIcon: Icons.tv,
+      label: 'Series',
+    ),
+    FloatingNavDestination(
+      icon: Icons.library_music_outlined,
+      selectedIcon: Icons.library_music,
+      label: 'Music',
+    ),
+    FloatingNavDestination(
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      label: 'Settings',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = _calculateSelectedIndex(context);
 
     return Scaffold(
+      // Extend body behind the nav bar for true floating effect
+      extendBody: true,
       body: child,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingBottomNavBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (int idx) =>
             _onItemTapped(idx, context, ref, selectedIndex),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Discover',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.movie_outlined),
-            selectedIcon: Icon(Icons.movie),
-            label: 'Movies',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tv_outlined),
-            selectedIcon: Icon(Icons.tv),
-            label: 'Series',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.library_music_outlined),
-            selectedIcon: Icon(Icons.library_music),
-            label: 'Music',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        destinations: _destinations,
       ),
     );
   }

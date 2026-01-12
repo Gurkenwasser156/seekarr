@@ -1,6 +1,7 @@
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:flutter/material.dart';
 
@@ -91,7 +92,14 @@ class MediaGrid<T> extends StatelessWidget {
 
     return GridView.builder(
       physics: physics ?? const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.only(
+        left: AppSpacing.lg,
+        right: AppSpacing.lg,
+        top: AppSpacing.lg,
+        bottom:
+            AppSpacing.lg +
+            FloatingNavBarMetrics.getScrollViewBottomPadding(context),
+      ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: 2 / 3,

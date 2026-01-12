@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/features/discover/presentation/discover_details_provider.dart';
@@ -422,7 +423,11 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
             ),
 
           // Bottom padding
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: FloatingNavBarMetrics.getScrollViewBottomPadding(context),
+            ),
+          ),
         ],
       ),
     );
