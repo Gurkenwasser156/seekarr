@@ -45,6 +45,7 @@ app.*.map.json
 .agent/
 AGENTS.md
 /AGENTS.md
+opencode.jsonc
 
 # Environment files 
 .env

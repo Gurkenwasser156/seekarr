@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/release_utils.dart';
+import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/release_list_widgets.dart';
 
 // Re-export ReleaseSortType for backwards compatibility
@@ -26,10 +27,8 @@ class InteractiveSearchSheet extends StatefulWidget {
     required String title,
     required Future<void> Function(String guid, int indexerId) onGrabRelease,
   }) {
-    return showModalBottomSheet(
+    return SheetUtils.showSeekarrModalSheet(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
       builder: (context) => InteractiveSearchSheet(
         releases: releases,
         title: title,

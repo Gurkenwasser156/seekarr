@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
@@ -551,7 +552,7 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
   Future<void> _showRequestSheet(BuildContext context) async {
     final type = widget.mediaType == 'movie' ? 'movie' : 'tv';
 
-    showModalBottomSheet(
+    SheetUtils.showSeekarrModalSheet(
       context: context,
       builder: (context) => RequestBottomSheet(
         mediaId: widget.mediaId,
@@ -577,9 +578,8 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
   }) {
     final type = widget.mediaType == 'movie' ? 'movie' : 'tv';
 
-    showModalBottomSheet(
+    SheetUtils.showSeekarrModalSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ManageMediaSheet(
         mediaInfo: mediaInfo,
