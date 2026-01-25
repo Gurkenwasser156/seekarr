@@ -22,14 +22,14 @@ class DiscoverSeeAllScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
-  final PagingController<int, MediaPreview> _pagingController =
-      PagingController(firstPageKey: 1);
+  late final PagingController<int, MediaPreview> _pagingController;
 
   @override
   void initState() {
-    _pagingController.addPageRequestListener((pageKey) {
-      _fetchPage(pageKey);
-    });
+    _pagingController = PagingController<int, MediaPreview>(
+      getNextPageKey: (state) => state.lastPageIsEmpty ? null : state.nextIntPageKey,
+      fetchPage: (pageKey) => _fetchPage(pageKey),
+    );
     super.initState();
   }
 
@@ -39,79 +39,70 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchPage(int pageKey) async {
-    try {
-      // Determine which provider family to use based on type
-      late Future<List<MediaPreview>> future;
+  Future<List<MediaPreview>> _fetchPage(int pageKey) async {
+    // Determine which provider family to use based on type
+    late Future<List<MediaPreview>> future;
 
-      switch (widget.type) {
-        case 'movies':
-          future = ref.read(discoverMoviesPageProvider(pageKey).future);
-          break;
-        case 'tv':
-          future = ref.read(discoverTVPageProvider(pageKey).future);
-          break;
-        case 'trending':
-          // Trending implies all, but usually mixed or dependent on implementation.
-          // Jellyseerr trending endpoint returns mixed results.
-          future = ref.read(discoverTrendingPageProvider(pageKey).future);
-          break;
-        default:
-          throw Exception('Unknown type: ${widget.type}');
-      }
-
-      final newItems = await future;
-
-      // Assuming 20 is the page size from Jellyseerr usually, or check if less than expected
-      final isLastPage = newItems.length < 20;
-
-      if (isLastPage) {
-        _pagingController.appendLastPage(newItems);
-      } else {
-        final nextPageKey = pageKey + 1;
-        _pagingController.appendPage(newItems, nextPageKey);
-      }
-    } catch (error) {
-      _pagingController.error = error;
+    switch (widget.type) {
+      case 'movies':
+        future = ref.read(discoverMoviesPageProvider(pageKey).future);
+        break;
+      case 'tv':
+        future = ref.read(discoverTVPageProvider(pageKey).future);
+        break;
+      case 'trending':
+        // Trending implies all, but usually mixed or dependent on implementation.
+        // Jellyseerr trending endpoint returns mixed results.
+        future = ref.read(discoverTrendingPageProvider(pageKey).future);
+        break;
+      default:
+        throw Exception('Unknown type: ${widget.type}');
     }
+
+    final newItems = await future;
+    return newItems;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: PagedGridView<int, MediaPreview>(
-        pagingController: _pagingController,
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 2 / 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        builderDelegate: PagedChildBuilderDelegate<MediaPreview>(
-          itemBuilder: (context, item, index) {
-            final posterPath = item.posterPath;
-            final imageUrl = posterPath != null
-                ? 'https://image.tmdb.org/t/p/w500$posterPath'
-                : '';
+      body: PagingListener<int, MediaPreview>(
+        controller: _pagingController,
+        builder: (context, state, fetchNextPage) => PagedGridView<int, MediaPreview>(
+          state: state,
+          fetchNextPage: fetchNextPage,
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          builderDelegate: PagedChildBuilderDelegate<MediaPreview>(
+            itemBuilder: (context, item, index) {
+              final posterPath = item.posterPath;
+              final imageUrl = posterPath != null
+                  ? 'https://image.tmdb.org/t/p/w500$posterPath'
+                  : '';
 
-            final mediaType = item.mediaType; // Might be mixed for trending
-            final heroTag = 'discover_seeall_${mediaType}_${item.id}_$index';
+              final mediaType = item.mediaType; // Might be mixed for trending
+              final heroTag = 'discover_seeall_${mediaType}_${item.id}_$index';
 
-            return GestureDetector(
-              onTap: () {
-                final encodedUrl = Uri.encodeComponent(imageUrl);
-                context.push(
-                  '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
-                );
-              },
-              child: Hero(
-                tag: heroTag,
-                child: ContentCard(imageUrl: imageUrl),
-              ),
-            );
-          },
+              return GestureDetector(
+                onTap: () {
+                  final encodedUrl = Uri.encodeComponent(imageUrl);
+                  context.push(
+                    '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                  );
+                },
+                child: Hero(
+                  tag: heroTag,
+                  child: ContentCard(imageUrl: imageUrl),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

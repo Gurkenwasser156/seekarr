@@ -178,7 +178,7 @@ class _RequestBottomSheetState extends ConsumerState<RequestBottomSheet> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
-                value: _selectedServerId,
+                initialValue: _selectedServerId,
                 items: _servers
                     .map(
                       (s) => DropdownMenuItem(
@@ -204,7 +204,7 @@ class _RequestBottomSheetState extends ConsumerState<RequestBottomSheet> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
-              value: _selectedProfileId,
+              initialValue: _selectedProfileId,
               items: _profiles
                   .map(
                     (p) => DropdownMenuItem(
@@ -225,7 +225,7 @@ class _RequestBottomSheetState extends ConsumerState<RequestBottomSheet> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedRootFolder,
+                initialValue: _selectedRootFolder,
                 items: _rootFolders
                     .map(
                       (f) => DropdownMenuItem(
