@@ -420,37 +420,21 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     int seriesId, {
     int? seasonNumber,
   }) async {
-    setState(() => _isLoadingReleases = true);
-    try {
-      final sonarrService = ref.read(sonarrServiceProvider);
-      // For series-wide search, use first season or specials (0)
-      final releases = await sonarrService.getReleases(
+    final sonarrService = ref.read(sonarrServiceProvider);
+    await InteractiveSearchSheet.showAsync(
+      context: context,
+      title: seasonNumber != null
+          ? 'Releases for ${widget.series.title} - Season $seasonNumber'
+          : 'Releases for ${widget.series.title}',
+      fetchReleases: (token) => sonarrService.getReleases(
         seriesId: seriesId,
         seasonNumber: seasonNumber ?? 1,
-      );
-      if (!context.mounted) return;
-
-      await InteractiveSearchSheet.show(
-        context: context,
-        releases: releases,
-        title: seasonNumber != null
-            ? 'Releases for ${widget.series.title} - Season $seasonNumber'
-            : 'Releases for ${widget.series.title}',
-        onGrabRelease: (guid, indexerId) async {
-          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load releases: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoadingReleases = false);
-    }
+        cancelToken: token,
+      ),
+      onGrabRelease: (guid, indexerId) async {
+        await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
+      },
+    );
   }
 
   Future<void> _searchSeason(BuildContext context, int seasonNumber) async {
@@ -517,28 +501,16 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     BuildContext context,
     int episodeId,
   ) async {
-    try {
-      final sonarrService = ref.read(sonarrServiceProvider);
-      final releases = await sonarrService.getReleases(episodeId: episodeId);
-      if (!context.mounted) return;
-
-      await InteractiveSearchSheet.show(
-        context: context,
-        releases: releases,
-        title: 'Episode Releases',
-        onGrabRelease: (guid, indexerId) async {
-          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load releases: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    final sonarrService = ref.read(sonarrServiceProvider);
+    await InteractiveSearchSheet.showAsync(
+      context: context,
+      title: 'Episode Releases',
+      fetchReleases: (token) =>
+          sonarrService.getReleases(episodeId: episodeId, cancelToken: token),
+      onGrabRelease: (guid, indexerId) async {
+        await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
+      },
+    );
   }
 
   Future<void> _updateProfile(int profileId) async {

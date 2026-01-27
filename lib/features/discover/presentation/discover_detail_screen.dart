@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
@@ -428,35 +429,90 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
           ),
         ),
 
-        // Manage button (only when media exists in service/has requests)
-        if (hasMediaInfo) ...[
+        // Manage and Open buttons
+        if (hasMediaInfo && isInService) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(
+                    type == 'movie' ? 'Open in Radarr' : 'Open in Sonarr',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                  onPressed: () => _openInService(context, type, tvdbId),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.settings),
+                  label: Text(
+                    type == 'movie' ? 'Manage Movie' : 'Manage Series',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                  onPressed: () => _showManageSheet(
+                    context,
+                    mediaInfo: mediaInfo,
+                    title: title,
+                    tvdbId: tvdbId,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (hasMediaInfo && !isInService) ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+              icon: const Icon(Icons.settings),
+              label: Text(
+                type == 'movie' ? 'Manage Movie' : 'Manage Series',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
               onPressed: () => _showManageSheet(
                 context,
                 mediaInfo: mediaInfo,
                 title: title,
                 tvdbId: tvdbId,
               ),
-              icon: const Icon(Icons.settings),
-              label: Text(type == 'movie' ? 'Manage Movie' : 'Manage Series'),
             ),
           ),
         ],
-
-        // Open in Radarr/Sonarr button (when media is in the service)
-        if (isInService) ...[
+        if (isInService && !hasMediaInfo) ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _openInService(context, type, tvdbId),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
               icon: const Icon(Icons.open_in_new),
               label: Text(
                 type == 'movie' ? 'Open in Radarr' : 'Open in Sonarr',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
               ),
+              onPressed: () => _openInService(context, type, tvdbId),
             ),
           ),
         ],

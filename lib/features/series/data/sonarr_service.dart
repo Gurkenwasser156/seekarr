@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:dio/dio.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -84,6 +85,7 @@ class SonarrService with ArrActivityMixin {
     int? seriesId,
     int? seasonNumber,
     int? episodeId,
+    CancelToken? cancelToken,
   }) async {
     final params = <String, dynamic>{};
     if (seriesId != null) params['seriesId'] = seriesId;
@@ -93,6 +95,7 @@ class SonarrService with ArrActivityMixin {
     final response = await client.get(
       '/api/v3/release',
       queryParameters: params,
+      cancelToken: cancelToken,
     );
     return response.data as List<dynamic>;
   }
