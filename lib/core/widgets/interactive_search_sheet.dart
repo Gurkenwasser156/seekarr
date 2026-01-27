@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/release_utils.dart';
@@ -32,6 +33,24 @@ class InteractiveSearchSheet extends StatefulWidget {
       builder: (context) => InteractiveSearchSheet(
         releases: releases,
         title: title,
+        onGrabRelease: onGrabRelease,
+      ),
+    );
+  }
+
+  /// Shows interactive search sheet with loading state, fetching releases asynchronously.
+  /// Closes the sheet and shows a SnackBar on fetch error (unless cancelled by user).
+  static Future<void> showAsync({
+    required BuildContext context,
+    required String title,
+    required Future<List<dynamic>> Function(CancelToken token) fetchReleases,
+    required Future<void> Function(String guid, int indexerId) onGrabRelease,
+  }) {
+    return SheetUtils.showSeekarrModalSheet(
+      context: context,
+      builder: (context) => _AsyncInteractiveSearchSheet(
+        title: title,
+        fetchReleases: fetchReleases,
         onGrabRelease: onGrabRelease,
       ),
     );
@@ -400,5 +419,127 @@ class _InteractiveSearchSheetState extends State<InteractiveSearchSheet> {
         );
       }
     }
+  }
+}
+
+/// Wrapper widget that fetches releases asynchronously and displays InteractiveSearchSheet.
+/// Shows loading state, handles errors by closing sheet and showing SnackBar,
+/// and cancels fetch on widget dispose.
+class _AsyncInteractiveSearchSheet extends StatefulWidget {
+  final String title;
+  final Future<List<dynamic>> Function(CancelToken token) fetchReleases;
+  final Future<void> Function(String guid, int indexerId) onGrabRelease;
+
+  const _AsyncInteractiveSearchSheet({
+    required this.title,
+    required this.fetchReleases,
+    required this.onGrabRelease,
+  });
+
+  @override
+  State<_AsyncInteractiveSearchSheet> createState() =>
+      _AsyncInteractiveSearchSheetState();
+}
+
+class _AsyncInteractiveSearchSheetState
+    extends State<_AsyncInteractiveSearchSheet> {
+  late final CancelToken _cancelToken;
+  List<dynamic>? _releases;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cancelToken = CancelToken();
+    _loadReleases();
+  }
+
+  @override
+  void dispose() {
+    _cancelToken.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadReleases() async {
+    try {
+      final releases = await widget.fetchReleases(_cancelToken);
+      if (mounted && !_cancelToken.isCancelled) {
+        setState(() {
+          _releases = releases;
+        });
+      }
+    } catch (e) {
+      if (_cancelToken.isCancelled) {
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load releases: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError) {
+      return const SizedBox.shrink();
+    }
+
+    if (_releases == null) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: AppSpacing.sm),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Searching for releases...',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    return InteractiveSearchSheet(
+      releases: _releases!,
+      title: widget.title,
+      onGrabRelease: widget.onGrabRelease,
+    );
   }
 }

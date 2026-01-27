@@ -300,26 +300,16 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
 
   Future<void> _showInteractiveSearch(BuildContext context, int movieId) async {
     HapticFeedback.selectionClick();
-    setState(() => _isLoadingReleases = true);
-    try {
-      final radarrService = ref.read(radarrServiceProvider);
-      final releases = await radarrService.getReleases(movieId);
-      if (!context.mounted) return;
-
-      await InteractiveSearchSheet.show(
-        context: context,
-        releases: releases,
-        title: 'Releases for ${widget.movie.title}',
-        onGrabRelease: (guid, indexerId) async {
-          await radarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      _showErrorSnackBar('Failed to load releases: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingReleases = false);
-    }
+    final radarrService = ref.read(radarrServiceProvider);
+    await InteractiveSearchSheet.showAsync(
+      context: context,
+      title: 'Releases for ${widget.movie.title}',
+      fetchReleases: (token) =>
+          radarrService.getReleases(movieId, cancelToken: token),
+      onGrabRelease: (guid, indexerId) async {
+        await radarrService.grabRelease(guid: guid, indexerId: indexerId);
+      },
+    );
   }
 
   void _showSnackBar(String message) {

@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:dio/dio.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -53,10 +54,14 @@ class RadarrService with ArrActivityMixin {
   }
 
   /// Fetches releases for interactive search.
-  Future<List<dynamic>> getReleases(int movieId) async {
+  Future<List<dynamic>> getReleases(
+    int movieId, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await client.get(
       '/api/v3/release',
       queryParameters: {'movieId': movieId},
+      cancelToken: cancelToken,
     );
     return response.data as List<dynamic>;
   }

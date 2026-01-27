@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:dio/dio.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -86,7 +87,11 @@ class LidarrService with ArrActivityMixin {
   }
 
   /// Fetches releases for interactive search.
-  Future<List<dynamic>> getReleases({int? artistId, int? albumId}) async {
+  Future<List<dynamic>> getReleases({
+    int? artistId,
+    int? albumId,
+    CancelToken? cancelToken,
+  }) async {
     final params = <String, dynamic>{};
     if (artistId != null) params['artistId'] = artistId;
     if (albumId != null) params['albumId'] = albumId;
@@ -94,6 +99,7 @@ class LidarrService with ArrActivityMixin {
     final response = await client.get(
       '/api/v1/release',
       queryParameters: params,
+      cancelToken: cancelToken,
     );
     return response.data as List<dynamic>;
   }

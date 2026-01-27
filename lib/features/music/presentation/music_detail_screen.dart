@@ -577,31 +577,16 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     BuildContext context,
     int artistId,
   ) async {
-    setState(() => _isLoadingReleases = true);
-    try {
-      final lidarrService = ref.read(lidarrServiceProvider);
-      final releases = await lidarrService.getReleases(artistId: artistId);
-      if (!context.mounted) return;
-
-      await InteractiveSearchSheet.show(
-        context: context,
-        releases: releases,
-        title: 'Releases for ${widget.artist.artistName}',
-        onGrabRelease: (guid, indexerId) async {
-          await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load releases: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoadingReleases = false);
-    }
+    final lidarrService = ref.read(lidarrServiceProvider);
+    await InteractiveSearchSheet.showAsync(
+      context: context,
+      title: 'Releases for ${widget.artist.artistName}',
+      fetchReleases: (token) =>
+          lidarrService.getReleases(artistId: artistId, cancelToken: token),
+      onGrabRelease: (guid, indexerId) async {
+        await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
+      },
+    );
   }
 
   Future<void> _searchAlbum(BuildContext context, int albumId) async {
@@ -630,31 +615,16 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     BuildContext context,
     int albumId,
   ) async {
-    setState(() => _searchingAlbums.add(albumId));
-    try {
-      final lidarrService = ref.read(lidarrServiceProvider);
-      final releases = await lidarrService.getReleases(albumId: albumId);
-      if (!context.mounted) return;
-
-      await InteractiveSearchSheet.show(
-        context: context,
-        releases: releases,
-        title: 'Album Releases',
-        onGrabRelease: (guid, indexerId) async {
-          await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load releases: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _searchingAlbums.remove(albumId));
-    }
+    final lidarrService = ref.read(lidarrServiceProvider);
+    await InteractiveSearchSheet.showAsync(
+      context: context,
+      title: 'Album Releases',
+      fetchReleases: (token) =>
+          lidarrService.getReleases(albumId: albumId, cancelToken: token),
+      onGrabRelease: (guid, indexerId) async {
+        await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
+      },
+    );
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
