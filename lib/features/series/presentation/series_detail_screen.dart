@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/delete_media_dialog.dart';
@@ -137,41 +138,45 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quality Profile (tappable) - FIRST
-          if (_currentProfileName != null) ...[
-            _buildProfileSelector(context),
-            const SizedBox(height: AppSpacing.lg),
-          ],
           // Action buttons
-          Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
+          Row(
             children: [
-              FilledButton.icon(
-                onPressed: _isSearching
-                    ? null
-                    : () => _triggerSearch(context, series.id),
-                icon: _isSearching
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.search_rounded),
-                label: const Text('Automatic Search'),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isSearching
+                      ? null
+                      : () => _triggerSearch(context, series.id),
+                  icon: _isSearching
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.search_rounded),
+                  label: const Text('Automatic Search'),
+                  style: ElevatedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ),
-              FilledButton.tonalIcon(
-                onPressed: _isLoadingReleases
-                    ? null
-                    : () => _showInteractiveSearch(context, series.id),
-                icon: _isLoadingReleases
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.list_rounded),
-                label: const Text('Interactive Search'),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isLoadingReleases
+                      ? null
+                      : () => _showInteractiveSearch(context, series.id),
+                  icon: _isLoadingReleases
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.list_rounded),
+                  label: const Text('Interactive Search'),
+                  style: ElevatedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ),
             ],
           ),
@@ -180,23 +185,45 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             const SizedBox(height: AppSpacing.xl),
             FileInfoSection(path: series.path),
           ],
-          // Delete button
-          const SizedBox(height: AppSpacing.xl),
-          OutlinedButton.icon(
-            onPressed: _isDeleting ? null : () => _confirmDelete(context),
-            icon: _isDeleting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline_rounded),
-            label: const Text('Delete Series'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-              side: BorderSide(color: Theme.of(context).colorScheme.error),
+          // Profile selector (split button) + delete button
+          if (_currentProfileName != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: MediaProfileSelector.split(
+                    currentProfileName: _currentProfileName!,
+                    currentProfileId: _currentProfileId,
+                    qualityProfiles: _qualityProfiles,
+                    onProfileSelected: _updateProfile,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                IconButton(
+                  onPressed: _isDeleting ? null : () => _confirmDelete(context),
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onErrorContainer,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppRadius.borderRadiusSm,
+                    ),
+                  ),
+                  tooltip: 'Delete Series',
+                ),
+              ],
             ),
-          ),
+          ],
         ],
       ),
       slivers: [
@@ -502,15 +529,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
       );
     }
-  }
-
-  Widget _buildProfileSelector(BuildContext context) {
-    return MediaProfileSelector(
-      currentProfileName: _currentProfileName!,
-      currentProfileId: _currentProfileId,
-      qualityProfiles: _qualityProfiles,
-      onProfileSelected: _updateProfile,
-    );
   }
 
   Future<void> _updateProfile(int profileId) async {

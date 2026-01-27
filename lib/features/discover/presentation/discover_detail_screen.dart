@@ -94,44 +94,26 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
             expandedHeight: 500,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Hero(
-                    tag: widget.heroTag,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child:
-                          widget.initialPosterUrl != null &&
-                              widget.initialPosterUrl!.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: widget.initialPosterUrl!,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  Container(color: Colors.grey[900]),
-                            )
-                          : Container(
-                              color: Colors.grey[900],
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            ),
-                    ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                        stops: const [0.5, 1.0],
-                      ),
-                    ),
-                  ),
-                ],
+              background: Hero(
+                tag: widget.heroTag,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child:
+                      widget.initialPosterUrl != null &&
+                          widget.initialPosterUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: widget.initialPosterUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) =>
+                              Container(color: Colors.grey[900]),
+                        )
+                      : Container(
+                          color: Colors.grey[900],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                ),
               ),
             ),
           ),
@@ -221,37 +203,19 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
             expandedHeight: 500,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Hero(
-                    tag: widget.heroTag,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: posterUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: posterUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  Container(color: Colors.grey[900]),
-                            )
-                          : Container(color: Colors.grey[900]),
-                    ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                        stops: const [0.5, 1.0],
-                      ),
-                    ),
-                  ),
-                ],
+              background: Hero(
+                tag: widget.heroTag,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: posterUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: posterUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) =>
+                              Container(color: Colors.grey[900]),
+                        )
+                      : Container(color: Colors.grey[900]),
+                ),
               ),
             ),
           ),
