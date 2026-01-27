@@ -153,7 +153,12 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.search_rounded),
-                  label: const Text('Automatic Search'),
+                  label: const Text(
+                    'Automatic Search',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                   style: ElevatedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                   ),
@@ -172,7 +177,12 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.list_rounded),
-                  label: const Text('Interactive Search'),
+                  label: const Text(
+                    'Interactive Search',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                   style: ElevatedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                   ),

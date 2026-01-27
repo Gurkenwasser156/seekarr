@@ -54,6 +54,7 @@ class MediaProfileSelector extends StatelessWidget {
 
     if (isSplit) {
       return Container(
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainer,
           borderRadius: AppRadius.borderRadiusSm,
