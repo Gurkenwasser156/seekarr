@@ -19,11 +19,14 @@ class MediaProfileSelector extends StatelessWidget {
   final List<Map<String, dynamic>> qualityProfiles;
 
   /// Callback when a new profile is selected.
-  /// Called with the newly selected profile ID.
+  /// Called with newly selected profile ID.
   final Future<void> Function(int profileId) onProfileSelected;
 
-  /// Whether to use haptic feedback when opening the selector.
+  /// Whether to use haptic feedback when opening selector.
   final bool enableHaptics;
+
+  /// Whether to use split button variant.
+  final bool isSplit;
 
   const MediaProfileSelector({
     super.key,
@@ -32,11 +35,85 @@ class MediaProfileSelector extends StatelessWidget {
     required this.qualityProfiles,
     required this.onProfileSelected,
     this.enableHaptics = true,
+    this.isSplit = false,
   });
+
+  /// Named constructor for split button variant.
+  const MediaProfileSelector.split({
+    super.key,
+    required this.currentProfileName,
+    required this.currentProfileId,
+    required this.qualityProfiles,
+    required this.onProfileSelected,
+    this.enableHaptics = true,
+  }) : isSplit = true;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    if (isSplit) {
+      return Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: AppRadius.borderRadiusSm,
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => _showProfileSelector(context),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(AppRadius.sm),
+                  bottomLeft: Radius.circular(AppRadius.sm),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.high_quality_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          currentProfileName,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              width: 1,
+              color: colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            InkWell(
+              onTap: () => _showProfileSelector(context),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(AppRadius.sm),
+                bottomRight: Radius.circular(AppRadius.sm),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Icon(Icons.expand_more, size: 20),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return InkWell(
       onTap: () => _showProfileSelector(context),

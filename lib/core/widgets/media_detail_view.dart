@@ -4,7 +4,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 
 /// A reusable view for displaying media details with hero poster,
-/// gradient overlay, and sliver-based scrollable content.
+/// and sliver-based scrollable content.
 ///
 /// Follows Material Design 3 styling with proper color tokens.
 class MediaDetailView extends StatelessWidget {
@@ -68,23 +68,6 @@ class MediaDetailView extends StatelessWidget {
                             ),
                     ),
                   ),
-
-                  // Gradient overlay for text readability
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          colorScheme.surface.withValues(alpha: 0.5),
-                          colorScheme.surface,
-                        ],
-                        stops: const [0.4, 0.7, 1.0],
-                      ),
-                    ),
-                  ),
-
                   if (background != null) background!,
                 ],
               ),
