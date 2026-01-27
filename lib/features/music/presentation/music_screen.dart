@@ -92,7 +92,8 @@ class _MusicLibraryContent extends ConsumerWidget {
           statusExtractor: (artist) {
             // Check if artist has any track files
             final stats = artist.statistics;
-            final trackFileCount = stats?['trackFileCount'] as int? ?? 0;
+            final trackFileCount =
+                (stats?['trackFileCount'] as num?)?.toInt() ?? 0;
             return (hasFile: trackFileCount > 0, status: artist.status);
           },
           baseUrl: url,
@@ -132,7 +133,8 @@ class _MusicSearchResults extends ConsumerWidget {
           idExtractor: (artist) => artist.id,
           statusExtractor: (artist) {
             final stats = artist.statistics;
-            final trackFileCount = stats?['trackFileCount'] as int? ?? 0;
+            final trackFileCount =
+                (stats?['trackFileCount'] as num?)?.toInt() ?? 0;
             return (hasFile: trackFileCount > 0, status: artist.status);
           },
           baseUrl: url,

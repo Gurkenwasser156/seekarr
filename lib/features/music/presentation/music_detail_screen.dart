@@ -136,7 +136,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     // Statistics
     final stats = artist.statistics;
     // Determine status based on track files
-    final hasFiles = (stats?['trackFileCount'] as int? ?? 0) > 0;
+    final hasFiles = ((stats?['trackFileCount'] as num?)?.toInt() ?? 0) > 0;
 
     final tags = <Widget>[];
     // Status badge first
@@ -154,8 +154,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
     // Statistics
     if (stats != null) {
-      final albumCount = stats['albumCount'] as int? ?? 0;
-      final trackCount = stats['trackCount'] as int? ?? 0;
+      final albumCount = (stats['albumCount'] as num?)?.toInt() ?? 0;
+      final trackCount = (stats['trackCount'] as num?)?.toInt() ?? 0;
       if (albumCount > 0) tags.add(TagChip(text: '$albumCount Albums'));
       if (trackCount > 0) tags.add(TagChip(text: '$trackCount Tracks'));
     }
@@ -291,8 +291,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
             : '';
         final monitored = album['monitored'] as bool? ?? false;
         final stats = album['statistics'] as Map<String, dynamic>?;
-        final trackCount = stats?['totalTrackCount'] as int? ?? 0;
-        final trackFileCount = stats?['trackFileCount'] as int? ?? 0;
+        final trackCount = (stats?['totalTrackCount'] as num?)?.toInt() ?? 0;
+        final trackFileCount = (stats?['trackFileCount'] as num?)?.toInt() ?? 0;
         final percent = trackCount > 0 ? (trackFileCount / trackCount) : 0.0;
 
         // Get cover image
@@ -449,19 +449,20 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
     final sortedTracks = List<dynamic>.from(tracks)
       ..sort((a, b) {
-        final aDisc = a['mediumNumber'] as int? ?? 1;
-        final bDisc = b['mediumNumber'] as int? ?? 1;
+        final aDisc = (a['mediumNumber'] as num?)?.toInt() ?? 1;
+        final bDisc = (b['mediumNumber'] as num?)?.toInt() ?? 1;
         if (aDisc != bDisc) return aDisc.compareTo(bDisc);
-        final aTrack = a['trackNumber'] as int? ?? 0;
-        final bTrack = b['trackNumber'] as int? ?? 0;
+        final aTrack = _parseTrackNumber(a['trackNumber']);
+        final bTrack = _parseTrackNumber(b['trackNumber']);
         return aTrack.compareTo(bTrack);
       });
 
     return sortedTracks.map<Widget>((track) {
-      final trackNumber = track['trackNumber'] as int? ?? 0;
+      final trackNumberRaw = track['trackNumber'];
+      final trackNumber = trackNumberRaw?.toString() ?? '?';
       final trackTitle = track['title'] as String? ?? 'Track $trackNumber';
       final hasFile = track['hasFile'] as bool? ?? false;
-      final duration = track['duration'] as int? ?? 0;
+      final duration = (track['duration'] as num?)?.toInt() ?? 0;
       final durationStr = _formatDuration(duration);
 
       return ListTile(
@@ -481,6 +482,18 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
         dense: true,
       );
     }).toList();
+  }
+
+  int _parseTrackNumber(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+      final match = RegExp(r'\d+').firstMatch(value);
+      if (match != null) return int.tryParse(match.group(0)!) ?? 0;
+    }
+    return 0;
   }
 
   String _formatDuration(int milliseconds) {
