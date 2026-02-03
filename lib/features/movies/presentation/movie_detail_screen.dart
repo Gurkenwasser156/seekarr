@@ -12,6 +12,7 @@ import 'package:seekarr/core/widgets/media_detail_view.dart';
 import 'package:seekarr/core/widgets/media_profile_selector.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
@@ -132,6 +133,23 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+
+        // Rating chips
+        if (movie.ratings.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: movie.ratings.map((rating) {
+              return RatingChip(
+                value: rating.value.toStringAsFixed(1),
+                votes: rating.votes,
+                sourceName: rating.name,
+                sourceIcon: rating.icon,
+              );
+            }).toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
         ],

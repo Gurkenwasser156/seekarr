@@ -1,5 +1,19 @@
 import 'package:seekarr/core/models/media_preview.dart';
 
+class RatingSource {
+  final String name;
+  final double value;
+  final int votes;
+  final String icon;
+
+  RatingSource({
+    required this.name,
+    required this.value,
+    required this.votes,
+    required this.icon,
+  });
+}
+
 class RadarrMovie {
   final int id;
   final String title;
@@ -17,6 +31,7 @@ class RadarrMovie {
   final String? studio;
   final List<String> genres;
   final int? qualityProfileId;
+  final List<RatingSource> ratings;
 
   const RadarrMovie({
     required this.id,
@@ -35,9 +50,59 @@ class RadarrMovie {
     this.studio,
     required this.genres,
     this.qualityProfileId,
+    this.ratings = const [],
   });
 
   factory RadarrMovie.fromJson(Map<String, dynamic> json) {
+    final ratingsData = json['ratings'] as Map<String, dynamic>?;
+    final List<RatingSource> ratings = [];
+
+    if (ratingsData != null) {
+      ratingsData.forEach((source, data) {
+        if (data is Map<String, dynamic> && data['value'] != null) {
+          final value = (data['value'] as num?)?.toDouble();
+          final votes = (data['votes'] as num?)?.toInt() ?? 0;
+          if (value != null) {
+            String icon;
+            String displayName;
+            switch (source.toLowerCase()) {
+              case 'tmdb':
+                icon = 'TMDB';
+                displayName = 'TMDB';
+                break;
+              case 'imdb':
+                icon = 'IMDb';
+                displayName = 'IMDb';
+                break;
+              case 'tvdb':
+                icon = 'TVDB';
+                displayName = 'TVDB';
+                break;
+              case 'metacritic':
+                icon = 'MC';
+                displayName = 'Metacritic';
+                break;
+              case 'rotten':
+                icon = 'RT';
+                displayName = 'Rotten Tomatoes';
+                break;
+              default:
+                icon = source.toUpperCase().substring(0, 2);
+                displayName = source.toUpperCase();
+            }
+            ratings.add(
+              RatingSource(
+                name: displayName,
+                value: value,
+                votes: votes,
+                icon: icon,
+              ),
+            );
+          }
+        }
+      });
+    }
+
     return RadarrMovie(
       id: json['id'] ?? 0,
       title: json['title'] ?? 'Unknown',
@@ -59,6 +124,7 @@ class RadarrMovie {
               .toList() ??
           [],
       qualityProfileId: json['qualityProfileId'],
+      ratings: ratings,
     );
   }
 

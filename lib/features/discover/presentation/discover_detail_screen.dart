@@ -3,6 +3,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/features/discover/presentation/discover_details_provider.dart';
 import 'package:seekarr/features/discover/presentation/widgets/manage_media_sheet.dart';
@@ -36,11 +37,51 @@ class DiscoverDetailScreen extends ConsumerStatefulWidget {
 class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
   bool? _isActuallyInLibrary;
   bool _libraryCheckDone = false;
+  List<dynamic>? _lookupRatings;
+  bool _lookupLoading = false;
 
   @override
   void initState() {
     super.initState();
     _checkActualLibraryStatus();
+  }
+
+  Future<void> _loadRatingsFromLookup(
+    int tmdbId,
+    int? tvdbId,
+    String mediaType,
+  ) async {
+    if (_lookupLoading) return;
+
+    final settings = ref.read(settingsProvider);
+    if (mediaType == 'movie' &&
+        settings.radarrUrl.isNotEmpty &&
+        settings.radarrApiKey.isNotEmpty) {
+      setState(() => _lookupLoading = true);
+      try {
+        final radarrService = ref.read(radarrServiceProvider);
+        final results = await radarrService.lookupMovies('tmdb:$tmdbId');
+        if (results.isNotEmpty && mounted) {
+          final movie = results.first;
+          setState(() => _lookupRatings = movie.ratings);
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _lookupLoading = false);
+    } else if (mediaType == 'tv' &&
+        tvdbId != null &&
+        settings.sonarrUrl.isNotEmpty &&
+        settings.sonarrApiKey.isNotEmpty) {
+      setState(() => _lookupLoading = true);
+      try {
+        final sonarrService = ref.read(sonarrServiceProvider);
+        final results = await sonarrService.lookupSeries('tvdb:$tvdbId');
+        if (results.isNotEmpty && mounted) {
+          final series = results.first;
+          setState(() => _lookupRatings = series.ratings);
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _lookupLoading = false);
+    }
   }
 
   Future<void> _checkActualLibraryStatus({int? tvdbId}) async {
@@ -165,6 +206,10 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
     final year = releaseDate.length >= 4 ? releaseDate.substring(0, 4) : '';
     final runtime = details['runtime'] as int?;
     final runtimeStr = runtime != null && runtime > 0 ? '${runtime}min' : null;
+    final voteAverage =
+        details['voteAverage'] as double? ?? details['vote_average'] as double?;
+    final voteCount =
+        details['voteCount'] as int? ?? details['vote_count'] as int?;
 
     // Cast & Crew
     final credits = details['credits'] as Map<String, dynamic>?;
@@ -195,6 +240,11 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
     // External IDs for "Open in" feature
     final externalIds = details['externalIds'] as Map<String, dynamic>?;
     final tvdbId = externalIds?['tvdbId'] as int? ?? details['tvdbId'] as int?;
+
+    // Load ratings from lookup if Jellyseerr doesn't have them
+    if (voteAverage == null && _lookupRatings == null) {
+      _loadRatingsFromLookup(widget.mediaId, tvdbId, widget.mediaType);
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -263,6 +313,33 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
                       ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                     ),
                   const SizedBox(height: 20),
+
+                  // Rating chips
+                  if (voteAverage != null || _lookupRatings != null) ...[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (_lookupRatings != null)
+                          ..._lookupRatings!.map(
+                            (r) => RatingChip(
+                              value: r.value.toStringAsFixed(1),
+                              votes: r.votes,
+                              sourceName: r.name,
+                              sourceIcon: r.icon,
+                            ),
+                          )
+                        else if (voteAverage != null)
+                          RatingChip(
+                            value: voteAverage.toStringAsFixed(1),
+                            votes: voteCount ?? 0,
+                            sourceName: 'TMDB',
+                            sourceIcon: 'TMDB',
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Action buttons
                   _buildActionButtons(

@@ -22,6 +22,7 @@ export 'search_bar_header.dart';
 // Status & Tags
 export 'status_badge.dart';
 export 'tag_chip.dart';
+export 'rating_chip.dart';
 export 'file_info_section.dart';
 
 // Async handling

@@ -12,6 +12,7 @@ import 'package:seekarr/core/widgets/media_profile_selector.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_provider.dart';
@@ -138,6 +139,22 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Rating chips
+          if (series.ratings.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: series.ratings.map((rating) {
+                return RatingChip(
+                  value: rating.value.toStringAsFixed(1),
+                  votes: rating.votes,
+                  sourceName: rating.name,
+                  sourceIcon: rating.icon,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           // Action buttons
           Row(
             children: [

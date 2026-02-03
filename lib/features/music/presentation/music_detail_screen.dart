@@ -11,6 +11,7 @@ import 'package:seekarr/core/widgets/media_profile_selector.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
@@ -139,8 +140,17 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     final hasFiles = ((stats?['trackFileCount'] as num?)?.toInt() ?? 0) > 0;
 
     final tags = <Widget>[];
-    // Status badge first
+    // Status badge, album/track counts at the top
     tags.add(StatusBadge.fromMedia(hasFile: hasFiles, status: status));
+
+    // Statistics
+    if (stats != null) {
+      final albumCount = (stats['albumCount'] as num?)?.toInt() ?? 0;
+      final trackCount = (stats['trackCount'] as num?)?.toInt() ?? 0;
+      if (albumCount > 0) tags.add(TagChip(text: '$albumCount Albums'));
+      if (trackCount > 0) tags.add(TagChip(text: '$trackCount Tracks'));
+    }
+
     if (genres.isNotEmpty) {
       tags.add(
         Text(
@@ -152,14 +162,6 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
       );
     }
 
-    // Statistics
-    if (stats != null) {
-      final albumCount = (stats['albumCount'] as num?)?.toInt() ?? 0;
-      final trackCount = (stats['trackCount'] as num?)?.toInt() ?? 0;
-      if (albumCount > 0) tags.add(TagChip(text: '$albumCount Albums'));
-      if (trackCount > 0) tags.add(TagChip(text: '$trackCount Tracks'));
-    }
-
     return MediaDetailView(
       title: title,
       heroTag: widget.heroTag,
@@ -169,6 +171,22 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Rating chips
+          if (artist.ratings.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: artist.ratings.map((rating) {
+                return RatingChip(
+                  value: rating.value.toStringAsFixed(1),
+                  votes: rating.votes,
+                  sourceName: rating.name,
+                  sourceIcon: rating.icon,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           // Action buttons
           Row(
             children: [
