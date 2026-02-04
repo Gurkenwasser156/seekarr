@@ -16,7 +16,9 @@ import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_see_all_screen.dart';
-import 'package:seekarr/features/settings/presentation/settings_screen.dart';
+import 'package:seekarr/features/settings/presentation/settings_home_screen.dart';
+import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -162,7 +164,23 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
+            builder: (context, state) => const SettingsHomeScreen(),
+            routes: [
+              GoRoute(
+                path: 'service/:service',
+                pageBuilder: (context, state) {
+                  final serviceParam = state.pathParameters['service'];
+                  final service = ServiceKey.values.firstWhere(
+                    (s) => s.routeParam == serviceParam,
+                    orElse: () => ServiceKey.jellyseerr,
+                  );
+                  return RouteUtils.cupertinoPage(
+                    key: state.pageKey,
+                    child: ServiceSettingsScreen(service: service),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
