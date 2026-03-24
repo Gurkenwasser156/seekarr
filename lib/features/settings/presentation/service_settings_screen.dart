@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/url_utils.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 class ServiceSettingsScreen extends ConsumerStatefulWidget {
   final ServiceKey service;
@@ -140,17 +141,7 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.next,
               autocorrect: false,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Server URL is required';
-                }
-                final trimmed = value.trim();
-                if (!trimmed.startsWith('http://') &&
-                    !trimmed.startsWith('https://')) {
-                  return 'URL must start with http:// or https://';
-                }
-                return null;
-              },
+              validator: UrlUtils.validateServiceUrl,
             ),
             const SizedBox(height: AppSpacing.lg),
 

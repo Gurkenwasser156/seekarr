@@ -38,5 +38,87 @@ void main() {
         expect(result, '');
       });
     });
+
+    group('validateServiceUrl', () {
+      test('returns required error for null', () {
+        expect(UrlUtils.validateServiceUrl(null), 'Server URL is required');
+      });
+
+      test('returns required error for empty string', () {
+        expect(UrlUtils.validateServiceUrl(''), 'Server URL is required');
+      });
+
+      test('returns required error for whitespace only', () {
+        expect(UrlUtils.validateServiceUrl('  '), 'Server URL is required');
+      });
+
+      test('rejects non-http schemes', () {
+        expect(
+          UrlUtils.validateServiceUrl('ftp://host.com'),
+          'URL must start with http:// or https://',
+        );
+      });
+
+      test('rejects non-url values', () {
+        expect(
+          UrlUtils.validateServiceUrl('not-a-url'),
+          'URL must start with http:// or https://',
+        );
+      });
+
+      test('rejects bare http scheme', () {
+        expect(
+          UrlUtils.validateServiceUrl('http://'),
+          'Enter a valid URL (e.g. http://192.168.1.100:7878)',
+        );
+      });
+
+      test('rejects bare https scheme', () {
+        expect(
+          UrlUtils.validateServiceUrl('https://'),
+          'Enter a valid URL (e.g. http://192.168.1.100:7878)',
+        );
+      });
+
+      test('accepts localhost with port', () {
+        expect(UrlUtils.validateServiceUrl('http://localhost:7878'), isNull);
+      });
+
+      test('accepts fqdn over https', () {
+        expect(
+          UrlUtils.validateServiceUrl('https://radarr.mydomain.com'),
+          isNull,
+        );
+      });
+
+      test('accepts private ip with port', () {
+        expect(
+          UrlUtils.validateServiceUrl('http://192.168.1.100:8989'),
+          isNull,
+        );
+      });
+
+      test('accepts local hostname with port', () {
+        expect(UrlUtils.validateServiceUrl('http://mynas.local:7878'), isNull);
+      });
+
+      test('accepts reverse proxy base path', () {
+        expect(
+          UrlUtils.validateServiceUrl('https://proxy.example.com/radarr'),
+          isNull,
+        );
+      });
+
+      test('accepts trailing slash', () {
+        expect(UrlUtils.validateServiceUrl('http://10.0.0.1:7878/'), isNull);
+      });
+
+      test('accepts whitespace around valid URL', () {
+        expect(
+          UrlUtils.validateServiceUrl('  http://localhost:7878  '),
+          isNull,
+        );
+      });
+    });
   });
 }
