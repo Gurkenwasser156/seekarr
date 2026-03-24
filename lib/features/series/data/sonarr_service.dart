@@ -7,7 +7,7 @@ import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final sonarrServiceProvider = Provider<SonarrService>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final settings = ref.watch(currentSettingsProvider);
   if (settings.sonarrUrl.isEmpty || settings.sonarrApiKey.isEmpty) {
     throw Exception('Sonarr not configured');
   }

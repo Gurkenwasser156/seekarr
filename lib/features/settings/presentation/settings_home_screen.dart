@@ -6,6 +6,7 @@ import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 class SettingsHomeScreen extends ConsumerWidget {
@@ -13,7 +14,7 @@ class SettingsHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(currentSettingsProvider);
     final bottomPadding = FloatingNavBarMetrics.getScrollViewBottomPadding(
       context,
     );
@@ -87,7 +88,7 @@ class SettingsHomeScreen extends ConsumerWidget {
     );
   }
 
-  String _getServiceSubtitle(dynamic settings, ServiceKey service) {
+  String _getServiceSubtitle(SettingsModel settings, ServiceKey service) {
     final url = _getUrlForService(settings, service);
     if (url == null || url.isEmpty) return 'Not configured';
 
@@ -95,16 +96,16 @@ class SettingsHomeScreen extends ConsumerWidget {
     return host != null ? host : url;
   }
 
-  String? _getUrlForService(dynamic settings, ServiceKey service) {
+  String? _getUrlForService(SettingsModel settings, ServiceKey service) {
     switch (service) {
       case ServiceKey.jellyseerr:
-        return settings.jellyseerrUrl as String?;
+        return settings.jellyseerrUrl;
       case ServiceKey.radarr:
-        return settings.radarrUrl as String?;
+        return settings.radarrUrl;
       case ServiceKey.sonarr:
-        return settings.sonarrUrl as String?;
+        return settings.sonarrUrl;
       case ServiceKey.lidarr:
-        return settings.lidarrUrl as String?;
+        return settings.lidarrUrl;
     }
   }
 }

@@ -93,7 +93,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(currentSettingsProvider);
     final series = widget.series;
     final title = series.title;
     final network = series.network ?? '';
@@ -106,7 +106,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       (a, b) => (a['seasonNumber'] as int).compareTo(b['seasonNumber'] as int),
     );
 
-    final imageUrl = ImageUtils.extractPosterUrl(
+    final imageSource = ImageUtils.extractPosterUrl(
       series.images,
       baseUrl: settings.sonarrUrl,
       apiKey: settings.sonarrApiKey,
@@ -133,7 +133,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     return MediaDetailView(
       title: title,
       heroTag: widget.heroTag,
-      posterUrl: imageUrl,
+      posterUrl: imageSource.url,
+      posterHeaders: imageSource.headers,
       overview: overview,
       tags: tags,
       actions: Column(

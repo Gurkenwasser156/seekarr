@@ -73,7 +73,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(currentSettingsProvider);
     final movie = widget.movie;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -84,7 +84,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
     final studio = movie.studio ?? '';
     final status = movie.status;
 
-    final imageUrl = ImageUtils.extractPosterUrl(
+    final imageSource = ImageUtils.extractPosterUrl(
       movie.images,
       baseUrl: settings.radarrUrl,
       apiKey: settings.radarrApiKey,
@@ -109,7 +109,8 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
     return MediaDetailView(
       title: title,
       heroTag: widget.heroTag,
-      posterUrl: imageUrl,
+      posterUrl: imageSource.url,
+      posterHeaders: imageSource.headers,
       overview: overview,
       tags: tags,
       actions: _buildActions(context, colorScheme, movie, filename, studio),

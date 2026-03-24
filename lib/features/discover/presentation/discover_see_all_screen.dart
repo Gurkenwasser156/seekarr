@@ -27,7 +27,8 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
   @override
   void initState() {
     _pagingController = PagingController<int, MediaPreview>(
-      getNextPageKey: (state) => state.lastPageIsEmpty ? null : state.nextIntPageKey,
+      getNextPageKey: (state) =>
+          state.lastPageIsEmpty ? null : state.nextIntPageKey,
       fetchPage: (pageKey) => _fetchPage(pageKey),
     );
     super.initState();
@@ -69,41 +70,44 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
       appBar: AppBar(title: Text(widget.title)),
       body: PagingListener<int, MediaPreview>(
         controller: _pagingController,
-        builder: (context, state, fetchNextPage) => PagedGridView<int, MediaPreview>(
-          state: state,
-          fetchNextPage: fetchNextPage,
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 2 / 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          builderDelegate: PagedChildBuilderDelegate<MediaPreview>(
-            itemBuilder: (context, item, index) {
-              final posterPath = item.posterPath;
-              final imageUrl = posterPath != null
-                  ? 'https://image.tmdb.org/t/p/w500$posterPath'
-                  : '';
+        builder: (context, state, fetchNextPage) =>
+            PagedGridView<int, MediaPreview>(
+              state: state,
+              fetchNextPage: fetchNextPage,
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 2 / 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              builderDelegate: PagedChildBuilderDelegate<MediaPreview>(
+                itemBuilder: (context, item, index) {
+                  final posterPath = item.posterPath;
+                  final imageUrl = posterPath != null
+                      ? 'https://image.tmdb.org/t/p/w500$posterPath'
+                      : '';
 
-              final mediaType = item.mediaType; // Might be mixed for trending
-              final heroTag = 'discover_seeall_${mediaType}_${item.id}_$index';
+                  final mediaType =
+                      item.mediaType; // Might be mixed for trending
+                  final heroTag =
+                      'discover_seeall_${mediaType}_${item.id}_$index';
 
-              return GestureDetector(
-                onTap: () {
-                  final encodedUrl = Uri.encodeComponent(imageUrl);
-                  context.push(
-                    '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                  return GestureDetector(
+                    onTap: () {
+                      final encodedUrl = Uri.encodeComponent(imageUrl);
+                      context.push(
+                        '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                      );
+                    },
+                    child: Hero(
+                      tag: heroTag,
+                      child: ContentCard(imageUrl: imageUrl),
+                    ),
                   );
                 },
-                child: Hero(
-                  tag: heroTag,
-                  child: ContentCard(imageUrl: imageUrl),
-                ),
-              );
-            },
-          ),
-        ),
+              ),
+            ),
       ),
     );
   }

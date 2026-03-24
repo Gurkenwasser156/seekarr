@@ -75,7 +75,7 @@ class _MoviesLibraryContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final moviesAsync = ref.watch(moviesProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
+      currentSettingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
     );
 
     return RefreshIndicator(
@@ -110,7 +110,7 @@ class _MoviesSearchResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchResults = ref.watch(moviesSearchResultsProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
+      currentSettingsProvider.select((s) => (s.radarrUrl, s.radarrApiKey)),
     );
 
     return searchResults.when(

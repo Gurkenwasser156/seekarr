@@ -7,7 +7,7 @@ import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final radarrServiceProvider = Provider<RadarrService>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final settings = ref.watch(currentSettingsProvider);
   if (settings.radarrUrl.isEmpty || settings.radarrApiKey.isEmpty) {
     throw Exception('Radarr not configured');
   }

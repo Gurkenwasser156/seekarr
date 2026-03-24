@@ -112,7 +112,7 @@ class MediaGrid<T> extends StatelessWidget {
         final images = imagesExtractor(item);
         final itemId = idExtractor(item);
 
-        final imageUrl = ImageUtils.extractPosterUrl(
+        final imageSource = ImageUtils.extractPosterUrl(
           images,
           baseUrl: baseUrl,
           apiKey: apiKey,
@@ -139,7 +139,11 @@ class MediaGrid<T> extends StatelessWidget {
           onTap: onItemTap != null ? () => onItemTap!(item, heroTag) : null,
           child: Hero(
             tag: heroTag,
-            child: ContentCard(imageUrl: imageUrl, badge: badge),
+            child: ContentCard(
+              imageUrl: imageSource.url,
+              httpHeaders: imageSource.headers,
+              badge: badge,
+            ),
           ),
         );
       },
