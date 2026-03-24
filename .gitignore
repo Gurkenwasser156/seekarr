@@ -22,6 +22,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# XCode related
+macos/Runner.xcodeproj/xcuserdata/
+macos/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+macos/Runner/Configs/LocalSigning.xcconfig
+ios/Flutter/LocalSigning.xcconfig
+
 # Environment files 
 .env
 .env.local

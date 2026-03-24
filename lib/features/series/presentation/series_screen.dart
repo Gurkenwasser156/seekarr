@@ -75,7 +75,7 @@ class _SeriesLibraryContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final seriesAsync = ref.watch(seriesProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
+      currentSettingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
     );
 
     return RefreshIndicator(
@@ -114,7 +114,7 @@ class _SeriesSearchResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchResults = ref.watch(seriesSearchResultsProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
+      currentSettingsProvider.select((s) => (s.sonarrUrl, s.sonarrApiKey)),
     );
 
     return searchResults.when(

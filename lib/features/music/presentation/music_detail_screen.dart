@@ -119,7 +119,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(currentSettingsProvider);
     final artist = widget.artist;
     final title = artist.artistName;
     final overview = artist.overview ?? 'No description available.';
@@ -127,7 +127,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     final genres = artist.genres.join(', ');
 
     // Lidarr uses different cover types
-    final imageUrl = ImageUtils.extractPosterUrl(
+    final imageSource = ImageUtils.extractPosterUrl(
       artist.images,
       baseUrl: settings.lidarrUrl,
       apiKey: settings.lidarrApiKey,
@@ -165,7 +165,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
     return MediaDetailView(
       title: title,
       heroTag: widget.heroTag,
-      posterUrl: imageUrl,
+      posterUrl: imageSource.url,
+      posterHeaders: imageSource.headers,
       overview: overview,
       tags: tags,
       actions: Column(
@@ -325,8 +326,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
 
         // Get cover image
         final images = album['images'] as List<dynamic>? ?? [];
-        final settings = ref.watch(settingsProvider);
-        final albumCover = ImageUtils.extractPosterUrl(
+        final settings = ref.watch(currentSettingsProvider);
+        final albumImageSource = ImageUtils.extractPosterUrl(
           images,
           baseUrl: settings.lidarrUrl,
           apiKey: settings.lidarrApiKey,
@@ -345,9 +346,10 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
             },
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: albumCover.isNotEmpty
+              child: albumImageSource.url.isNotEmpty
                   ? Image.network(
-                      albumCover,
+                      albumImageSource.url,
+                      headers: albumImageSource.headers,
                       width: 48,
                       height: 48,
                       fit: BoxFit.cover,

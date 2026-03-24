@@ -7,7 +7,7 @@ import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final lidarrServiceProvider = Provider<LidarrService>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final settings = ref.watch(currentSettingsProvider);
   if (settings.lidarrUrl.isEmpty || settings.lidarrApiKey.isEmpty) {
     throw Exception('Lidarr not configured');
   }

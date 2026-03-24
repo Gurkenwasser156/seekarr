@@ -11,6 +11,9 @@ class ContentCard extends StatelessWidget {
   /// URL of the image to display
   final String? imageUrl;
 
+  /// Optional headers used when fetching protected images.
+  final Map<String, String>? httpHeaders;
+
   /// Optional badge widget to display in the corner (e.g., status badge).
   final Widget? badge;
 
@@ -23,6 +26,7 @@ class ContentCard extends StatelessWidget {
   const ContentCard({
     super.key,
     required this.imageUrl,
+    this.httpHeaders,
     this.badge,
     this.useShimmer = true,
     this.onTap,
@@ -89,6 +93,7 @@ class ContentCard extends StatelessWidget {
 
     return CachedNetworkImage(
       imageUrl: imageUrl!,
+      httpHeaders: httpHeaders,
       fit: BoxFit.cover,
       placeholder: (context, url) => useShimmer
           ? _ShimmerPlaceholder(color: colorScheme.surfaceContainerHigh)

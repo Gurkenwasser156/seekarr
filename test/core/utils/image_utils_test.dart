@@ -19,10 +19,11 @@ void main() {
           apiKey: 'test-key',
         );
 
-        expect(result, 'https://image.tmdb.org/t/p/w500/abc.jpg');
+        expect(result.url, 'https://image.tmdb.org/t/p/w500/abc.jpg');
+        expect(result.headers, isNull);
       });
 
-      test('builds authenticated URL when remoteUrl is relative', () {
+      test('builds URL with auth headers when remoteUrl is relative', () {
         final images = [
           {
             'coverType': 'poster',
@@ -37,10 +38,8 @@ void main() {
           apiKey: 'test-key',
         );
 
-        expect(
-          result,
-          'http://localhost:7878/MediaCover/1/poster.jpg?apikey=test-key',
-        );
+        expect(result.url, 'http://localhost:7878/MediaCover/1/poster.jpg');
+        expect(result.headers, {'X-Api-Key': 'test-key'});
       });
 
       test('uses url when remoteUrl is null', () {
@@ -54,10 +53,8 @@ void main() {
           apiKey: 'test-key',
         );
 
-        expect(
-          result,
-          'http://localhost:7878/MediaCover/1/poster.jpg?apikey=test-key',
-        );
+        expect(result.url, 'http://localhost:7878/MediaCover/1/poster.jpg');
+        expect(result.headers, {'X-Api-Key': 'test-key'});
       });
 
       test('returns empty string when images is null', () {
@@ -67,7 +64,8 @@ void main() {
           apiKey: 'test-key',
         );
 
-        expect(result, '');
+        expect(result.url, '');
+        expect(result.headers, isNull);
       });
 
       test('returns empty string when images is empty', () {
@@ -77,7 +75,8 @@ void main() {
           apiKey: 'test-key',
         );
 
-        expect(result, '');
+        expect(result.url, '');
+        expect(result.headers, isNull);
       });
 
       test('finds cover type from custom coverTypes list', () {
@@ -92,7 +91,8 @@ void main() {
           coverTypes: ['poster', 'cover'],
         );
 
-        expect(result, 'https://example.com/cover.jpg');
+        expect(result.url, 'https://example.com/cover.jpg');
+        expect(result.headers, isNull);
       });
 
       test('returns empty string when no matching cover type found', () {
@@ -110,7 +110,23 @@ void main() {
           coverTypes: ['poster'],
         );
 
-        expect(result, '');
+        expect(result.url, '');
+        expect(result.headers, isNull);
+      });
+
+      test('returns empty image source for local images without api key', () {
+        final images = [
+          {'coverType': 'poster', 'url': '/MediaCover/1/poster.jpg'},
+        ];
+
+        final result = ImageUtils.extractPosterUrl(
+          images,
+          baseUrl: 'http://localhost:7878',
+          apiKey: '',
+        );
+
+        expect(result.url, '');
+        expect(result.headers, isNull);
       });
     });
 

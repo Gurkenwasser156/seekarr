@@ -25,7 +25,7 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final settings = ref.read(settingsProvider);
+    final settings = ref.read(currentSettingsProvider);
     _urlController = TextEditingController(text: _getUrlForService(settings));
     _apiKeyController = TextEditingController(
       text: _getApiKeyForService(settings),
@@ -68,7 +68,7 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
   Future<void> _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final current = ref.read(settingsProvider);
+    final current = ref.read(currentSettingsProvider);
     final updated = _updateServiceSettings(current);
 
     await ref.read(settingsProvider.notifier).updateSettings(updated);

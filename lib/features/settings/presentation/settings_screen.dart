@@ -31,7 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final settings = ref.read(settingsProvider);
+    final settings = ref.read(currentSettingsProvider);
     _jellyseerrUrlController = TextEditingController(
       text: settings.jellyseerrUrl,
     );

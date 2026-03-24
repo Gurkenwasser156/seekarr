@@ -75,7 +75,7 @@ class _MusicLibraryContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final musicAsync = ref.watch(musicProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
+      currentSettingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
     );
 
     return RefreshIndicator(
@@ -116,7 +116,7 @@ class _MusicSearchResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchResults = ref.watch(musicSearchResultsProvider);
     final (url, apiKey) = ref.watch(
-      settingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
+      currentSettingsProvider.select((s) => (s.lidarrUrl, s.lidarrApiKey)),
     );
 
     return searchResults.when(

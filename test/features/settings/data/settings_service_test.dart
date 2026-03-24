@@ -1,0 +1,140 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seekarr/features/settings/data/settings_service.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+void main() {
+  group('SettingsService', () {
+    late SharedPreferences prefs;
+    late FakeSecureSettingsStore secureStore;
+    late SettingsService service;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      secureStore = FakeSecureSettingsStore();
+      service = SettingsService(prefs, secureStore);
+    });
+
+    test('migrateFromPlaintext moves keys to secure storage', () async {
+      await prefs.setString('jellyseerr_api_key', 'jelly-key');
+      await prefs.setString('radarr_api_key', 'radarr-key');
+      await prefs.setString('sonarr_api_key', 'sonarr-key');
+      await prefs.setString('lidarr_api_key', 'lidarr-key');
+
+      await service.migrateFromPlaintext();
+
+      expect(
+        await secureStore.read(key: 'secure_jellyseerr_api_key'),
+        'jelly-key',
+      );
+      expect(
+        await secureStore.read(key: 'secure_radarr_api_key'),
+        'radarr-key',
+      );
+      expect(
+        await secureStore.read(key: 'secure_sonarr_api_key'),
+        'sonarr-key',
+      );
+      expect(
+        await secureStore.read(key: 'secure_lidarr_api_key'),
+        'lidarr-key',
+      );
+
+      expect(prefs.getString('jellyseerr_api_key'), isNull);
+      expect(prefs.getString('radarr_api_key'), isNull);
+      expect(prefs.getString('sonarr_api_key'), isNull);
+      expect(prefs.getString('lidarr_api_key'), isNull);
+    });
+
+    test('migrateFromPlaintext is idempotent', () async {
+      await prefs.setString('radarr_api_key', 'radarr-key');
+
+      await service.migrateFromPlaintext();
+      await service.migrateFromPlaintext();
+
+      expect(
+        await secureStore.read(key: 'secure_radarr_api_key'),
+        'radarr-key',
+      );
+      expect(prefs.getString('radarr_api_key'), isNull);
+    });
+
+    test('migrateFromPlaintext skips empty keys', () async {
+      await prefs.setString('radarr_api_key', '   ');
+
+      await service.migrateFromPlaintext();
+
+      expect(await secureStore.read(key: 'secure_radarr_api_key'), isNull);
+      expect(prefs.getString('radarr_api_key'), isNull);
+    });
+
+    test('saveSettings and loadSettings round-trip', () async {
+      const settings = SettingsModel(
+        jellyseerrUrl: 'https://jelly.example.com',
+        jellyseerrApiKey: 'jelly-key',
+        radarrUrl: 'https://radarr.example.com',
+        radarrApiKey: 'radarr-key',
+        sonarrUrl: 'https://sonarr.example.com',
+        sonarrApiKey: 'sonarr-key',
+        lidarrUrl: 'https://lidarr.example.com',
+        lidarrApiKey: 'lidarr-key',
+      );
+
+      await service.saveSettings(settings);
+
+      final loaded = await service.loadSettings();
+
+      expect(loaded.jellyseerrUrl, settings.jellyseerrUrl);
+      expect(loaded.jellyseerrApiKey, settings.jellyseerrApiKey);
+      expect(loaded.radarrUrl, settings.radarrUrl);
+      expect(loaded.radarrApiKey, settings.radarrApiKey);
+      expect(loaded.sonarrUrl, settings.sonarrUrl);
+      expect(loaded.sonarrApiKey, settings.sonarrApiKey);
+      expect(loaded.lidarrUrl, settings.lidarrUrl);
+      expect(loaded.lidarrApiKey, settings.lidarrApiKey);
+    });
+
+    test('loadSettings returns empty defaults on fresh storage', () async {
+      final loaded = await service.loadSettings();
+
+      expect(loaded.jellyseerrUrl, isEmpty);
+      expect(loaded.jellyseerrApiKey, isEmpty);
+      expect(loaded.radarrUrl, isEmpty);
+      expect(loaded.radarrApiKey, isEmpty);
+      expect(loaded.sonarrUrl, isEmpty);
+      expect(loaded.sonarrApiKey, isEmpty);
+      expect(loaded.lidarrUrl, isEmpty);
+      expect(loaded.lidarrApiKey, isEmpty);
+    });
+
+    test('saveSettings removes secure keys when values are empty', () async {
+      const populatedSettings = SettingsModel(radarrApiKey: 'radarr-key');
+      const clearedSettings = SettingsModel();
+
+      await service.saveSettings(populatedSettings);
+      await service.saveSettings(clearedSettings);
+
+      expect(await secureStore.read(key: 'secure_radarr_api_key'), isNull);
+    });
+  });
+}
+
+class FakeSecureSettingsStore implements SecureSettingsStore {
+  final Map<String, String> _storage = {};
+
+  @override
+  Future<void> delete({required String key}) async {
+    _storage.remove(key);
+  }
+
+  @override
+  Future<String?> read({required String key}) async {
+    return _storage[key];
+  }
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _storage[key] = value;
+  }
+}

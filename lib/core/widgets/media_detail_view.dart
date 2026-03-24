@@ -11,6 +11,7 @@ class MediaDetailView extends StatelessWidget {
   final String title;
   final String heroTag;
   final String? posterUrl;
+  final Map<String, String>? posterHeaders;
   final Widget? actions;
   final List<Widget> tags;
   final String overview;
@@ -22,6 +23,7 @@ class MediaDetailView extends StatelessWidget {
     required this.title,
     required this.heroTag,
     this.posterUrl,
+    this.posterHeaders,
     this.actions,
     this.tags = const [],
     required this.overview,
@@ -53,6 +55,7 @@ class MediaDetailView extends StatelessWidget {
                       child: posterUrl != null && posterUrl!.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: posterUrl!,
+                              httpHeaders: posterHeaders,
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
                                 color: colorScheme.surfaceContainer,

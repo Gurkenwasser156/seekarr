@@ -53,7 +53,7 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
   ) async {
     if (_lookupLoading) return;
 
-    final settings = ref.read(settingsProvider);
+    final settings = ref.read(currentSettingsProvider);
     if (mediaType == 'movie' &&
         settings.radarrUrl.isNotEmpty &&
         settings.radarrApiKey.isNotEmpty) {
@@ -701,7 +701,7 @@ class _DiscoverDetailScreenState extends ConsumerState<DiscoverDetailScreen> {
     String type,
     int? tvdbId,
   ) async {
-    final settings = ref.read(settingsProvider);
+    final settings = ref.read(currentSettingsProvider);
 
     if (type == 'movie') {
       // Check if Radarr is configured

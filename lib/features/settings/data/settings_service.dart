@@ -1,41 +1,117 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
+abstract interface class SecureSettingsStore {
+  Future<String?> read({required String key});
+
+  Future<void> write({required String key, required String value});
+
+  Future<void> delete({required String key});
+}
+
+class FlutterSecureSettingsStore implements SecureSettingsStore {
+  final FlutterSecureStorage _storage;
+
+  const FlutterSecureSettingsStore(this._storage);
+
+  @override
+  Future<String?> read({required String key}) {
+    return _storage.read(key: key);
+  }
+
+  @override
+  Future<void> write({required String key, required String value}) {
+    return _storage.write(key: key, value: value);
+  }
+
+  @override
+  Future<void> delete({required String key}) {
+    return _storage.delete(key: key);
+  }
+}
+
 class SettingsService {
   static const _kJellyseerrUrl = 'jellyseerr_url';
-  static const _kJellyseerrApiKey = 'jellyseerr_api_key';
   static const _kRadarrUrl = 'radarr_url';
-  static const _kRadarrApiKey = 'radarr_api_key';
   static const _kSonarrUrl = 'sonarr_url';
-  static const _kSonarrApiKey = 'sonarr_api_key';
   static const _kLidarrUrl = 'lidarr_url';
-  static const _kLidarrApiKey = 'lidarr_api_key';
+
+  static const _kLegacyJellyseerrApiKey = 'jellyseerr_api_key';
+  static const _kLegacyRadarrApiKey = 'radarr_api_key';
+  static const _kLegacySonarrApiKey = 'sonarr_api_key';
+  static const _kLegacyLidarrApiKey = 'lidarr_api_key';
+
+  static const _kSecureJellyseerrApiKey = 'secure_jellyseerr_api_key';
+  static const _kSecureRadarrApiKey = 'secure_radarr_api_key';
+  static const _kSecureSonarrApiKey = 'secure_sonarr_api_key';
+  static const _kSecureLidarrApiKey = 'secure_lidarr_api_key';
 
   final SharedPreferences _prefs;
+  final SecureSettingsStore _secureStore;
 
-  SettingsService(this._prefs);
+  SettingsService(this._prefs, this._secureStore);
 
-  SettingsModel loadSettings() {
+  Future<void> migrateFromPlaintext() async {
+    final migrations = {
+      _kLegacyJellyseerrApiKey: _kSecureJellyseerrApiKey,
+      _kLegacyRadarrApiKey: _kSecureRadarrApiKey,
+      _kLegacySonarrApiKey: _kSecureSonarrApiKey,
+      _kLegacyLidarrApiKey: _kSecureLidarrApiKey,
+    };
+
+    for (final entry in migrations.entries) {
+      final plaintextValue = _prefs.getString(entry.key);
+      if (plaintextValue == null) {
+        continue;
+      }
+
+      final normalizedValue = plaintextValue.trim();
+      final secureValue = await _secureStore.read(key: entry.value);
+
+      if (normalizedValue.isNotEmpty &&
+          (secureValue == null || secureValue.isEmpty)) {
+        await _secureStore.write(key: entry.value, value: normalizedValue);
+      }
+
+      await _prefs.remove(entry.key);
+    }
+  }
+
+  Future<SettingsModel> loadSettings() async {
     return SettingsModel(
       jellyseerrUrl: _prefs.getString(_kJellyseerrUrl) ?? '',
-      jellyseerrApiKey: _prefs.getString(_kJellyseerrApiKey) ?? '',
+      jellyseerrApiKey:
+          await _secureStore.read(key: _kSecureJellyseerrApiKey) ?? '',
       radarrUrl: _prefs.getString(_kRadarrUrl) ?? '',
-      radarrApiKey: _prefs.getString(_kRadarrApiKey) ?? '',
+      radarrApiKey: await _secureStore.read(key: _kSecureRadarrApiKey) ?? '',
       sonarrUrl: _prefs.getString(_kSonarrUrl) ?? '',
-      sonarrApiKey: _prefs.getString(_kSonarrApiKey) ?? '',
+      sonarrApiKey: await _secureStore.read(key: _kSecureSonarrApiKey) ?? '',
       lidarrUrl: _prefs.getString(_kLidarrUrl) ?? '',
-      lidarrApiKey: _prefs.getString(_kLidarrApiKey) ?? '',
+      lidarrApiKey: await _secureStore.read(key: _kSecureLidarrApiKey) ?? '',
     );
   }
 
   Future<void> saveSettings(SettingsModel settings) async {
     await _prefs.setString(_kJellyseerrUrl, settings.jellyseerrUrl);
-    await _prefs.setString(_kJellyseerrApiKey, settings.jellyseerrApiKey);
     await _prefs.setString(_kRadarrUrl, settings.radarrUrl);
-    await _prefs.setString(_kRadarrApiKey, settings.radarrApiKey);
     await _prefs.setString(_kSonarrUrl, settings.sonarrUrl);
-    await _prefs.setString(_kSonarrApiKey, settings.sonarrApiKey);
     await _prefs.setString(_kLidarrUrl, settings.lidarrUrl);
-    await _prefs.setString(_kLidarrApiKey, settings.lidarrApiKey);
+
+    await _saveApiKey(_kSecureJellyseerrApiKey, settings.jellyseerrApiKey);
+    await _saveApiKey(_kSecureRadarrApiKey, settings.radarrApiKey);
+    await _saveApiKey(_kSecureSonarrApiKey, settings.sonarrApiKey);
+    await _saveApiKey(_kSecureLidarrApiKey, settings.lidarrApiKey);
+  }
+
+  Future<void> _saveApiKey(String key, String value) async {
+    final normalizedValue = value.trim();
+
+    if (normalizedValue.isEmpty) {
+      await _secureStore.delete(key: key);
+      return;
+    }
+
+    await _secureStore.write(key: key, value: normalizedValue);
   }
 }

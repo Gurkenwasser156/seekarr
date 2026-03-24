@@ -6,7 +6,7 @@ import 'package:seekarr/core/models/media_preview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final jellyseerrServiceProvider = Provider<JellyseerrService>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final settings = ref.watch(currentSettingsProvider);
   if (settings.jellyseerrUrl.isEmpty || settings.jellyseerrApiKey.isEmpty) {
     throw Exception('Jellyseerr not configured');
   }

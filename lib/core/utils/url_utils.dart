@@ -1,11 +1,8 @@
 class UrlUtils {
-  /// Constructs an authenticated URL for accessing images or other resources.
-  /// Handles correct slash joining and query parameter attachment.
-  static String buildAuthenticatedUrl(
-    String baseUrl,
-    String path,
-    String apiKey,
-  ) {
+  /// Constructs a URL for accessing images or other resources.
+  /// Handles correct slash joining. API key authentication is handled via
+  /// HTTP headers, not query parameters.
+  static String buildUrl(String baseUrl, String path) {
     if (baseUrl.isEmpty || path.isEmpty) return '';
 
     final cleanBaseUrl = baseUrl.endsWith('/')
@@ -14,6 +11,6 @@ class UrlUtils {
 
     final cleanPath = path.startsWith('/') ? path : '/$path';
 
-    return '$cleanBaseUrl$cleanPath?apikey=$apiKey';
+    return '$cleanBaseUrl$cleanPath';
   }
 }

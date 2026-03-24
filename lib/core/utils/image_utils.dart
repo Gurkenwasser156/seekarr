@@ -1,11 +1,14 @@
 import 'package:seekarr/core/utils/url_utils.dart';
 
-/// Utility class for extracting and building image URLs from *arr service responses.
+typedef ImageSource = ({String url, Map<String, String>? headers});
+
+/// Utility class for extracting and building image URLs from *arr service
+/// responses.
 class ImageUtils {
   /// Extracts a poster URL from an images list returned by Radarr/Sonarr/Lidarr.
   ///
   /// The method searches for images with specified cover types and builds
-  /// authenticated URLs when needed.
+  /// image sources with authentication headers when needed.
   ///
   /// Parameters:
   /// - [images]: List of image objects from the API response
@@ -13,14 +16,17 @@ class ImageUtils {
   /// - [apiKey]: API key for authentication (for local images)
   /// - [coverTypes]: List of cover type strings to search for (default: ['poster', 'cover'])
   ///
-  /// Returns the image URL or an empty string if not found.
-  static String extractPosterUrl(
+  /// Returns the image URL and optional headers, or an empty image source if
+  /// nothing suitable is found.
+  static ImageSource extractPosterUrl(
     List<dynamic>? images, {
     required String baseUrl,
     required String apiKey,
     List<String> coverTypes = const ['poster', 'cover'],
   }) {
-    if (images == null || images.isEmpty) return '';
+    if (images == null || images.isEmpty) {
+      return (url: '', headers: null);
+    }
 
     // Find the first matching cover type
     dynamic coverImage;
@@ -32,23 +38,26 @@ class ImageUtils {
       }
     }
 
-    if (coverImage == null) return '';
+    if (coverImage == null) return (url: '', headers: null);
 
     final remoteUrl = coverImage['remoteUrl'] as String?;
     final localUrl = coverImage['url'] as String?;
 
     // Prefer remote URL if it's a full HTTP URL
     if (remoteUrl != null && remoteUrl.startsWith('http')) {
-      return remoteUrl;
+      return (url: remoteUrl, headers: null);
     }
 
-    // Fall back to building authenticated local URL
+    // Fall back to building a local URL authenticated via headers
     final path = remoteUrl ?? localUrl;
-    if (path != null) {
-      return UrlUtils.buildAuthenticatedUrl(baseUrl, path, apiKey);
+    if (path != null && baseUrl.isNotEmpty && apiKey.isNotEmpty) {
+      return (
+        url: UrlUtils.buildUrl(baseUrl, path),
+        headers: {'X-Api-Key': apiKey},
+      );
     }
 
-    return '';
+    return (url: '', headers: null);
   }
 
   /// Builds a TMDB poster URL from a poster path.
