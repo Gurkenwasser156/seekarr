@@ -58,7 +58,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'movie/:id',
                 pageBuilder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = RouteUtils.safeIntParam(state, 'id');
+                  if (id == null) {
+                    return RouteUtils.redirectPage(
+                      key: state.pageKey,
+                      location: '/discover',
+                    );
+                  }
                   final heroTag =
                       state.uri.queryParameters['heroTag'] ??
                       'discover_movie_$id';
@@ -82,7 +88,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'tv/:id',
                 pageBuilder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = RouteUtils.safeIntParam(state, 'id');
+                  if (id == null) {
+                    return RouteUtils.redirectPage(
+                      key: state.pageKey,
+                      location: '/discover',
+                    );
+                  }
                   final heroTag =
                       state.uri.queryParameters['heroTag'] ?? 'discover_tv_$id';
                   final posterUrl =
@@ -112,7 +124,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 pageBuilder: (context, state) {
-                  final movie = state.extra as RadarrMovie;
+                  final id = RouteUtils.safeIntParam(state, 'id');
+                  final movie = RouteUtils.safeExtra<RadarrMovie>(state);
+                  if (id == null || movie == null || movie.id != id) {
+                    return RouteUtils.redirectPage(
+                      key: state.pageKey,
+                      location: '/movies',
+                    );
+                  }
                   final heroTag =
                       state.uri.queryParameters['heroTag'] ??
                       'movie_${movie.id}';
@@ -131,7 +150,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 pageBuilder: (context, state) {
-                  final series = state.extra as SonarrSeries;
+                  final id = RouteUtils.safeIntParam(state, 'id');
+                  final series = RouteUtils.safeExtra<SonarrSeries>(state);
+                  if (id == null || series == null || series.id != id) {
+                    return RouteUtils.redirectPage(
+                      key: state.pageKey,
+                      location: '/series',
+                    );
+                  }
                   final heroTag =
                       state.uri.queryParameters['heroTag'] ??
                       'series_${series.id}';
@@ -150,7 +176,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 pageBuilder: (context, state) {
-                  final artist = state.extra as LidarrArtist;
+                  final id = RouteUtils.safeIntParam(state, 'id');
+                  final artist = RouteUtils.safeExtra<LidarrArtist>(state);
+                  if (id == null || artist == null || artist.id != id) {
+                    return RouteUtils.redirectPage(
+                      key: state.pageKey,
+                      location: '/music',
+                    );
+                  }
                   final heroTag =
                       state.uri.queryParameters['heroTag'] ??
                       'artist_${artist.id}';
