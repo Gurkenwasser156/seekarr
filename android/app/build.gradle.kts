@@ -1,3 +1,7 @@
+import java.io.FileInputStream
+import java.util.Properties
+import org.gradle.api.GradleException
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,8 +9,52 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasKeystoreProperties = keystorePropertiesFile.exists()
+
+if (hasKeystoreProperties) {
+    FileInputStream(keystorePropertiesFile).use(keystoreProperties::load)
+}
+
+val requiredReleaseSigningKeys = listOf(
+    "storeFile",
+    "storePassword",
+    "keyAlias",
+    "keyPassword",
+)
+
+val missingReleaseSigningKeys = if (hasKeystoreProperties) {
+    requiredReleaseSigningKeys.filter {
+        keystoreProperties.getProperty(it).isNullOrBlank()
+    }
+} else {
+    requiredReleaseSigningKeys
+}
+
+val hasCompleteReleaseSigning =
+    hasKeystoreProperties && missingReleaseSigningKeys.isEmpty()
+
+val wantsRelease = gradle.startParameter.taskNames.any {
+    it.contains("Release", ignoreCase = true)
+}
+
+if (wantsRelease) {
+    if (!hasKeystoreProperties) {
+        throw GradleException(
+            "Missing release signing config: android/key.properties. Copy android/key.properties.example and fill in real values.",
+        )
+    }
+
+    if (!hasCompleteReleaseSigning) {
+        throw GradleException(
+            "android/key.properties is missing required values: ${missingReleaseSigningKeys.joinToString(", ")}",
+        )
+    }
+}
+
 android {
-    namespace = "com.example.seekarr"
+    namespace = "labs.matthw.seekarr"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +69,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.seekarr"
+        applicationId = "labs.matthw.seekarr"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,11 +78,22 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasCompleteReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasCompleteReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }

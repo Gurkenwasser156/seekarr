@@ -21,6 +21,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+*.jks
+*.keystore
 
 # XCode related
 macos/Runner.xcodeproj/xcuserdata/

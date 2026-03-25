@@ -1,4 +1,4 @@
-package com.example.seekarr
+package labs.matthw.seekarr
 
 import io.flutter.embedding.android.FlutterActivity
 
