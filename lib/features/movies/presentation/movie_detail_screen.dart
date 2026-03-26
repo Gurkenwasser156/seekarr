@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/delete_media_dialog.dart';
 import 'package:seekarr/core/widgets/file_info_section.dart';
 import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
 import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/media_profile_selector.dart';
+import 'package:seekarr/core/widgets/media_management_row.dart';
+import 'package:seekarr/core/widgets/media_search_action_row.dart';
+import 'package:seekarr/core/widgets/rating_chips_row.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
-import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
@@ -33,42 +34,19 @@ class MovieDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<MovieDetailScreen> createState() => _MovieDetailScreenState();
 }
 
-class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
+class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
+    with QualityProfileMixin<MovieDetailScreen> {
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   bool _isDeleting = false;
-  List<Map<String, dynamic>> _qualityProfiles = [];
-  String? _currentProfileName;
-  int? _currentProfileId;
 
   @override
   void initState() {
     super.initState();
-    _loadQualityProfiles();
-  }
-
-  Future<void> _loadQualityProfiles() async {
-    try {
-      final radarrService = ref.read(radarrServiceProvider);
-      final profiles = await radarrService.getQualityProfiles();
-      if (mounted) {
-        setState(() {
-          _qualityProfiles = profiles;
-          _currentProfileId = widget.movie.qualityProfileId;
-          _currentProfileName = _getProfileName(_currentProfileId);
-        });
-      }
-    } catch (e) {
-      // Ignore profile loading errors
-    }
-  }
-
-  String? _getProfileName(int? profileId) {
-    if (profileId == null) return null;
-    final profile = _qualityProfiles
-        .where((p) => p['id'] == profileId)
-        .firstOrNull;
-    return profile?['name'] as String?;
+    loadQualityProfiles(
+      fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
+      initialProfileId: widget.movie.qualityProfileId,
+    );
   }
 
   @override
@@ -138,74 +116,13 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
           const SizedBox(height: AppSpacing.lg),
         ],
 
-        // Rating chips
-        if (movie.ratings.isNotEmpty) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie.ratings.map((rating) {
-              return RatingChip(
-                value: rating.value.toStringAsFixed(1),
-                votes: rating.votes,
-                sourceName: rating.name,
-                sourceIcon: rating.icon,
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        RatingChipsRow(ratings: movie.ratings),
 
-        // Action buttons
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isSearching
-                    ? null
-                    : () => _triggerSearch(context, movie.id),
-                icon: _isSearching
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.search_rounded),
-                label: const Text(
-                  'Automatic Search',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-                style: ElevatedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoadingReleases
-                    ? null
-                    : () => _showInteractiveSearch(context, movie.id),
-                icon: _isLoadingReleases
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.list_rounded),
-                label: const Text(
-                  'Interactive Search',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-                style: ElevatedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ),
-          ],
+        MediaSearchActionRow(
+          isSearching: _isSearching,
+          isLoadingReleases: _isLoadingReleases,
+          onAutomaticSearch: () => _triggerSearch(context, movie.id),
+          onInteractiveSearch: () => _showInteractiveSearch(context, movie.id),
         ),
 
         // File info section
@@ -215,38 +132,16 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
         ],
 
         // Profile selector (split button) + delete button
-        if (_currentProfileName != null) ...[
+        if (currentProfileName != null) ...[
           const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: MediaProfileSelector.split(
-                  currentProfileName: _currentProfileName!,
-                  currentProfileId: _currentProfileId,
-                  qualityProfiles: _qualityProfiles,
-                  onProfileSelected: _updateProfile,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              IconButton(
-                onPressed: _isDeleting ? null : () => _confirmDelete(context),
-                icon: _isDeleting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.delete_outline_rounded),
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.errorContainer,
-                  foregroundColor: colorScheme.onErrorContainer,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppRadius.borderRadiusSm,
-                  ),
-                ),
-                tooltip: 'Delete Movie',
-              ),
-            ],
+          MediaManagementRow(
+            currentProfileName: currentProfileName!,
+            currentProfileId: currentProfileId,
+            qualityProfiles: qualityProfiles,
+            onProfileSelected: _updateProfile,
+            isDeleting: _isDeleting,
+            onDelete: () => _confirmDelete(context),
+            deleteTooltip: 'Delete Movie',
           ),
         ],
       ],
@@ -258,10 +153,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
       final radarrService = ref.read(radarrServiceProvider);
       await radarrService.updateMovieProfile(widget.movie.id, profileId);
       if (mounted) {
-        setState(() {
-          _currentProfileId = profileId;
-          _currentProfileName = _getProfileName(profileId);
-        });
+        updateProfileState(profileId);
         ref.invalidate(moviesProvider);
         _showSnackBar('Quality profile updated');
       }

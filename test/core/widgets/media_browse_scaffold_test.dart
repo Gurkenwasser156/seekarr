@@ -1,0 +1,283 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+// ignore: implementation_imports
+import 'package:flutter_riverpod/legacy.dart';
+
+import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+final testSearchQueryProvider = StateProvider<String>((ref) => '');
+final testLibraryProvider = FutureProvider<List<String>>(
+  (ref) async => ['Item A', 'Item B'],
+);
+final testSearchResultsProvider = FutureProvider<List<String>?>(
+  (ref) async => null,
+);
+
+void main() {
+  group('MediaBrowseScaffold', () {
+    testWidgets('renders title in AppBar', (tester) async {
+      await tester.pumpWidget(_buildTestApp());
+
+      expect(find.text('Test Title'), findsOneWidget);
+    });
+
+    testWidgets('renders SearchBarHeader', (tester) async {
+      await tester.pumpWidget(_buildTestApp());
+
+      expect(find.byType(SearchBarHeader), findsOneWidget);
+    });
+
+    testWidgets('shows activity button', (tester) async {
+      await tester.pumpWidget(_buildTestApp());
+
+      expect(find.byIcon(Icons.history), findsOneWidget);
+    });
+
+    testWidgets('shows library content by default', (tester) async {
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MediaGrid<String>), findsOneWidget);
+    });
+
+    testWidgets('shows back arrow when searching', (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          currentSettingsProvider.overrideWith((ref) => const SettingsModel()),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(testSearchQueryProvider.notifier).state = 'test query';
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(home: _buildTestScaffold()),
+        ),
+      );
+
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    });
+
+    testWidgets(
+      'switches from library mode to search results when query becomes non-empty',
+      (tester) async {
+        final searchQueryProvider = StateProvider<String>((ref) => '');
+        final libraryProvider = FutureProvider<List<String>>(
+          (ref) async => ['Library Item'],
+        );
+        final searchResultsProvider = FutureProvider<List<String>?>((
+          ref,
+        ) async {
+          final query = ref.watch(searchQueryProvider);
+          return query.isEmpty ? null : ['Search Result'];
+        });
+        final container = ProviderContainer(
+          overrides: [
+            currentSettingsProvider.overrideWith(
+              (ref) => const SettingsModel(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        String? tappedItem;
+        String? tappedHeroTag;
+
+        await tester.pumpWidget(
+          _buildCustomTestApp(
+            container: container,
+            libraryProvider: libraryProvider,
+            searchQueryProvider: searchQueryProvider,
+            searchResultsProvider: searchResultsProvider,
+            onItemTap: (_, item, heroTag) {
+              tappedItem = item;
+              tappedHeroTag = heroTag;
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(_gridItemGestureDetectorFinder());
+        await tester.pump();
+
+        expect(tappedItem, 'Library Item');
+        expect(tappedHeroTag, contains('test_'));
+
+        container.read(searchQueryProvider.notifier).state = 'matrix';
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+
+        tappedItem = null;
+        tappedHeroTag = null;
+
+        await tester.tap(_gridItemGestureDetectorFinder());
+        await tester.pump();
+
+        expect(tappedItem, 'Search Result');
+        expect(tappedHeroTag, contains('test_search_'));
+      },
+    );
+
+    testWidgets('shows empty search state when search returns no results', (
+      tester,
+    ) async {
+      final searchQueryProvider = StateProvider<String>((ref) => 'query');
+      final libraryProvider = FutureProvider<List<String>>(
+        (ref) async => ['Library Item'],
+      );
+      final searchResultsProvider = FutureProvider<List<String>?>((ref) async {
+        final query = ref.watch(searchQueryProvider);
+        return query.isEmpty ? null : <String>[];
+      });
+      final container = ProviderContainer(
+        overrides: [
+          currentSettingsProvider.overrideWith((ref) => const SettingsModel()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _buildCustomTestApp(
+          container: container,
+          libraryProvider: libraryProvider,
+          searchQueryProvider: searchQueryProvider,
+          searchResultsProvider: searchResultsProvider,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No results found'), findsOneWidget);
+      expect(find.byType(MediaGrid<String>), findsNothing);
+    });
+
+    testWidgets(
+      'navigation refresh clears search query and invalidates library provider',
+      (tester) async {
+        var libraryLoadCount = 0;
+        final searchQueryProvider = StateProvider<String>((ref) => '');
+        final libraryProvider = FutureProvider<List<String>>((ref) async {
+          libraryLoadCount++;
+          return ['Library $libraryLoadCount'];
+        });
+        final searchResultsProvider = FutureProvider<List<String>?>((
+          ref,
+        ) async {
+          final query = ref.watch(searchQueryProvider);
+          return query.isEmpty ? null : ['Search Result'];
+        });
+        final container = ProviderContainer(
+          overrides: [
+            currentSettingsProvider.overrideWith(
+              (ref) => const SettingsModel(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          _buildCustomTestApp(
+            container: container,
+            libraryProvider: libraryProvider,
+            searchQueryProvider: searchQueryProvider,
+            searchResultsProvider: searchResultsProvider,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(libraryLoadCount, 1);
+
+        container.read(searchQueryProvider.notifier).state = 'searching';
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+        expect(libraryLoadCount, 1);
+
+        container
+            .read(navigationRefreshProvider(NavigationSection.movies).notifier)
+            .state++;
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(container.read(searchQueryProvider), '');
+        expect(find.byIcon(Icons.arrow_back), findsNothing);
+        expect(libraryLoadCount, 2);
+      },
+    );
+  });
+}
+
+Widget _buildTestApp() {
+  return ProviderScope(
+    overrides: [
+      currentSettingsProvider.overrideWith((ref) => const SettingsModel()),
+    ],
+    child: MaterialApp(home: _buildTestScaffold()),
+  );
+}
+
+Widget _buildTestScaffold() {
+  return MediaBrowseScaffold<String>(
+    title: 'Test Title',
+    searchHint: 'Search test...',
+    activityRoute: '/activity/test',
+    navigationSection: NavigationSection.movies,
+    serviceName: 'Test Service',
+    heroTagPrefix: 'test',
+    searchHeroTagPrefix: 'test_search',
+    libraryProvider: testLibraryProvider,
+    searchQueryProvider: testSearchQueryProvider,
+    searchResultsProvider: testSearchResultsProvider,
+    imagesExtractor: (_) => null,
+    idExtractor: (item) => item.hashCode,
+    settingsSelector: (settings) => (settings.radarrUrl, settings.radarrApiKey),
+    onItemTap: (_, __, ___) {},
+  );
+}
+
+Widget _buildCustomTestApp({
+  required ProviderContainer container,
+  required FutureProvider<List<String>> libraryProvider,
+  required StateProvider<String> searchQueryProvider,
+  required FutureProvider<List<String>?> searchResultsProvider,
+  void Function(BuildContext context, String item, String heroTag)? onItemTap,
+}) {
+  return UncontrolledProviderScope(
+    container: container,
+    child: MaterialApp(
+      home: MediaBrowseScaffold<String>(
+        title: 'Test Title',
+        searchHint: 'Search test...',
+        activityRoute: '/activity/test',
+        navigationSection: NavigationSection.movies,
+        serviceName: 'Test Service',
+        heroTagPrefix: 'test',
+        searchHeroTagPrefix: 'test_search',
+        libraryProvider: libraryProvider,
+        searchQueryProvider: searchQueryProvider,
+        searchResultsProvider: searchResultsProvider,
+        imagesExtractor: (_) => null,
+        idExtractor: (item) => item.hashCode,
+        settingsSelector: (settings) =>
+            (settings.radarrUrl, settings.radarrApiKey),
+        onItemTap: onItemTap ?? (_, __, ___) {},
+      ),
+    ),
+  );
+}
+
+Finder _gridItemGestureDetectorFinder() {
+  return find
+      .descendant(
+        of: find.byType(MediaGrid<String>),
+        matching: find.byType(GestureDetector),
+      )
+      .first;
+}

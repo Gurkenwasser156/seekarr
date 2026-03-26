@@ -89,23 +89,10 @@ class SettingsHomeScreen extends ConsumerWidget {
   }
 
   String _getServiceSubtitle(SettingsModel settings, ServiceKey service) {
-    final url = _getUrlForService(settings, service);
-    if (url == null || url.isEmpty) return 'Not configured';
+    final url = settings.urlFor(service);
+    if (url.isEmpty) return 'Not configured';
 
     final host = service.extractHost(url);
     return host != null ? host : url;
-  }
-
-  String? _getUrlForService(SettingsModel settings, ServiceKey service) {
-    switch (service) {
-      case ServiceKey.jellyseerr:
-        return settings.jellyseerrUrl;
-      case ServiceKey.radarr:
-        return settings.radarrUrl;
-      case ServiceKey.sonarr:
-        return settings.sonarrUrl;
-      case ServiceKey.lidarr:
-        return settings.lidarrUrl;
-    }
   }
 }

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/delete_media_dialog.dart';
 import 'package:seekarr/core/widgets/file_info_section.dart';
 import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
 import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/media_profile_selector.dart';
+import 'package:seekarr/core/widgets/media_management_row.dart';
+import 'package:seekarr/core/widgets/media_search_action_row.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
+import 'package:seekarr/core/widgets/rating_chips_row.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
-import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_provider.dart';
@@ -32,15 +33,13 @@ class SeriesDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<SeriesDetailScreen> createState() => _SeriesDetailScreenState();
 }
 
-class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
+class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
+    with QualityProfileMixin<SeriesDetailScreen> {
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   bool _isDeleting = false;
   List<dynamic> _episodes = [];
   bool _episodesLoaded = false;
-  List<Map<String, dynamic>> _qualityProfiles = [];
-  String? _currentProfileName;
-  int? _currentProfileId;
   final Set<int> _searchingSeasons = {};
   final Set<int> _searchingEpisodes = {};
 
@@ -48,31 +47,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   void initState() {
     super.initState();
     _loadEpisodes();
-    _loadQualityProfiles();
-  }
-
-  Future<void> _loadQualityProfiles() async {
-    try {
-      final sonarrService = ref.read(sonarrServiceProvider);
-      final profiles = await sonarrService.getQualityProfiles();
-      if (mounted) {
-        setState(() {
-          _qualityProfiles = profiles;
-          _currentProfileId = widget.series.qualityProfileId;
-          _currentProfileName = _getProfileName(_currentProfileId);
-        });
-      }
-    } catch (e) {
-      // Ignore profile loading errors
-    }
-  }
-
-  String? _getProfileName(int? profileId) {
-    if (profileId == null) return null;
-    final profile = _qualityProfiles
-        .where((p) => p['id'] == profileId)
-        .firstOrNull;
-    return profile?['name'] as String?;
+    loadQualityProfiles(
+      fetchProfiles: () => ref.read(sonarrServiceProvider).getQualityProfiles(),
+      initialProfileId: widget.series.qualityProfileId,
+    );
   }
 
   Future<void> _loadEpisodes() async {
@@ -140,73 +118,13 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rating chips
-          if (series.ratings.isNotEmpty) ...[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: series.ratings.map((rating) {
-                return RatingChip(
-                  value: rating.value.toStringAsFixed(1),
-                  votes: rating.votes,
-                  sourceName: rating.name,
-                  sourceIcon: rating.icon,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isSearching
-                      ? null
-                      : () => _triggerSearch(context, series.id),
-                  icon: _isSearching
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.search_rounded),
-                  label: const Text(
-                    'Automatic Search',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoadingReleases
-                      ? null
-                      : () => _showInteractiveSearch(context, series.id),
-                  icon: _isLoadingReleases
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.list_rounded),
-                  label: const Text(
-                    'Interactive Search',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ),
-            ],
+          RatingChipsRow(ratings: series.ratings),
+          MediaSearchActionRow(
+            isSearching: _isSearching,
+            isLoadingReleases: _isLoadingReleases,
+            onAutomaticSearch: () => _triggerSearch(context, series.id),
+            onInteractiveSearch: () =>
+                _showInteractiveSearch(context, series.id),
           ),
           // File info section (only when available)
           if (hasFiles && series.path != null) ...[
@@ -214,42 +132,16 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             FileInfoSection(path: series.path),
           ],
           // Profile selector (split button) + delete button
-          if (_currentProfileName != null) ...[
+          if (currentProfileName != null) ...[
             const SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: MediaProfileSelector.split(
-                    currentProfileName: _currentProfileName!,
-                    currentProfileId: _currentProfileId,
-                    qualityProfiles: _qualityProfiles,
-                    onProfileSelected: _updateProfile,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                IconButton(
-                  onPressed: _isDeleting ? null : () => _confirmDelete(context),
-                  icon: _isDeleting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer,
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onErrorContainer,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AppRadius.borderRadiusSm,
-                    ),
-                  ),
-                  tooltip: 'Delete Series',
-                ),
-              ],
+            MediaManagementRow(
+              currentProfileName: currentProfileName!,
+              currentProfileId: currentProfileId,
+              qualityProfiles: qualityProfiles,
+              onProfileSelected: _updateProfile,
+              isDeleting: _isDeleting,
+              onDelete: () => _confirmDelete(context),
+              deleteTooltip: 'Delete Series',
             ),
           ],
         ],
@@ -536,10 +428,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.updateSeriesProfile(widget.series.id, profileId);
       if (mounted) {
-        setState(() {
-          _currentProfileId = profileId;
-          _currentProfileName = _getProfileName(profileId);
-        });
+        updateProfileState(profileId);
         // Invalidate series provider so list refreshes with new data
         ref.invalidate(seriesProvider);
         ScaffoldMessenger.of(context).showSnackBar(

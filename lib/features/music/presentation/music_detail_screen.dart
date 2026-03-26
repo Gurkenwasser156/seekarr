@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/delete_media_dialog.dart';
 import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
 import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/media_profile_selector.dart';
+import 'package:seekarr/core/widgets/media_management_row.dart';
+import 'package:seekarr/core/widgets/media_search_action_row.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
+import 'package:seekarr/core/widgets/rating_chips_row.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
-import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
@@ -31,7 +32,8 @@ class MusicDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<MusicDetailScreen> createState() => _MusicDetailScreenState();
 }
 
-class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
+class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
+    with QualityProfileMixin<MusicDetailScreen> {
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   bool _isDeleting = false;
@@ -39,40 +41,16 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
   final Map<int, List<dynamic>?> _tracksByAlbum = {};
   final Set<int> _tracksLoadingError = {};
   bool _albumsLoaded = false;
-  List<Map<String, dynamic>> _qualityProfiles = [];
-  String? _currentProfileName;
-  int? _currentProfileId;
   final Set<int> _searchingAlbums = {};
 
   @override
   void initState() {
     super.initState();
     _loadAlbums();
-    _loadQualityProfiles();
-  }
-
-  Future<void> _loadQualityProfiles() async {
-    try {
-      final lidarrService = ref.read(lidarrServiceProvider);
-      final profiles = await lidarrService.getQualityProfiles();
-      if (mounted) {
-        setState(() {
-          _qualityProfiles = profiles;
-          _currentProfileId = widget.artist.qualityProfileId;
-          _currentProfileName = _getProfileName(_currentProfileId);
-        });
-      }
-    } catch (e) {
-      // Ignore profile loading errors
-    }
-  }
-
-  String? _getProfileName(int? profileId) {
-    if (profileId == null) return null;
-    final profile = _qualityProfiles
-        .where((p) => p['id'] == profileId)
-        .firstOrNull;
-    return profile?['name'] as String?;
+    loadQualityProfiles(
+      fetchProfiles: () => ref.read(lidarrServiceProvider).getQualityProfiles(),
+      initialProfileId: widget.artist.qualityProfileId,
+    );
   }
 
   Future<void> _loadAlbums() async {
@@ -172,111 +150,25 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rating chips
-          if (artist.ratings.isNotEmpty) ...[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: artist.ratings.map((rating) {
-                return RatingChip(
-                  value: rating.value.toStringAsFixed(1),
-                  votes: rating.votes,
-                  sourceName: rating.name,
-                  sourceIcon: rating.icon,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isSearching
-                      ? null
-                      : () => _triggerSearch(context, artist.id),
-                  icon: _isSearching
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.search_rounded),
-                  label: const Text(
-                    'Automatic Search',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoadingReleases
-                      ? null
-                      : () => _showInteractiveSearch(context, artist.id),
-                  icon: _isLoadingReleases
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.list_rounded),
-                  label: const Text(
-                    'Interactive Search',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ),
-            ],
+          RatingChipsRow(ratings: artist.ratings),
+          MediaSearchActionRow(
+            isSearching: _isSearching,
+            isLoadingReleases: _isLoadingReleases,
+            onAutomaticSearch: () => _triggerSearch(context, artist.id),
+            onInteractiveSearch: () =>
+                _showInteractiveSearch(context, artist.id),
           ),
           // Profile selector (split button) + delete button
-          if (_currentProfileName != null) ...[
+          if (currentProfileName != null) ...[
             const SizedBox(height: AppSpacing.xl),
-            Row(
-              children: [
-                Expanded(
-                  child: MediaProfileSelector.split(
-                    currentProfileName: _currentProfileName!,
-                    currentProfileId: _currentProfileId,
-                    qualityProfiles: _qualityProfiles,
-                    onProfileSelected: _updateProfile,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                IconButton(
-                  onPressed: _isDeleting ? null : () => _confirmDelete(context),
-                  icon: _isDeleting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer,
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onErrorContainer,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AppRadius.borderRadiusSm,
-                    ),
-                  ),
-                  tooltip: 'Delete Artist',
-                ),
-              ],
+            MediaManagementRow(
+              currentProfileName: currentProfileName!,
+              currentProfileId: currentProfileId,
+              qualityProfiles: qualityProfiles,
+              onProfileSelected: _updateProfile,
+              isDeleting: _isDeleting,
+              onDelete: () => _confirmDelete(context),
+              deleteTooltip: 'Delete Artist',
             ),
           ],
         ],
@@ -538,10 +430,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen> {
       final lidarrService = ref.read(lidarrServiceProvider);
       await lidarrService.updateArtistProfile(widget.artist.id, profileId);
       if (mounted) {
-        setState(() {
-          _currentProfileId = profileId;
-          _currentProfileName = _getProfileName(profileId);
-        });
+        updateProfileState(profileId);
         ref.invalidate(musicProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Quality profile updated')),

@@ -14,7 +14,10 @@ export 'content_card.dart';
 // Layout
 export 'section_header.dart';
 export 'media_grid.dart';
+export 'media_browse_scaffold.dart';
 export 'media_detail_view.dart';
+export 'media_search_action_row.dart';
+export 'media_management_row.dart';
 
 // Form & Input
 export 'search_bar_header.dart';
@@ -23,6 +26,7 @@ export 'search_bar_header.dart';
 export 'status_badge.dart';
 export 'tag_chip.dart';
 export 'rating_chip.dart';
+export 'rating_chips_row.dart';
 export 'file_info_section.dart';
 
 // Async handling

@@ -1,10 +1,10 @@
-import 'dart:isolate';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 final lidarrServiceProvider = Provider<LidarrService>((ref) {
   final settings = ref.watch(currentSettingsProvider);
@@ -31,15 +31,7 @@ class LidarrService with ArrActivityMixin {
 
   /// Fetches all artists from Lidarr.
   Future<List<LidarrArtist>> getArtists() async {
-    try {
-      final response = await client.get('/api/v1/artist');
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => LidarrArtist.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return fetchAllItems('artist', LidarrArtist.fromJson);
   }
 
   /// Fetches a single artist by ID.
@@ -109,50 +101,22 @@ class LidarrService with ArrActivityMixin {
     required String guid,
     required int indexerId,
   }) async {
-    await client.post(
-      '/api/v1/release',
-      data: {'guid': guid, 'indexerId': indexerId},
-    );
+    await grabReleaseByGuid(guid: guid, indexerId: indexerId);
   }
 
   /// Searches for artists by term using the lookup API.
   Future<List<LidarrArtist>> lookupArtists(String term) async {
-    if (term.isEmpty) return [];
-    try {
-      // URL-encode the term to handle spaces and special characters
-      final encodedTerm = Uri.encodeComponent(term);
-      final response = await client.get(
-        '/api/v1/artist/lookup',
-        queryParameters: {'term': encodedTerm},
-      );
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => LidarrArtist.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return lookupItems('artist/lookup', term, LidarrArtist.fromJson);
   }
 
   /// Fetches all quality profiles.
   Future<List<Map<String, dynamic>>> getQualityProfiles() async {
-    try {
-      final response = await client.get('/api/v1/qualityprofile');
-      final data = response.data as List<dynamic>;
-      return data.cast<Map<String, dynamic>>();
-    } catch (e) {
-      return [];
-    }
+    return fetchQualityProfiles();
   }
 
   /// Updates an artist's quality profile.
   Future<void> updateArtistProfile(int artistId, int qualityProfileId) async {
-    final response = await client.get('/api/v1/artist/$artistId');
-    final artist = response.data as Map<String, dynamic>;
-
-    artist['qualityProfileId'] = qualityProfileId;
-
-    await client.put('/api/v1/artist/$artistId', data: artist);
+    await updateItemProfile('artist', artistId, qualityProfileId);
   }
 
   /// Deletes an artist from Lidarr.

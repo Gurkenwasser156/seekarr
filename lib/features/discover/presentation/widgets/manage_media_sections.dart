@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+
+import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
 
 class RequestsSection extends StatelessWidget {
   final List<JellyseerrRequest> requests;
-  final Function(int) onDeleteRequest;
+  final void Function(int) onDeleteRequest;
 
   const RequestsSection({
     super.key,
@@ -14,6 +18,8 @@ class RequestsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,18 +29,18 @@ class RequestsSection extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         if (requests.isEmpty)
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
+              color: colorScheme.surfaceContainer,
+              borderRadius: AppRadius.borderRadiusMd,
             ),
-            child: const Center(
+            child: Center(
               child: Text(
                 'No requests for this media',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
             ),
           )
@@ -59,7 +65,9 @@ class _RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     String formattedDate = '';
+
     try {
       final date = DateTime.parse(request.createdAt);
       const months = [
@@ -82,11 +90,11 @@ class _RequestCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.surfaceContainer,
+        borderRadius: AppRadius.borderRadiusMd,
       ),
       child: Row(
         children: [
@@ -94,84 +102,74 @@ class _RequestCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Requester info
                 Row(
                   children: [
                     Icon(
                       Icons.person_outline,
                       size: 16,
-                      color: Colors.grey[400],
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       request.requestedBy?.displayName ?? 'Unknown',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-
-                // Status badges
+                const SizedBox(height: AppSpacing.xs),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
                   children: [
-                    if (request.is4k) _Badge(text: '4K', color: Colors.amber),
+                    if (request.is4k)
+                      const _Badge(text: '4K', color: AppColors.warning),
                     _StatusBadge(status: request.status),
                   ],
                 ),
-
-                // Seasons (for TV)
                 if (request.seasons != null && request.seasons!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Seasons',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Wrap(
-                    spacing: 4,
-                    children: request.seasons!.map((s) {
+                    spacing: AppSpacing.xs,
+                    children: request.seasons!.map((season) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
+                          horizontal: AppSpacing.sm,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
+                          color: colorScheme.primary.withValues(alpha: 0.2),
+                          borderRadius: AppRadius.borderRadiusXs,
                         ),
                         child: Text(
-                          '${s.seasonNumber}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.primary,
+                          '${season.seasonNumber}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.primary,
                           ),
                         ),
                       );
                     }).toList(),
                   ),
                 ],
-
-                const SizedBox(height: 8),
-
-                // Date
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Icon(
                       Icons.calendar_today_outlined,
                       size: 14,
-                      color: Colors.grey[500],
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       formattedDate,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -179,14 +177,12 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Delete button
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.red.withValues(alpha: 0.1),
-              foregroundColor: Colors.red,
+              backgroundColor: colorScheme.error.withValues(alpha: 0.1),
+              foregroundColor: colorScheme.error,
             ),
           ),
         ],
@@ -203,16 +199,20 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.borderRadiusXs,
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 11,
+        style: theme.textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.bold,
           color: Colors.black,
         ),
@@ -228,37 +228,38 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    String text;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
+    late final Color color;
+    late final String text;
     switch (status) {
       case RequestStatus.approved:
-        color = Colors.green;
+        color = AppColors.success;
         text = 'Completed';
-        break;
       case RequestStatus.pendingApproval:
-        color = Colors.orange;
+        color = AppColors.warning;
         text = 'Pending';
-        break;
       case RequestStatus.declined:
-        color = Colors.red;
+        color = AppColors.error;
         text = 'Declined';
-        break;
-      default:
-        color = Colors.grey;
+      case RequestStatus.unknown:
+        color = colorScheme.onSurfaceVariant;
         text = 'Unknown';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.borderRadiusXs,
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 11,
+        style: theme.textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -286,6 +287,7 @@ class MediaSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final serviceName = isMovie ? 'Radarr' : 'Sonarr';
 
     return Column(
@@ -297,9 +299,7 @@ class MediaSection extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 12),
-
-        // Open in service button
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -308,9 +308,7 @@ class MediaSection extends StatelessWidget {
             label: Text('Open in $serviceName'),
           ),
         ),
-        const SizedBox(height: 12),
-
-        // Remove from service button
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -324,16 +322,17 @@ class MediaSection extends StatelessWidget {
                 : const Icon(Icons.delete_outline),
             label: Text('Remove from $serviceName'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: colorScheme.error,
               foregroundColor: Colors.white,
             ),
           ),
         ),
-
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           '* This will irreversibly remove this ${isMovie ? 'movie' : 'series'} from $serviceName, including all files.',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -355,6 +354,8 @@ class AdvancedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -364,9 +365,7 @@ class AdvancedSection extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 12),
-
-        // Clear data button
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -374,18 +373,19 @@ class AdvancedSection extends StatelessWidget {
             icon: const Icon(Icons.cleaning_services_outlined),
             label: const Text('Clear Data'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade900,
+              backgroundColor: colorScheme.error,
               foregroundColor: Colors.white,
             ),
           ),
         ),
-
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           '* This will irreversibly remove all data for this ${isMovie ? 'movie' : 'series'}, '
           'including any requests. If this item exists in your Jellyfin library, '
           'the media information will be recreated during the next scan.',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

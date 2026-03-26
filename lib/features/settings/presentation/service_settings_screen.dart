@@ -27,9 +27,11 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
   void initState() {
     super.initState();
     final settings = ref.read(currentSettingsProvider);
-    _urlController = TextEditingController(text: _getUrlForService(settings));
+    _urlController = TextEditingController(
+      text: settings.urlFor(widget.service),
+    );
     _apiKeyController = TextEditingController(
-      text: _getApiKeyForService(settings),
+      text: settings.apiKeyFor(widget.service),
     );
   }
 
@@ -38,32 +40,6 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
     _urlController.dispose();
     _apiKeyController.dispose();
     super.dispose();
-  }
-
-  String? _getUrlForService(SettingsModel settings) {
-    switch (widget.service) {
-      case ServiceKey.jellyseerr:
-        return settings.jellyseerrUrl;
-      case ServiceKey.radarr:
-        return settings.radarrUrl;
-      case ServiceKey.sonarr:
-        return settings.sonarrUrl;
-      case ServiceKey.lidarr:
-        return settings.lidarrUrl;
-    }
-  }
-
-  String? _getApiKeyForService(SettingsModel settings) {
-    switch (widget.service) {
-      case ServiceKey.jellyseerr:
-        return settings.jellyseerrApiKey;
-      case ServiceKey.radarr:
-        return settings.radarrApiKey;
-      case ServiceKey.sonarr:
-        return settings.sonarrApiKey;
-      case ServiceKey.lidarr:
-        return settings.lidarrApiKey;
-    }
   }
 
   Future<void> _saveSettings() async {
@@ -86,19 +62,11 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
   }
 
   SettingsModel _updateServiceSettings(SettingsModel current) {
-    final url = _urlController.text.trim();
-    final apiKey = _apiKeyController.text.trim();
-
-    switch (widget.service) {
-      case ServiceKey.jellyseerr:
-        return current.copyWith(jellyseerrUrl: url, jellyseerrApiKey: apiKey);
-      case ServiceKey.radarr:
-        return current.copyWith(radarrUrl: url, radarrApiKey: apiKey);
-      case ServiceKey.sonarr:
-        return current.copyWith(sonarrUrl: url, sonarrApiKey: apiKey);
-      case ServiceKey.lidarr:
-        return current.copyWith(lidarrUrl: url, lidarrApiKey: apiKey);
-    }
+    return current.copyWithService(
+      widget.service,
+      url: _urlController.text.trim(),
+      apiKey: _apiKeyController.text.trim(),
+    );
   }
 
   @override

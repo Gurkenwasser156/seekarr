@@ -4,6 +4,17 @@ import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 void main() {
   group('LidarrArtist', () {
     group('fromJson', () {
+      test('re-exports RatingSource for callers importing the model', () {
+        const rating = RatingSource(
+          name: '42500 voti',
+          value: 8.1,
+          votes: 42500,
+          icon: 'MB',
+        );
+
+        expect(rating.icon, 'MB');
+      });
+
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,
@@ -61,6 +72,23 @@ void main() {
         expect(artist.images, isEmpty);
         expect(artist.genres, isEmpty);
       });
+
+      test('parses single-source ratings', () {
+        final artist = LidarrArtist.fromJson({
+          'id': 1,
+          'artistName': 'Test Artist',
+          'status': 'active',
+          'monitored': true,
+          'images': const [],
+          'genres': const [],
+          'ratings': {'value': 8.1, 'votes': 42500},
+        });
+
+        expect(artist.ratings, hasLength(1));
+        expect(artist.ratings.single.name, '42500 voti');
+        expect(artist.ratings.single.icon, 'MB');
+        expect(artist.ratings.single.value, 8.1);
+      });
     });
 
     group('toMediaPreview', () {
@@ -84,6 +112,7 @@ void main() {
 
         expect(preview.id, 1);
         expect(preview.title, 'Test Artist');
+        expect(preview.posterPath, 'https://example.com/poster.jpg');
         expect(preview.overview, 'Overview');
         expect(preview.mediaType, 'music');
       });

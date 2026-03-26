@@ -1,3 +1,5 @@
+import 'package:seekarr/features/settings/domain/service_key.dart';
+
 class SettingsModel {
   final String jellyseerrUrl;
   final String jellyseerrApiKey;
@@ -39,5 +41,42 @@ class SettingsModel {
       lidarrUrl: lidarrUrl ?? this.lidarrUrl,
       lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
     );
+  }
+
+  /// Returns the URL configured for [service].
+  String urlFor(ServiceKey service) {
+    return switch (service) {
+      ServiceKey.jellyseerr => jellyseerrUrl,
+      ServiceKey.radarr => radarrUrl,
+      ServiceKey.sonarr => sonarrUrl,
+      ServiceKey.lidarr => lidarrUrl,
+    };
+  }
+
+  /// Returns the API key configured for [service].
+  String apiKeyFor(ServiceKey service) {
+    return switch (service) {
+      ServiceKey.jellyseerr => jellyseerrApiKey,
+      ServiceKey.radarr => radarrApiKey,
+      ServiceKey.sonarr => sonarrApiKey,
+      ServiceKey.lidarr => lidarrApiKey,
+    };
+  }
+
+  /// Returns a copy with the URL and/or API key updated for [service].
+  SettingsModel copyWithService(
+    ServiceKey service, {
+    String? url,
+    String? apiKey,
+  }) {
+    return switch (service) {
+      ServiceKey.jellyseerr => copyWith(
+        jellyseerrUrl: url,
+        jellyseerrApiKey: apiKey,
+      ),
+      ServiceKey.radarr => copyWith(radarrUrl: url, radarrApiKey: apiKey),
+      ServiceKey.sonarr => copyWith(sonarrUrl: url, sonarrApiKey: apiKey),
+      ServiceKey.lidarr => copyWith(lidarrUrl: url, lidarrApiKey: apiKey),
+    };
   }
 }

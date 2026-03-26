@@ -4,6 +4,17 @@ import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 void main() {
   group('SonarrSeries', () {
     group('fromJson', () {
+      test('re-exports RatingSource for callers importing the model', () {
+        const rating = RatingSource(
+          name: 'TVDB',
+          value: 8.4,
+          votes: 145000,
+          icon: 'TVDB',
+        );
+
+        expect(rating.name, 'TVDB');
+      });
+
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,
@@ -89,6 +100,53 @@ void main() {
         expect(series.genres, isEmpty);
         expect(series.seasons, isEmpty);
       });
+
+      test('parses multi-source ratings', () {
+        final series = SonarrSeries.fromJson({
+          'id': 1,
+          'title': 'Test Series',
+          'sortTitle': 'test series',
+          'status': 'continuing',
+          'monitored': true,
+          'year': 2023,
+          'images': const [],
+          'tvdbId': 123456,
+          'runtime': 45,
+          'genres': const [],
+          'seasons': const [],
+          'ratings': {
+            'tvdb': {'value': 8.0, 'votes': 5000},
+            'imdb': {'value': 7.8, 'votes': 12000},
+          },
+        });
+
+        expect(series.ratings, hasLength(2));
+        expect(series.ratings.first.name, 'TVDB');
+        expect(series.ratings.first.icon, 'TVDB');
+        expect(series.ratings[1].name, 'IMDb');
+      });
+
+      test('parses single-source ratings', () {
+        final series = SonarrSeries.fromJson({
+          'id': 1,
+          'title': 'Test Series',
+          'sortTitle': 'test series',
+          'status': 'continuing',
+          'monitored': true,
+          'year': 2023,
+          'images': const [],
+          'tvdbId': 123456,
+          'runtime': 45,
+          'genres': const [],
+          'seasons': const [],
+          'ratings': {'value': 8.4, 'votes': 145000},
+        });
+
+        expect(series.ratings, hasLength(1));
+        expect(series.ratings.single.name, '145000 voti');
+        expect(series.ratings.single.icon, 'TVDB');
+        expect(series.ratings.single.value, 8.4);
+      });
     });
 
     group('toMediaPreview', () {
@@ -117,6 +175,7 @@ void main() {
 
         expect(preview.id, 1);
         expect(preview.title, 'Test Series');
+        expect(preview.posterPath, 'https://example.com/poster.jpg');
         expect(preview.overview, 'Overview');
         expect(preview.releaseDate, '2023');
         expect(preview.mediaType, 'tv');

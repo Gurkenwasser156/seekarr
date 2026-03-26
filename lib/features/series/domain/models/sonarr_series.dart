@@ -1,18 +1,8 @@
 import 'package:seekarr/core/models/media_preview.dart';
+import 'package:seekarr/core/models/rating_source.dart';
+import 'package:seekarr/core/utils/arr_model_helpers.dart';
 
-class RatingSource {
-  final String name;
-  final double value;
-  final int votes;
-  final String icon;
-
-  RatingSource({
-    required this.name,
-    required this.value,
-    required this.votes,
-    required this.icon,
-  });
-}
+export 'package:seekarr/core/models/rating_source.dart';
 
 class SonarrSeries {
   final int id;
@@ -54,77 +44,7 @@ class SonarrSeries {
   });
 
   factory SonarrSeries.fromJson(Map<String, dynamic> json) {
-    final ratingsData = json['ratings'];
-    final List<RatingSource> ratings = [];
-
-    if (ratingsData != null) {
-      // Handle both map of sources and single ratings object
-      if (ratingsData is Map<String, dynamic>) {
-        bool isMultiSource = ratingsData.values.any(
-          (v) => v is Map && v['value'] != null,
-        );
-        if (isMultiSource) {
-          // Multi-source ratings (like Radarr: { tmdb: {value, votes}, imdb: {value, votes} })
-          ratingsData.forEach((source, data) {
-            if (data is Map && data['value'] != null) {
-              final value = (data['value'] as num?)?.toDouble();
-              final votes = (data['votes'] as num?)?.toInt() ?? 0;
-              if (value != null) {
-                String icon;
-                String displayName;
-                switch (source.toLowerCase()) {
-                  case 'tmdb':
-                    icon = 'TMDB';
-                    displayName = 'TMDB';
-                    break;
-                  case 'imdb':
-                    icon = 'IMDb';
-                    displayName = 'IMDb';
-                    break;
-                  case 'tvdb':
-                    icon = 'TVDB';
-                    displayName = 'TVDB';
-                    break;
-                  case 'metacritic':
-                    icon = 'MC';
-                    displayName = 'Metacritic';
-                    break;
-                  case 'rotten':
-                    icon = 'RT';
-                    displayName = 'Rotten Tomatoes';
-                    break;
-                  default:
-                    icon = source.toUpperCase().substring(0, 2);
-                    displayName = source.toUpperCase();
-                }
-                ratings.add(
-                  RatingSource(
-                    name: displayName,
-                    value: value,
-                    votes: votes,
-                    icon: icon,
-                  ),
-                );
-              }
-            }
-          });
-        } else {
-          // Single ratings object (like Sonarr: { value: 8.4, votes: 145000 })
-          final value = (ratingsData['value'] as num?)?.toDouble();
-          final votes = (ratingsData['votes'] as num?)?.toInt() ?? 0;
-          if (value != null) {
-            ratings.add(
-              RatingSource(
-                name: '${votes} voti',
-                value: value,
-                votes: votes,
-                icon: 'TVDB',
-              ),
-            );
-          }
-        }
-      }
-    }
+    final ratings = parseArrRatings(json['ratings'], singleSourceIcon: 'TVDB');
 
     return SonarrSeries(
       id: json['id'] ?? 0,
@@ -139,11 +59,7 @@ class SonarrSeries {
       tvdbId: json['tvdbId'] ?? 0,
       runtime: json['runtime'] ?? 0,
       network: json['network'],
-      genres:
-          (json['genres'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      genres: parseGenreList(json['genres']),
       seasons: json['seasons'] ?? [],
       statistics: json['statistics'],
       qualityProfileId: json['qualityProfileId'],
@@ -152,14 +68,7 @@ class SonarrSeries {
   }
 
   MediaPreview toMediaPreview() {
-    String? posterPath;
-    try {
-      final poster = images.firstWhere(
-        (img) => img['coverType'] == 'poster',
-        orElse: () => null,
-      );
-      posterPath = poster?['remoteUrl'] ?? poster?['url'];
-    } catch (_) {}
+    final posterPath = extractPosterPathFromImages(images);
 
     return MediaPreview(
       id: id,
