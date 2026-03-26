@@ -1,0 +1,134 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+
+typedef ManageMediaArgs = ({
+  Map<String, dynamic> mediaInfo,
+  String mediaType,
+  int tmdbId,
+  int? tvdbId,
+});
+
+class ManageMediaState {
+  final List<JellyseerrRequest> requests;
+  final bool isLoading;
+  final bool isDeleting;
+  final String? error;
+
+  const ManageMediaState({
+    this.requests = const [],
+    this.isLoading = true,
+    this.isDeleting = false,
+    this.error,
+  });
+
+  ManageMediaState copyWith({
+    List<JellyseerrRequest>? requests,
+    bool? isLoading,
+    bool? isDeleting,
+    String? error,
+    bool clearError = false,
+  }) {
+    return ManageMediaState(
+      requests: requests ?? this.requests,
+      isLoading: isLoading ?? this.isLoading,
+      isDeleting: isDeleting ?? this.isDeleting,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+final manageMediaProvider = NotifierProvider.autoDispose
+    .family<ManageMediaNotifier, ManageMediaState, ManageMediaArgs>(
+      ManageMediaNotifier.new,
+    );
+
+class ManageMediaNotifier extends Notifier<ManageMediaState> {
+  ManageMediaNotifier(this.arg);
+
+  final ManageMediaArgs arg;
+
+  @override
+  ManageMediaState build() {
+    try {
+      final requestsData = arg.mediaInfo['requests'] as List<dynamic>? ?? [];
+      final requests = requestsData
+          .map((request) {
+            try {
+              return JellyseerrRequest.fromJson(
+                request as Map<String, dynamic>,
+              );
+            } catch (_) {
+              return null;
+            }
+          })
+          .whereType<JellyseerrRequest>()
+          .toList();
+
+      return ManageMediaState(requests: requests, isLoading: false);
+    } catch (error) {
+      return ManageMediaState(
+        isLoading: false,
+        error: 'Failed to load requests: $error',
+      );
+    }
+  }
+
+  int? get jellyseerrMediaId => arg.mediaInfo['id'] as int?;
+
+  int? get externalServiceId => arg.mediaInfo['externalServiceId'] as int?;
+
+  bool get hasExternalService => externalServiceId != null;
+
+  Future<String?> deleteRequest(int requestId) async {
+    try {
+      final service = ref.read(jellyseerrServiceProvider);
+      await service.deleteRequest(requestId);
+      state = state.copyWith(
+        requests: state.requests
+            .where((request) => request.id != requestId)
+            .toList(),
+      );
+      return null;
+    } catch (error) {
+      return 'Failed to delete request: $error';
+    }
+  }
+
+  Future<String?> removeFromService() async {
+    final mediaId = jellyseerrMediaId;
+    if (mediaId == null) {
+      return 'No media ID';
+    }
+
+    state = state.copyWith(isDeleting: true);
+    try {
+      final service = ref.read(jellyseerrServiceProvider);
+      await service.deleteMediaFile(mediaId);
+      return null;
+    } catch (error) {
+      return 'Failed to remove: $error';
+    } finally {
+      state = state.copyWith(isDeleting: false);
+    }
+  }
+
+  Future<String?> clearAllData() async {
+    final mediaId = jellyseerrMediaId;
+    if (mediaId == null) {
+      return 'No media ID';
+    }
+
+    state = state.copyWith(isDeleting: true);
+    try {
+      final service = ref.read(jellyseerrServiceProvider);
+      await service.deleteMedia(mediaId);
+      return null;
+    } catch (error) {
+      return 'Failed to clear data: $error';
+    } finally {
+      state = state.copyWith(isDeleting: false);
+    }
+  }
+}

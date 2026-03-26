@@ -1,18 +1,8 @@
 import 'package:seekarr/core/models/media_preview.dart';
+import 'package:seekarr/core/models/rating_source.dart';
+import 'package:seekarr/core/utils/arr_model_helpers.dart';
 
-class RatingSource {
-  final String name;
-  final double value;
-  final int votes;
-  final String icon;
-
-  RatingSource({
-    required this.name,
-    required this.value,
-    required this.votes,
-    required this.icon,
-  });
-}
+export 'package:seekarr/core/models/rating_source.dart';
 
 class LidarrArtist {
   final int id;
@@ -40,24 +30,11 @@ class LidarrArtist {
   });
 
   factory LidarrArtist.fromJson(Map<String, dynamic> json) {
-    final ratingsData = json['ratings'];
-    final List<RatingSource> ratings = [];
-
-    if (ratingsData != null && ratingsData is Map<String, dynamic>) {
-      // Single ratings object (like Lidarr: { value: 8.1, votes: 42500 })
-      final value = (ratingsData['value'] as num?)?.toDouble();
-      final votes = (ratingsData['votes'] as num?)?.toInt() ?? 0;
-      if (value != null) {
-        ratings.add(
-          RatingSource(
-            name: '${votes} voti',
-            value: value,
-            votes: votes,
-            icon: 'MB',
-          ),
-        );
-      }
-    }
+    final ratings = parseArrRatings(
+      json['ratings'],
+      allowMultiSource: false,
+      singleSourceIcon: 'MB',
+    );
 
     return LidarrArtist(
       id: json['id'] ?? 0,
@@ -67,25 +44,14 @@ class LidarrArtist {
       monitored: json['monitored'] ?? false,
       images: json['images'] ?? [],
       statistics: json['statistics'],
-      genres:
-          (json['genres'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      genres: parseGenreList(json['genres']),
       qualityProfileId: json['qualityProfileId'],
       ratings: ratings,
     );
   }
 
   MediaPreview toMediaPreview() {
-    String? posterPath;
-    try {
-      final poster = images.firstWhere(
-        (img) => img['coverType'] == 'poster',
-        orElse: () => null,
-      );
-      posterPath = poster?['remoteUrl'] ?? poster?['url'];
-    } catch (_) {}
+    final posterPath = extractPosterPathFromImages(images);
 
     return MediaPreview(
       id: id,

@@ -1,10 +1,10 @@
-import 'dart:isolate';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 final sonarrServiceProvider = Provider<SonarrService>((ref) {
   final settings = ref.watch(currentSettingsProvider);
@@ -31,15 +31,7 @@ class SonarrService with ArrActivityMixin {
 
   /// Fetches all series from Sonarr.
   Future<List<SonarrSeries>> getSeries() async {
-    try {
-      final response = await client.get('/api/v3/series');
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => SonarrSeries.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return fetchAllItems('series', SonarrSeries.fromJson);
   }
 
   /// Triggers an automatic search for the given series ID (entire series).
@@ -105,29 +97,12 @@ class SonarrService with ArrActivityMixin {
     required String guid,
     required int indexerId,
   }) async {
-    await client.post(
-      '/api/v3/release',
-      data: {'guid': guid, 'indexerId': indexerId},
-    );
+    await grabReleaseByGuid(guid: guid, indexerId: indexerId);
   }
 
   /// Searches for series by term using the lookup API.
   Future<List<SonarrSeries>> lookupSeries(String term) async {
-    if (term.isEmpty) return [];
-    try {
-      // URL-encode the term to handle spaces and special characters
-      final encodedTerm = Uri.encodeComponent(term);
-      final response = await client.get(
-        '/api/v3/series/lookup',
-        queryParameters: {'term': encodedTerm},
-      );
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => SonarrSeries.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return lookupItems('series/lookup', term, SonarrSeries.fromJson);
   }
 
   /// Finds a series in the library by its TVDB ID.
@@ -143,23 +118,12 @@ class SonarrService with ArrActivityMixin {
 
   /// Fetches all quality profiles.
   Future<List<Map<String, dynamic>>> getQualityProfiles() async {
-    try {
-      final response = await client.get('/api/v3/qualityprofile');
-      final data = response.data as List<dynamic>;
-      return data.cast<Map<String, dynamic>>();
-    } catch (e) {
-      return [];
-    }
+    return fetchQualityProfiles();
   }
 
   /// Updates a series's quality profile.
   Future<void> updateSeriesProfile(int seriesId, int qualityProfileId) async {
-    final response = await client.get('/api/v3/series/$seriesId');
-    final series = response.data as Map<String, dynamic>;
-
-    series['qualityProfileId'] = qualityProfileId;
-
-    await client.put('/api/v3/series/$seriesId', data: series);
+    await updateItemProfile('series', seriesId, qualityProfileId);
   }
 
   /// Deletes a series from Sonarr.

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/grab_error_utils.dart';
 import 'package:seekarr/core/utils/release_utils.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/release_list_widgets.dart';
@@ -381,34 +382,7 @@ class _InteractiveSearchSheetState extends State<InteractiveSearchSheet> {
       }
     } catch (e) {
       if (context.mounted) {
-        // Parse error for better user feedback
-        final errorStr = e.toString().toLowerCase();
-        String message;
-
-        // Extract status code if present
-        final codeMatch = RegExp(r'(\d{3})').firstMatch(e.toString());
-        final statusCode = codeMatch?.group(1);
-
-        if (errorStr.contains('504') || errorStr.contains('gateway timeout')) {
-          message =
-              'Indexer timeout - the indexer took too long to respond. (Error 504)';
-        } else if (errorStr.contains('500') ||
-            errorStr.contains('server error')) {
-          // Often means the release is already in queue or file exists
-          message =
-              'This release may already be downloading or available. Check your download queue.${statusCode != null ? ' (Error $statusCode)' : ''}';
-        } else if (errorStr.contains('already')) {
-          message = 'This item is already in your library or download queue.';
-        } else if (errorStr.contains('disk space') ||
-            errorStr.contains('space')) {
-          message = 'Not enough disk space for this download.';
-        } else if (errorStr.contains('timeout')) {
-          message =
-              'Request timed out. Please try again.${statusCode != null ? ' (Error $statusCode)' : ''}';
-        } else {
-          message =
-              'Failed to grab release${statusCode != null ? ' (Error $statusCode)' : ''}: ${e.toString().split(':').last.trim()}';
-        }
+        final message = translateGrabError(e);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

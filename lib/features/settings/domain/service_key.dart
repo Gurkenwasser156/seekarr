@@ -29,18 +29,7 @@ extension ServiceKeyExtension on ServiceKey {
     }
   }
 
-  String get routeParam {
-    switch (this) {
-      case ServiceKey.jellyseerr:
-        return 'jellyseerr';
-      case ServiceKey.radarr:
-        return 'radarr';
-      case ServiceKey.sonarr:
-        return 'sonarr';
-      case ServiceKey.lidarr:
-        return 'lidarr';
-    }
-  }
+  String get routeParam => name;
 
   String? extractHost(String? url) {
     if (url == null || url.isEmpty) return null;

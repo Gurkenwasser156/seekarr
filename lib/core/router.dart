@@ -23,6 +23,52 @@ import 'package:seekarr/features/settings/domain/service_key.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
+Page<void> _discoverDetailPage(
+  GoRouterState state, {
+  required String mediaType,
+}) {
+  final id = RouteUtils.safeIntParam(state, 'id');
+  if (id == null) {
+    return RouteUtils.redirectPage(key: state.pageKey, location: '/discover');
+  }
+  final heroTag =
+      state.uri.queryParameters['heroTag'] ?? 'discover_${mediaType}_$id';
+  final posterUrl = state.uri.queryParameters['posterUrl'] != null
+      ? Uri.decodeComponent(state.uri.queryParameters['posterUrl']!)
+      : null;
+  return RouteUtils.cupertinoPage(
+    key: state.pageKey,
+    child: DiscoverDetailScreen(
+      mediaId: id,
+      mediaType: mediaType,
+      heroTag: heroTag,
+      initialPosterUrl: posterUrl,
+    ),
+  );
+}
+
+Page<void> _libraryDetailPage<T>(
+  GoRouterState state, {
+  required String fallbackLocation,
+  required int Function(T item) getId,
+  required String heroPrefix,
+  required Widget Function(T item, String heroTag) buildChild,
+}) {
+  final id = RouteUtils.safeIntParam(state, 'id');
+  final item = RouteUtils.safeExtra<T>(state);
+  if (id == null || item == null || getId(item) != id) {
+    return RouteUtils.redirectPage(
+      key: state.pageKey,
+      location: fallbackLocation,
+    );
+  }
+  final heroTag = state.uri.queryParameters['heroTag'] ?? '${heroPrefix}_$id';
+  return RouteUtils.cupertinoPage(
+    key: state.pageKey,
+    child: buildChild(item, heroTag),
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -57,62 +103,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'movie/:id',
-                pageBuilder: (context, state) {
-                  final id = RouteUtils.safeIntParam(state, 'id');
-                  if (id == null) {
-                    return RouteUtils.redirectPage(
-                      key: state.pageKey,
-                      location: '/discover',
-                    );
-                  }
-                  final heroTag =
-                      state.uri.queryParameters['heroTag'] ??
-                      'discover_movie_$id';
-                  final posterUrl =
-                      state.uri.queryParameters['posterUrl'] != null
-                      ? Uri.decodeComponent(
-                          state.uri.queryParameters['posterUrl']!,
-                        )
-                      : null;
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: DiscoverDetailScreen(
-                      mediaId: id,
-                      mediaType: 'movie',
-                      heroTag: heroTag,
-                      initialPosterUrl: posterUrl,
-                    ),
-                  );
-                },
+                pageBuilder: (context, state) =>
+                    _discoverDetailPage(state, mediaType: 'movie'),
               ),
               GoRoute(
                 path: 'tv/:id',
-                pageBuilder: (context, state) {
-                  final id = RouteUtils.safeIntParam(state, 'id');
-                  if (id == null) {
-                    return RouteUtils.redirectPage(
-                      key: state.pageKey,
-                      location: '/discover',
-                    );
-                  }
-                  final heroTag =
-                      state.uri.queryParameters['heroTag'] ?? 'discover_tv_$id';
-                  final posterUrl =
-                      state.uri.queryParameters['posterUrl'] != null
-                      ? Uri.decodeComponent(
-                          state.uri.queryParameters['posterUrl']!,
-                        )
-                      : null;
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: DiscoverDetailScreen(
-                      mediaId: id,
-                      mediaType: 'tv',
-                      heroTag: heroTag,
-                      initialPosterUrl: posterUrl,
-                    ),
-                  );
-                },
+                pageBuilder: (context, state) =>
+                    _discoverDetailPage(state, mediaType: 'tv'),
               ),
             ],
           ),
@@ -123,23 +120,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: ':id',
-                pageBuilder: (context, state) {
-                  final id = RouteUtils.safeIntParam(state, 'id');
-                  final movie = RouteUtils.safeExtra<RadarrMovie>(state);
-                  if (id == null || movie == null || movie.id != id) {
-                    return RouteUtils.redirectPage(
-                      key: state.pageKey,
-                      location: '/movies',
-                    );
-                  }
-                  final heroTag =
-                      state.uri.queryParameters['heroTag'] ??
-                      'movie_${movie.id}';
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: MovieDetailScreen(movie: movie, heroTag: heroTag),
-                  );
-                },
+                pageBuilder: (context, state) =>
+                    _libraryDetailPage<RadarrMovie>(
+                      state,
+                      fallbackLocation: '/movies',
+                      getId: (movie) => movie.id,
+                      heroPrefix: 'movie',
+                      buildChild: (movie, heroTag) =>
+                          MovieDetailScreen(movie: movie, heroTag: heroTag),
+                    ),
               ),
             ],
           ),
@@ -149,23 +138,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: ':id',
-                pageBuilder: (context, state) {
-                  final id = RouteUtils.safeIntParam(state, 'id');
-                  final series = RouteUtils.safeExtra<SonarrSeries>(state);
-                  if (id == null || series == null || series.id != id) {
-                    return RouteUtils.redirectPage(
-                      key: state.pageKey,
-                      location: '/series',
-                    );
-                  }
-                  final heroTag =
-                      state.uri.queryParameters['heroTag'] ??
-                      'series_${series.id}';
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: SeriesDetailScreen(series: series, heroTag: heroTag),
-                  );
-                },
+                pageBuilder: (context, state) =>
+                    _libraryDetailPage<SonarrSeries>(
+                      state,
+                      fallbackLocation: '/series',
+                      getId: (series) => series.id,
+                      heroPrefix: 'series',
+                      buildChild: (series, heroTag) =>
+                          SeriesDetailScreen(series: series, heroTag: heroTag),
+                    ),
               ),
             ],
           ),
@@ -175,23 +156,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: ':id',
-                pageBuilder: (context, state) {
-                  final id = RouteUtils.safeIntParam(state, 'id');
-                  final artist = RouteUtils.safeExtra<LidarrArtist>(state);
-                  if (id == null || artist == null || artist.id != id) {
-                    return RouteUtils.redirectPage(
-                      key: state.pageKey,
-                      location: '/music',
-                    );
-                  }
-                  final heroTag =
-                      state.uri.queryParameters['heroTag'] ??
-                      'artist_${artist.id}';
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: MusicDetailScreen(artist: artist, heroTag: heroTag),
-                  );
-                },
+                pageBuilder: (context, state) =>
+                    _libraryDetailPage<LidarrArtist>(
+                      state,
+                      fallbackLocation: '/music',
+                      getId: (artist) => artist.id,
+                      heroPrefix: 'artist',
+                      buildChild: (artist, heroTag) =>
+                          MusicDetailScreen(artist: artist, heroTag: heroTag),
+                    ),
               ),
             ],
           ),

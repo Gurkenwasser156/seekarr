@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/features/discover/presentation/request_form_provider.dart';
 
 /// Bottom sheet for selecting quality profile and submitting request to Jellyseerr.
 ///
 /// This widget is used from the DiscoverDetailScreen to allow users to select
 /// a server, quality profile, and root folder before submitting a media request.
-class RequestBottomSheet extends ConsumerStatefulWidget {
+class RequestBottomSheet extends ConsumerWidget {
   final int mediaId;
   final String mediaType;
   final VoidCallback onRequestComplete;
@@ -19,233 +21,115 @@ class RequestBottomSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<RequestBottomSheet> createState() => _RequestBottomSheetState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final args = (mediaId: mediaId, mediaType: mediaType);
+    final state = ref.watch(requestFormProvider(args));
+    final notifier = ref.read(requestFormProvider(args).notifier);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-class _RequestBottomSheetState extends ConsumerState<RequestBottomSheet> {
-  List<Map<String, dynamic>> _servers = [];
-  List<dynamic> _profiles = [];
-  List<dynamic> _rootFolders = [];
-  int? _selectedServerId;
-  int? _selectedProfileId;
-  String? _selectedRootFolder;
-  bool _isLoading = true;
-  bool _isSubmitting = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadServers();
-  }
-
-  Future<void> _loadServers() async {
-    try {
-      final service = ref.read(jellyseerrServiceProvider);
-      final servers = widget.mediaType == 'movie'
-          ? await service.getRadarrServers()
-          : await service.getSonarrServers();
-
-      if (servers.isEmpty) {
-        setState(() {
-          _error =
-              'No ${widget.mediaType == 'movie' ? 'Radarr' : 'Sonarr'} servers configured in Jellyseerr';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      setState(() {
-        _servers = servers;
-        _selectedServerId = servers.first['id'] as int?;
-      });
-
-      if (_selectedServerId != null) {
-        await _loadProfiles(_selectedServerId!);
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load servers: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadProfiles(int serverId) async {
-    setState(() => _isLoading = true);
-    try {
-      final service = ref.read(jellyseerrServiceProvider);
-      final data = widget.mediaType == 'movie'
-          ? await service.getRadarrProfiles(serverId)
-          : await service.getSonarrProfiles(serverId);
-
-      final profiles = data['profiles'] as List<dynamic>? ?? [];
-      final rootFolders = data['rootFolders'] as List<dynamic>? ?? [];
-
-      // Get the activeProfileId from the selected server
-      final selectedServer = _servers.firstWhere(
-        (s) => s['id'] == serverId,
-        orElse: () => <String, dynamic>{},
-      );
-      final activeProfileId = selectedServer['activeProfileId'] as int?;
-      final activeRootFolder = selectedServer['activeDirectory'] as String?;
-
-      // Select the active profile, or fall back to first
-      int? defaultProfileId;
-      if (activeProfileId != null &&
-          profiles.any((p) => p['id'] == activeProfileId)) {
-        defaultProfileId = activeProfileId;
-      } else if (profiles.isNotEmpty) {
-        defaultProfileId = profiles.first['id'] as int?;
-      }
-
-      // Select the active root folder, or fall back to first
-      String? defaultRootFolder;
-      if (activeRootFolder != null &&
-          rootFolders.any((f) => f['path'] == activeRootFolder)) {
-        defaultRootFolder = activeRootFolder;
-      } else if (rootFolders.isNotEmpty) {
-        defaultRootFolder = rootFolders.first['path'] as String?;
-      }
-
-      setState(() {
-        _profiles = profiles;
-        _rootFolders = rootFolders;
-        _selectedProfileId = defaultProfileId;
-        _selectedRootFolder = defaultRootFolder;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load profiles: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _submitRequest() async {
-    if (_selectedProfileId == null) return;
-
-    setState(() => _isSubmitting = true);
-    try {
-      final service = ref.read(jellyseerrServiceProvider);
-      await service.createRequest(
-        mediaType: widget.mediaType,
-        mediaId: widget.mediaId,
-        profileId: _selectedProfileId,
-        rootFolder: _selectedRootFolder,
-        serverId: _selectedServerId,
-      );
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onRequestComplete();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Request failed: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Request ${widget.mediaType == 'movie' ? 'Movie' : 'TV Show'}',
-            style: Theme.of(context).textTheme.titleLarge,
+            'Request ${mediaType == 'movie' ? 'Movie' : 'TV Show'}',
+            style: theme.textTheme.titleLarge,
           ),
-          const SizedBox(height: 24),
-
-          if (_isLoading)
+          const SizedBox(height: AppSpacing.xl),
+          if (state.isLoading)
             const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            Text(_error!, style: const TextStyle(color: Colors.red))
+          else if (state.error != null)
+            Text(state.error!, style: TextStyle(color: colorScheme.error))
           else ...[
-            // Server selector (if multiple)
-            if (_servers.length > 1) ...[
-              const Text(
-                'Server',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
+            if (state.servers.length > 1) ...[
+              Text('Server', style: theme.textTheme.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<int>(
-                initialValue: _selectedServerId,
-                items: _servers
+                key: ValueKey('request_server_${state.selectedServerId}'),
+                initialValue: state.selectedServerId,
+                items: state.servers
                     .map(
-                      (s) => DropdownMenuItem(
-                        value: s['id'] as int,
-                        child: Text(s['name'] ?? 'Server'),
+                      (server) => DropdownMenuItem(
+                        value: server.id,
+                        child: Text(server.name),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => _selectedServerId = value);
-                    _loadProfiles(value);
+                    notifier.selectServer(value);
                   }
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
-
-            // Quality profile
-            const Text(
-              'Quality Profile',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
+            Text('Quality Profile', style: theme.textTheme.labelLarge),
+            const SizedBox(height: AppSpacing.sm),
             DropdownButtonFormField<int>(
-              initialValue: _selectedProfileId,
-              items: _profiles
+              key: ValueKey('request_profile_${state.selectedProfileId}'),
+              initialValue: state.selectedProfileId,
+              items: state.profiles
                   .map(
-                    (p) => DropdownMenuItem(
-                      value: p['id'] as int,
-                      child: Text(p['name'] ?? 'Profile'),
+                    (profile) => DropdownMenuItem(
+                      value: profile.id,
+                      child: Text(profile.name),
                     ),
                   )
                   .toList(),
-              onChanged: (value) => setState(() => _selectedProfileId = value),
+              onChanged: (value) {
+                if (value != null) {
+                  notifier.selectProfile(value);
+                }
+              },
             ),
-            const SizedBox(height: 16),
-
-            // Root folder
-            if (_rootFolders.isNotEmpty) ...[
-              const Text(
-                'Root Folder',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.lg),
+            if (state.rootFolders.isNotEmpty) ...[
+              Text('Root Folder', style: theme.textTheme.labelLarge),
+              const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<String>(
-                initialValue: _selectedRootFolder,
-                items: _rootFolders
+                key: ValueKey('request_root_${state.selectedRootFolder}'),
+                initialValue: state.selectedRootFolder,
+                items: state.rootFolders
                     .map(
-                      (f) => DropdownMenuItem(
-                        value: f['path'] as String?,
-                        child: Text(f['path'] ?? 'Folder'),
+                      (folder) => DropdownMenuItem(
+                        value: folder.path,
+                        child: Text(folder.path),
                       ),
                     )
                     .toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedRootFolder = value),
+                onChanged: (value) {
+                  if (value != null) {
+                    notifier.selectRootFolder(value);
+                  }
+                },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
             ],
-
-            // Submit button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitRequest,
-                child: _isSubmitting
+                onPressed: state.canSubmit
+                    ? () async {
+                        final error = await notifier.submitRequest();
+                        if (!context.mounted) {
+                          return;
+                        }
+
+                        if (error == null) {
+                          Navigator.pop(context);
+                          onRequestComplete();
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(error)));
+                      }
+                    : null,
+                child: state.isSubmitting
                     ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -255,7 +139,7 @@ class _RequestBottomSheetState extends ConsumerState<RequestBottomSheet> {
               ),
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );

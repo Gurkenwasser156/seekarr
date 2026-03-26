@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:seekarr/core/api/api_client.dart';
 
 /// Configuration for *arr service activity endpoints.
@@ -24,10 +26,8 @@ class ArrServiceConfig {
   );
 }
 
-/// Mixin providing shared activity methods for *arr services (Radarr, Sonarr, Lidarr).
-///
-/// This mixin eliminates ~80% code duplication by providing common implementations
-/// for queue, history, blocklist, missing, and cutoff endpoints.
+/// Mixin providing shared activity endpoints and common service helpers for
+/// *arr services (Radarr, Sonarr, Lidarr).
 mixin ArrActivityMixin {
   /// The API client used for requests.
   ApiClient get client;
@@ -89,5 +89,89 @@ mixin ArrActivityMixin {
       // Cutoff endpoint may not be available on all *arr variants
       return [];
     }
+  }
+
+  /// Fetches all items from a list endpoint and maps them in an isolate.
+  Future<List<T>> fetchAllItems<T>(
+    String endpoint,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
+    try {
+      final response = await client.get('/api/${config.apiVersion}/$endpoint');
+      final data = response.data as List<dynamic>;
+      return await Isolate.run(
+        () =>
+            data.map((item) => fromJson(item as Map<String, dynamic>)).toList(),
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Searches by term using a lookup endpoint and maps results in an isolate.
+  Future<List<T>> lookupItems<T>(
+    String endpoint,
+    String term,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
+    if (term.isEmpty) {
+      return [];
+    }
+
+    try {
+      final encodedTerm = Uri.encodeComponent(term);
+      final response = await client.get(
+        '/api/${config.apiVersion}/$endpoint',
+        queryParameters: {'term': encodedTerm},
+      );
+      final data = response.data as List<dynamic>;
+      return await Isolate.run(
+        () =>
+            data.map((item) => fromJson(item as Map<String, dynamic>)).toList(),
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Fetches all quality profiles.
+  Future<List<Map<String, dynamic>>> fetchQualityProfiles() async {
+    try {
+      final response = await client.get(
+        '/api/${config.apiVersion}/qualityprofile',
+      );
+      final data = response.data as List<dynamic>;
+      return data.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Updates an item's quality profile.
+  Future<void> updateItemProfile(
+    String resourcePath,
+    int itemId,
+    int qualityProfileId,
+  ) async {
+    final response = await client.get(
+      '/api/${config.apiVersion}/$resourcePath/$itemId',
+    );
+    final item = response.data as Map<String, dynamic>;
+    item['qualityProfileId'] = qualityProfileId;
+    await client.put(
+      '/api/${config.apiVersion}/$resourcePath/$itemId',
+      data: item,
+    );
+  }
+
+  /// Grabs a specific release for download.
+  Future<void> grabReleaseByGuid({
+    required String guid,
+    required int indexerId,
+  }) async {
+    await client.post(
+      '/api/${config.apiVersion}/release',
+      data: {'guid': guid, 'indexerId': indexerId},
+    );
   }
 }

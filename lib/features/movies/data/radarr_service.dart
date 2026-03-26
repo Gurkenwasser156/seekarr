@@ -1,10 +1,10 @@
-import 'dart:isolate';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 final radarrServiceProvider = Provider<RadarrService>((ref) {
   final settings = ref.watch(currentSettingsProvider);
@@ -31,15 +31,7 @@ class RadarrService with ArrActivityMixin {
 
   /// Fetches all movies from Radarr.
   Future<List<RadarrMovie>> getMovies() async {
-    try {
-      final response = await client.get('/api/v3/movie');
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => RadarrMovie.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return fetchAllItems('movie', RadarrMovie.fromJson);
   }
 
   /// Triggers an automatic search for the given movie ID.
@@ -71,29 +63,12 @@ class RadarrService with ArrActivityMixin {
     required String guid,
     required int indexerId,
   }) async {
-    await client.post(
-      '/api/v3/release',
-      data: {'guid': guid, 'indexerId': indexerId},
-    );
+    await grabReleaseByGuid(guid: guid, indexerId: indexerId);
   }
 
   /// Searches for movies by term using the lookup API.
   Future<List<RadarrMovie>> lookupMovies(String term) async {
-    if (term.isEmpty) return [];
-    try {
-      // URL-encode the term to handle spaces and special characters
-      final encodedTerm = Uri.encodeComponent(term);
-      final response = await client.get(
-        '/api/v3/movie/lookup',
-        queryParameters: {'term': encodedTerm},
-      );
-      final data = response.data as List<dynamic>;
-      return await Isolate.run(
-        () => data.map((e) => RadarrMovie.fromJson(e)).toList(),
-      );
-    } catch (e) {
-      return [];
-    }
+    return lookupItems('movie/lookup', term, RadarrMovie.fromJson);
   }
 
   /// Finds a movie in the library by its TMDB ID.
@@ -109,25 +84,12 @@ class RadarrService with ArrActivityMixin {
 
   /// Fetches all quality profiles.
   Future<List<Map<String, dynamic>>> getQualityProfiles() async {
-    try {
-      final response = await client.get('/api/v3/qualityprofile');
-      final data = response.data as List<dynamic>;
-      return data.cast<Map<String, dynamic>>();
-    } catch (e) {
-      return [];
-    }
+    return fetchQualityProfiles();
   }
 
   /// Updates a movie's quality profile.
   Future<void> updateMovieProfile(int movieId, int qualityProfileId) async {
-    // First get the movie
-    final response = await client.get('/api/v3/movie/$movieId');
-    final movie = response.data as Map<String, dynamic>;
-
-    // Update quality profile
-    movie['qualityProfileId'] = qualityProfileId;
-
-    await client.put('/api/v3/movie/$movieId', data: movie);
+    await updateItemProfile('movie', movieId, qualityProfileId);
   }
 
   /// Deletes a movie from Radarr.

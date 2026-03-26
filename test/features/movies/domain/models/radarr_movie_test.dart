@@ -4,6 +4,17 @@ import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 void main() {
   group('RadarrMovie', () {
     group('fromJson', () {
+      test('re-exports RatingSource for callers importing the model', () {
+        const rating = RatingSource(
+          name: 'TMDB',
+          value: 8.1,
+          votes: 200,
+          icon: 'TMDB',
+        );
+
+        expect(rating.name, 'TMDB');
+      });
+
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,
@@ -88,6 +99,33 @@ void main() {
         expect(movie.runtime, 0);
         expect(movie.genres, isEmpty);
       });
+
+      test('parses multi-source ratings', () {
+        final movie = RadarrMovie.fromJson({
+          'id': 1,
+          'title': 'Test Movie',
+          'sortTitle': 'test movie',
+          'sizeOnDisk': 0,
+          'status': 'released',
+          'hasFile': false,
+          'monitored': false,
+          'year': 2023,
+          'images': const [],
+          'tmdbId': 123,
+          'runtime': 120,
+          'genres': const [],
+          'ratings': {
+            'tmdb': {'value': 8.1, 'votes': 200},
+            'imdb': {'value': 7.5, 'votes': 1000},
+          },
+        });
+
+        expect(movie.ratings, hasLength(2));
+        expect(movie.ratings.first.name, 'TMDB');
+        expect(movie.ratings.first.icon, 'TMDB');
+        expect(movie.ratings.first.value, 8.1);
+        expect(movie.ratings[1].name, 'IMDb');
+      });
     });
 
     group('toMediaPreview', () {
@@ -117,6 +155,7 @@ void main() {
 
         expect(preview.id, 1);
         expect(preview.title, 'Test Movie');
+        expect(preview.posterPath, 'https://example.com/poster.jpg');
         expect(preview.overview, 'Overview');
         expect(preview.releaseDate, '2023');
         expect(preview.mediaType, 'movie');
