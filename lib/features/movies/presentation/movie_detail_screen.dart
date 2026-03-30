@@ -1,33 +1,31 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
+import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/utils/image_utils.dart';
-import 'package:seekarr/core/widgets/delete_media_dialog.dart';
-import 'package:seekarr/core/widgets/file_info_section.dart';
-import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
-import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/media_management_row.dart';
-import 'package:seekarr/core/widgets/media_search_action_row.dart';
-import 'package:seekarr/core/widgets/rating_chips_row.dart';
-import 'package:seekarr/core/widgets/status_badge.dart';
-import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+import 'package:seekarr/features/movies/presentation/movie_detail_provider.dart';
+import 'package:seekarr/features/movies/presentation/movie_detail_view_model.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 /// Detail screen for a Radarr movie with M3 styling.
 class MovieDetailScreen extends ConsumerStatefulWidget {
-  final RadarrMovie movie;
+  final int movieId;
   final String heroTag;
+  final RadarrMovie? initialMovie;
 
   const MovieDetailScreen({
     super.key,
-    required this.movie,
+    required this.movieId,
     required this.heroTag,
+    this.initialMovie,
   });
 
   @override
@@ -39,111 +37,99 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   bool _isDeleting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    loadQualityProfiles(
-      fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
-      initialProfileId: widget.movie.qualityProfileId,
-    );
-  }
+  bool _profilesRequested = false;
+  int? _boundProfileId;
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(currentSettingsProvider);
-    final movie = widget.movie;
-    final colorScheme = Theme.of(context).colorScheme;
+    final movieAsync = ref.watch(movieDetailProvider(widget.movieId));
+    final movie = movieAsync.asData?.value ?? widget.initialMovie;
 
-    final title = movie.title;
-    final year = movie.year.toString();
-    final overview = movie.overview ?? 'No description available.';
-    final runtime = movie.runtime > 0 ? '${movie.runtime} min' : '';
-    final studio = movie.studio ?? '';
-    final status = movie.status;
+    if (movie == null) {
+      if (movieAsync.isLoading) {
+        return const _MovieDetailLoadingState();
+      }
 
-    final imageSource = ImageUtils.extractPosterUrl(
-      movie.images,
+      return _MovieDetailErrorState(
+        error: movieAsync.asError?.error ?? 'Movie not found.',
+        serviceName: 'Radarr',
+      );
+    }
+
+    _ensureQualityProfiles(movie.qualityProfileId);
+
+    final viewModel = MovieDetailViewModel.fromMovie(
+      movie,
       baseUrl: settings.radarrUrl,
       apiKey: settings.radarrApiKey,
     );
-
-    // Build tags with status badge and metadata
+    final hasBackdrop = (viewModel.backdropUrl ?? '').isNotEmpty;
+    final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
+    final tagAlignment = hasBackdrop
+        ? WrapAlignment.center
+        : WrapAlignment.start;
     final tags = <Widget>[
-      StatusBadge.fromMedia(hasFile: movie.hasFile, status: status),
-      if (year.isNotEmpty) TagChip(text: year),
-      if (runtime.isNotEmpty)
-        TagChip(text: runtime, icon: Icons.schedule_rounded),
-      // Genre chips
-      ...movie.genres.take(3).map((genre) => GenreChip(genre: genre)),
+      if (!hasBackdrop)
+        StatusBadge.fromMedia(
+          hasFile: viewModel.hasFile,
+          status: viewModel.status,
+        ),
     ];
-
-    // Extract filename from path
-    String? filename;
-    if (movie.hasFile && movie.path != null) {
-      filename = movie.path!.split('/').last;
-    }
+    final infoGroups = viewModel.buildInfoGroups();
 
     return MediaDetailView(
       heroTag: widget.heroTag,
-      posterUrl: imageSource.url,
-      posterHeaders: imageSource.headers,
+      posterUrl: viewModel.posterUrl,
+      posterHeaders: viewModel.posterHeaders,
+      backdropUrl: viewModel.backdropUrl,
+      posterOverlay: hasBackdrop
+          ? _MoviePosterOverlay(
+              heroTag: widget.heroTag,
+              posterUrl: viewModel.posterUrl,
+              posterHeaders: viewModel.posterHeaders,
+              hasFile: viewModel.hasFile,
+              status: viewModel.status,
+            )
+          : null,
       contentSections: [
-        MediaDetailTitleSection(title: title),
-        const SizedBox(height: AppSpacing.sm),
+        MediaDetailTitleSection(
+          title: viewModel.title,
+          textAlign: titleTextAlign,
+        ),
         if (tags.isNotEmpty) ...[
-          MediaDetailTagSection(tags: tags),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.sm),
+          MediaDetailTagSection(tags: tags, alignment: tagAlignment),
         ],
-        SizedBox(
-          width: double.infinity,
-          child: _buildActions(context, colorScheme, movie, filename, studio),
-        ),
-        if (overview.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          MediaDetailOverviewSection(overview: overview),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildActions(
-    BuildContext context,
-    ColorScheme colorScheme,
-    RadarrMovie movie,
-    String? filename,
-    String studio,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Studio info
-        if (studio.isNotEmpty) ...[
-          Text(
-            studio,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+        if (viewModel.metadataItems.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          MediaMetadataLine(
+            items: viewModel.metadataItems,
+            textAlign: titleTextAlign,
           ),
-          const SizedBox(height: AppSpacing.lg),
         ],
-
-        RatingChipsRow(ratings: movie.ratings),
-
-        MediaSearchActionRow(
-          isSearching: _isSearching,
-          isLoadingReleases: _isLoadingReleases,
-          onAutomaticSearch: () => _triggerSearch(context, movie.id),
-          onInteractiveSearch: () => _showInteractiveSearch(context, movie.id),
-        ),
-
-        // File info section
-        if (movie.hasFile && movie.path != null) ...[
+        if (viewModel.ratings.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
-          FileInfoSection(path: movie.path, filename: filename),
+          SizedBox(
+            width: double.infinity,
+            child: RatingChipsRow(ratings: viewModel.ratings),
+          ),
         ],
-
-        // Profile selector (split button) + delete button
+        if (infoGroups.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SizedBox(
+            width: double.infinity,
+            child: MediaInfoCard(groups: infoGroups),
+          ),
+        ],
+        if (viewModel.overview.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          MediaDetailOverviewSection(overview: viewModel.overview),
+        ],
+        if (viewModel.hasFile && viewModel.path != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          FileInfoSection(path: viewModel.path, filename: viewModel.filename),
+        ],
         if (currentProfileName != null) ...[
           const SizedBox(height: AppSpacing.lg),
           MediaManagementRow(
@@ -152,18 +138,59 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
             qualityProfiles: qualityProfiles,
             onProfileSelected: _updateProfile,
             isDeleting: _isDeleting,
-            onDelete: () => _confirmDelete(context),
+            onDelete: () => _confirmDelete(context, title: viewModel.title),
             deleteTooltip: 'Delete Movie',
           ),
         ],
+        const SizedBox(height: AppSpacing.xl),
+        MediaSearchActionRow(
+          isSearching: _isSearching,
+          isLoadingReleases: _isLoadingReleases,
+          onAutomaticSearch: () => _triggerSearch(context),
+          onInteractiveSearch: () =>
+              _showInteractiveSearch(context, title: viewModel.title),
+        ),
       ],
     );
+  }
+
+  void _ensureQualityProfiles(int? profileId) {
+    if (!_profilesRequested) {
+      _profilesRequested = true;
+      _boundProfileId = profileId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        loadQualityProfiles(
+          fetchProfiles: () =>
+              ref.read(radarrServiceProvider).getQualityProfiles(),
+          initialProfileId: profileId,
+        );
+      });
+      return;
+    }
+
+    if (qualityProfiles.isNotEmpty && _boundProfileId != profileId) {
+      _boundProfileId = profileId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          currentProfileId = profileId;
+          currentProfileName = getProfileName(profileId);
+        });
+      });
+    }
   }
 
   Future<void> _updateProfile(int profileId) async {
     try {
       final radarrService = ref.read(radarrServiceProvider);
-      await radarrService.updateMovieProfile(widget.movie.id, profileId);
+      await radarrService.updateMovieProfile(widget.movieId, profileId);
       if (mounted) {
         updateProfileState(profileId);
         ref.invalidate(moviesProvider);
@@ -175,12 +202,15 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context) async {
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    required String title,
+  }) async {
     HapticFeedback.mediumImpact();
 
     final result = await showDeleteMediaDialog(
       context: context,
-      title: widget.movie.title,
+      title: title,
       mediaType: 'movie',
     );
 
@@ -190,7 +220,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     try {
       final radarrService = ref.read(radarrServiceProvider);
       await radarrService.deleteMovie(
-        widget.movie.id,
+        widget.movieId,
         deleteFiles: result.deleteFiles,
         addImportExclusion: result.addExclusion,
       );
@@ -205,12 +235,12 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     }
   }
 
-  Future<void> _triggerSearch(BuildContext context, int movieId) async {
+  Future<void> _triggerSearch(BuildContext context) async {
     HapticFeedback.selectionClick();
     setState(() => _isSearching = true);
     try {
       final radarrService = ref.read(radarrServiceProvider);
-      await radarrService.searchMovie(movieId);
+      await radarrService.searchMovie(widget.movieId);
       if (!context.mounted) return;
       _showSnackBar('Search started');
     } catch (e) {
@@ -221,14 +251,17 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     }
   }
 
-  Future<void> _showInteractiveSearch(BuildContext context, int movieId) async {
+  Future<void> _showInteractiveSearch(
+    BuildContext context, {
+    required String title,
+  }) async {
     HapticFeedback.selectionClick();
     final radarrService = ref.read(radarrServiceProvider);
     await InteractiveSearchSheet.showAsync(
       context: context,
-      title: 'Releases for ${widget.movie.title}',
+      title: 'Releases for $title',
       fetchReleases: (token) =>
-          radarrService.getReleases(movieId, cancelToken: token),
+          radarrService.getReleases(widget.movieId, cancelToken: token),
       onGrabRelease: (guid, indexerId) async {
         await radarrService.grabRelease(guid: guid, indexerId: indexerId);
       },
@@ -246,6 +279,229 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+}
+
+class _MovieDetailLoadingState extends StatelessWidget {
+  const _MovieDetailLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const expandedHeight = 380.0;
+
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: expandedHeight,
+            pinned: true,
+            backgroundColor: colorScheme.surface,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                final overlayOpacity = mediaDetailOverlayCollapseOpacity(
+                  context,
+                  currentHeight: constraints.maxHeight,
+                  expandedHeight: expandedHeight,
+                );
+
+                return ClipRect(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              colorScheme.surfaceContainerHighest,
+                              colorScheme.surface,
+                            ],
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                          child: Opacity(
+                            opacity: overlayOpacity,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ShimmerPlaceholder.card(
+                                  width: 120,
+                                  height: 180,
+                                ),
+                                SizedBox(height: AppSpacing.sm),
+                                ShimmerPlaceholder(
+                                  width: 96,
+                                  height: 28,
+                                  borderRadius: AppRadius.borderRadiusLg,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerPlaceholder.text(width: 220, height: 32),
+                  SizedBox(height: AppSpacing.sm),
+                  ShimmerPlaceholder.text(width: 160),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 48),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 140),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieDetailErrorState extends StatelessWidget {
+  final Object error;
+  final String serviceName;
+
+  const _MovieDetailErrorState({
+    required this.error,
+    required this.serviceName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isNotConfigured = error.toString().contains('not configured');
+
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(pinned: true, backgroundColor: colorScheme.surface),
+          SliverFillRemaining(
+            child: isNotConfigured
+                ? NotConfiguredPlaceholder(serviceName: serviceName)
+                : Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'Error: $error',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoviePosterOverlay extends StatelessWidget {
+  final String heroTag;
+  final String posterUrl;
+  final Map<String, String>? posterHeaders;
+  final bool hasFile;
+  final String status;
+
+  const _MoviePosterOverlay({
+    required this.heroTag,
+    required this.posterUrl,
+    required this.posterHeaders,
+    required this.hasFile,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MoviePosterCard(
+          heroTag: heroTag,
+          posterUrl: posterUrl,
+          posterHeaders: posterHeaders,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        StatusBadge.fromMedia(hasFile: hasFile, status: status),
+      ],
+    );
+  }
+}
+
+class _MoviePosterCard extends StatelessWidget {
+  final String heroTag;
+  final String? posterUrl;
+  final Map<String, String>? posterHeaders;
+
+  const _MoviePosterCard({
+    required this.heroTag,
+    required this.posterUrl,
+    required this.posterHeaders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Hero(
+      tag: heroTag,
+      child: Material(
+        type: MaterialType.transparency,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.borderRadiusMd,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.4),
+                blurRadius: 16,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: AppRadius.borderRadiusMd,
+            child: SizedBox(
+              width: 120,
+              height: 180,
+              child: posterUrl != null && posterUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: posterUrl!,
+                      httpHeaders: posterHeaders,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          Container(color: colorScheme.surfaceContainer),
+                    )
+                  : Container(
+                      color: colorScheme.surfaceContainer,
+                      child: Icon(
+                        Icons.movie_outlined,
+                        size: 48,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,31 +1,30 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
+import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/utils/image_utils.dart';
-import 'package:seekarr/core/widgets/delete_media_dialog.dart';
-import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
-import 'package:seekarr/core/widgets/media_detail_view.dart';
-import 'package:seekarr/core/widgets/media_management_row.dart';
-import 'package:seekarr/core/widgets/media_search_action_row.dart';
-import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
-import 'package:seekarr/core/widgets/rating_chips_row.dart';
-import 'package:seekarr/core/widgets/status_badge.dart';
-import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+import 'package:seekarr/features/music/presentation/music_detail_provider.dart';
+import 'package:seekarr/features/music/presentation/music_detail_view_model.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
+import 'package:seekarr/features/music/presentation/widgets/music_albums_list.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 class MusicDetailScreen extends ConsumerStatefulWidget {
-  final LidarrArtist artist;
+  final int artistId;
   final String heroTag;
+  final LidarrArtist? initialArtist;
 
   const MusicDetailScreen({
     super.key,
-    required this.artist,
+    required this.artistId,
     required this.heroTag,
+    this.initialArtist,
   });
 
   @override
@@ -37,164 +36,159 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
   bool _isSearching = false;
   bool _isLoadingReleases = false;
   bool _isDeleting = false;
-  List<dynamic> _albums = [];
-  final Map<int, List<dynamic>?> _tracksByAlbum = {};
-  final Set<int> _tracksLoadingError = {};
-  bool _albumsLoaded = false;
   final Set<int> _searchingAlbums = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAlbums();
-    loadQualityProfiles(
-      fetchProfiles: () => ref.read(lidarrServiceProvider).getQualityProfiles(),
-      initialProfileId: widget.artist.qualityProfileId,
-    );
-  }
-
-  Future<void> _loadAlbums() async {
-    try {
-      final lidarrService = ref.read(lidarrServiceProvider);
-      final albums = await lidarrService.getAlbums(widget.artist.id);
-      if (mounted) {
-        setState(() {
-          _albums = albums;
-          _albumsLoaded = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _albumsLoaded = true);
-    }
-  }
-
-  Future<void> _loadTracksForAlbum(int albumId) async {
-    if (_tracksByAlbum.containsKey(albumId)) return;
-
-    // Mark as loading (null means loading)
-    setState(() {
-      _tracksByAlbum[albumId] = null;
-      _tracksLoadingError.remove(albumId);
-    });
-
-    try {
-      final lidarrService = ref.read(lidarrServiceProvider);
-      final tracks = await lidarrService.getTracks(albumId);
-      if (mounted) {
-        setState(() {
-          _tracksByAlbum[albumId] = tracks;
-        });
-      }
-    } catch (e) {
-      // Set error state
-      if (mounted) {
-        setState(() {
-          _tracksLoadingError.add(albumId);
-        });
-      }
-    }
-  }
+  bool _profilesRequested = false;
+  int? _boundProfileId;
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(currentSettingsProvider);
-    final artist = widget.artist;
-    final title = artist.artistName;
-    final overview = artist.overview ?? 'No description available.';
-    final status = artist.status;
-    final genres = artist.genres.join(', ');
+    final artistAsync = ref.watch(musicDetailProvider(widget.artistId));
+    final albumsAsync = ref.watch(musicAlbumsProvider(widget.artistId));
+    final artist = artistAsync.asData?.value ?? widget.initialArtist;
 
-    // Lidarr uses different cover types
-    final imageSource = ImageUtils.extractPosterUrl(
-      artist.images,
-      baseUrl: settings.lidarrUrl,
-      apiKey: settings.lidarrApiKey,
-      coverTypes: ['poster', 'fanart', 'banner', 'logo'],
-    );
+    if (artist == null) {
+      if (artistAsync.isLoading) {
+        return const _MusicDetailLoadingState();
+      }
 
-    // Statistics
-    final stats = artist.statistics;
-    // Determine status based on track files
-    final hasFiles = ((stats?['trackFileCount'] as num?)?.toInt() ?? 0) > 0;
-
-    final tags = <Widget>[];
-    // Status badge, album/track counts at the top
-    tags.add(StatusBadge.fromMedia(hasFile: hasFiles, status: status));
-
-    // Statistics
-    if (stats != null) {
-      final albumCount = (stats['albumCount'] as num?)?.toInt() ?? 0;
-      final trackCount = (stats['trackCount'] as num?)?.toInt() ?? 0;
-      if (albumCount > 0) tags.add(TagChip(text: '$albumCount Albums'));
-      if (trackCount > 0) tags.add(TagChip(text: '$trackCount Tracks'));
-    }
-
-    if (genres.isNotEmpty) {
-      tags.add(
-        Text(
-          genres,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-        ),
+      return _MusicDetailErrorState(
+        error: artistAsync.asError?.error ?? 'Artist not found.',
+        serviceName: 'Lidarr',
       );
     }
 
+    _ensureQualityProfiles(artist.qualityProfileId);
+
+    final viewModel = MusicDetailViewModel.fromArtist(
+      artist,
+      baseUrl: settings.lidarrUrl,
+      apiKey: settings.lidarrApiKey,
+    );
+    final hasBackdrop = (viewModel.backdropUrl ?? '').isNotEmpty;
+    final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
+    final tagAlignment = hasBackdrop
+        ? WrapAlignment.center
+        : WrapAlignment.start;
+    final tags = <Widget>[
+      if (!hasBackdrop)
+        StatusBadge.fromMedia(
+          hasFile: viewModel.hasFiles,
+          status: viewModel.status,
+        ),
+      if (viewModel.albumCount > 0)
+        TagChip(
+          text:
+              '${viewModel.albumCount} ${viewModel.albumCount == 1 ? 'Album' : 'Albums'}',
+        ),
+      if (viewModel.trackCount > 0)
+        TagChip(
+          text:
+              '${viewModel.trackCount} ${viewModel.trackCount == 1 ? 'Track' : 'Tracks'}',
+        ),
+    ];
+    final infoGroups = viewModel.buildInfoGroups();
+
     return MediaDetailView(
       heroTag: widget.heroTag,
-      posterUrl: imageSource.url,
-      posterHeaders: imageSource.headers,
+      posterUrl: viewModel.posterUrl,
+      posterHeaders: viewModel.posterHeaders,
+      backdropUrl: viewModel.backdropUrl,
+      posterOverlay: hasBackdrop
+          ? _MusicPosterOverlay(
+              heroTag: widget.heroTag,
+              posterUrl: viewModel.posterUrl,
+              posterHeaders: viewModel.posterHeaders,
+              hasFiles: viewModel.hasFiles,
+              status: viewModel.status,
+            )
+          : null,
       contentSections: [
-        MediaDetailTitleSection(title: title),
-        const SizedBox(height: AppSpacing.sm),
-        if (tags.isNotEmpty) ...[
-          MediaDetailTagSection(tags: tags),
-          const SizedBox(height: AppSpacing.xl),
-        ],
-        SizedBox(
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RatingChipsRow(ratings: artist.ratings),
-              MediaSearchActionRow(
-                isSearching: _isSearching,
-                isLoadingReleases: _isLoadingReleases,
-                onAutomaticSearch: () => _triggerSearch(context, artist.id),
-                onInteractiveSearch: () =>
-                    _showInteractiveSearch(context, artist.id),
-              ),
-              // Profile selector (split button) + delete button
-              if (currentProfileName != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                MediaManagementRow(
-                  currentProfileName: currentProfileName!,
-                  currentProfileId: currentProfileId,
-                  qualityProfiles: qualityProfiles,
-                  onProfileSelected: _updateProfile,
-                  isDeleting: _isDeleting,
-                  onDelete: () => _confirmDelete(context),
-                  deleteTooltip: 'Delete Artist',
-                ),
-              ],
-            ],
-          ),
+        MediaDetailTitleSection(
+          title: viewModel.title,
+          textAlign: titleTextAlign,
         ),
-        if (overview.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          MediaDetailOverviewSection(overview: overview),
+        if (tags.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          MediaDetailTagSection(tags: tags, alignment: tagAlignment),
         ],
+        if (viewModel.metadataItems.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          MediaMetadataLine(
+            items: viewModel.metadataItems,
+            textAlign: titleTextAlign,
+          ),
+        ],
+        if (viewModel.ratings.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SizedBox(
+            width: double.infinity,
+            child: RatingChipsRow(ratings: viewModel.ratings),
+          ),
+        ],
+        if (infoGroups.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SizedBox(
+            width: double.infinity,
+            child: MediaInfoCard(groups: infoGroups),
+          ),
+        ],
+        if (viewModel.overview.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          MediaDetailOverviewSection(overview: viewModel.overview),
+        ],
+        if (currentProfileName != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          MediaManagementRow(
+            currentProfileName: currentProfileName!,
+            currentProfileId: currentProfileId,
+            qualityProfiles: qualityProfiles,
+            onProfileSelected: _updateProfile,
+            isDeleting: _isDeleting,
+            onDelete: () => _confirmDelete(context, title: viewModel.title),
+            deleteTooltip: 'Delete Artist',
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        MediaSearchActionRow(
+          isSearching: _isSearching,
+          isLoadingReleases: _isLoadingReleases,
+          onAutomaticSearch: () => _triggerSearch(context),
+          onInteractiveSearch: () =>
+              _showInteractiveSearch(context, title: viewModel.title),
+        ),
       ],
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Albums', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 16),
-                _buildAlbumsAccordion(context),
+                const SizedBox(height: AppSpacing.lg),
+                albumsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(AppSpacing.lg),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, stackTrace) => Text(
+                    'Failed to load albums.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  data: (albums) => MusicAlbumsList(
+                    albums: albums,
+                    lidarrService: ref.read(lidarrServiceProvider),
+                    baseUrl: settings.lidarrUrl,
+                    apiKey: settings.lidarrApiKey,
+                    onSearchAlbum: (albumId) => _searchAlbum(context, albumId),
+                    onInteractiveSearchAlbum: (albumId) =>
+                        _interactiveSearchAlbum(context, albumId),
+                    searchingAlbums: _searchingAlbums,
+                  ),
+                ),
               ],
             ),
           ),
@@ -203,244 +197,43 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     );
   }
 
-  Widget _buildAlbumsAccordion(BuildContext context) {
-    if (!_albumsLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_albums.isEmpty) {
-      return const Text('No albums found');
-    }
-
-    return Column(
-      children: _albums.map((album) {
-        final albumId = album['id'] as int?;
-        if (albumId == null) {
-          return const SizedBox.shrink(); // Skip invalid albums
+  void _ensureQualityProfiles(int? profileId) {
+    if (!_profilesRequested) {
+      _profilesRequested = true;
+      _boundProfileId = profileId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
         }
-        final albumTitle = album['title'] as String? ?? 'Unknown Album';
-        final releaseDate = album['releaseDate'] as String?;
-        final year = releaseDate != null && releaseDate.length >= 4
-            ? releaseDate.substring(0, 4)
-            : '';
-        final monitored = album['monitored'] as bool? ?? false;
-        final stats = album['statistics'] as Map<String, dynamic>?;
-        final trackCount = (stats?['totalTrackCount'] as num?)?.toInt() ?? 0;
-        final trackFileCount = (stats?['trackFileCount'] as num?)?.toInt() ?? 0;
-        final percent = trackCount > 0 ? (trackFileCount / trackCount) : 0.0;
 
-        // Get cover image
-        final images = album['images'] as List<dynamic>? ?? [];
-        final settings = ref.watch(currentSettingsProvider);
-        final albumImageSource = ImageUtils.extractPosterUrl(
-          images,
-          baseUrl: settings.lidarrUrl,
-          apiKey: settings.lidarrApiKey,
-          coverTypes: ['cover', 'disc'],
+        loadQualityProfiles(
+          fetchProfiles: () =>
+              ref.read(lidarrServiceProvider).getQualityProfiles(),
+          initialProfileId: profileId,
         );
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ExpansionTile(
-            onExpansionChanged: (expanded) {
-              if (expanded) _loadTracksForAlbum(albumId);
-            },
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: albumImageSource.url.isNotEmpty
-                  ? Image.network(
-                      albumImageSource.url,
-                      headers: albumImageSource.headers,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _albumPlaceholder(),
-                    )
-                  : _albumPlaceholder(),
-            ),
-            title: Text(
-              albumTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (year.isNotEmpty)
-                  Text(year, style: const TextStyle(fontSize: 12)),
-                const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: percent.toDouble(),
-                    backgroundColor: Colors.white10,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      percent == 1.0 ? Colors.green : Colors.orange,
-                    ),
-                    minHeight: 4,
-                  ),
-                ),
-                Text(
-                  '$trackFileCount / $trackCount tracks',
-                  style: const TextStyle(fontSize: 11),
-                ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildSearchMenu(
-                  context: context,
-                  onAutoSearch: () => _searchAlbum(context, albumId),
-                  onInteractiveSearch: () =>
-                      _interactiveSearchAlbum(context, albumId),
-                  isLoading: _searchingAlbums.contains(albumId),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  monitored ? Icons.bookmark : Icons.bookmark_border,
-                  color: monitored
-                      ? Theme.of(context).colorScheme.secondary
-                      : Colors.grey,
-                ),
-              ],
-            ),
-            children: _buildTracksList(albumId),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _albumPlaceholder() {
-    return Container(
-      width: 48,
-      height: 48,
-      color: Colors.grey[800],
-      child: const Icon(Icons.album, color: Colors.grey),
-    );
-  }
-
-  List<Widget> _buildTracksList(int albumId) {
-    // Check for error state first
-    if (_tracksLoadingError.contains(albumId)) {
-      return [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 32),
-              const SizedBox(height: 8),
-              const Text(
-                'Failed to load tracks',
-                style: TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _tracksByAlbum.remove(albumId);
-                    _tracksLoadingError.remove(albumId);
-                  });
-                  _loadTracksForAlbum(albumId);
-                },
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      ];
-    }
-
-    final tracks = _tracksByAlbum[albumId];
-    if (tracks == null) {
-      return [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ];
-    }
-
-    if (tracks.isEmpty) {
-      return [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'No tracks found',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-        ),
-      ];
-    }
-
-    final sortedTracks = List<dynamic>.from(tracks)
-      ..sort((a, b) {
-        final aDisc = (a['mediumNumber'] as num?)?.toInt() ?? 1;
-        final bDisc = (b['mediumNumber'] as num?)?.toInt() ?? 1;
-        if (aDisc != bDisc) return aDisc.compareTo(bDisc);
-        final aTrack = _parseTrackNumber(a['trackNumber']);
-        final bTrack = _parseTrackNumber(b['trackNumber']);
-        return aTrack.compareTo(bTrack);
       });
-
-    return sortedTracks.map<Widget>((track) {
-      final trackNumberRaw = track['trackNumber'];
-      final trackNumber = trackNumberRaw?.toString() ?? '?';
-      final trackTitle = track['title'] as String? ?? 'Track $trackNumber';
-      final hasFile = track['hasFile'] as bool? ?? false;
-      final duration = (track['duration'] as num?)?.toInt() ?? 0;
-      final durationStr = _formatDuration(duration);
-
-      return ListTile(
-        leading: CircleAvatar(
-          radius: 14,
-          backgroundColor: hasFile ? Colors.green : Colors.grey,
-          child: Text(
-            trackNumber.toString(),
-            style: const TextStyle(fontSize: 11, color: Colors.white),
-          ),
-        ),
-        title: Text(trackTitle, style: const TextStyle(fontSize: 14)),
-        trailing: Text(
-          durationStr,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        dense: true,
-      );
-    }).toList();
-  }
-
-  int _parseTrackNumber(dynamic value) {
-    if (value == null) return 0;
-    if (value is num) return value.toInt();
-    if (value is String) {
-      final parsed = int.tryParse(value);
-      if (parsed != null) return parsed;
-      final match = RegExp(r'\d+').firstMatch(value);
-      if (match != null) return int.tryParse(match.group(0)!) ?? 0;
+      return;
     }
-    return 0;
-  }
 
-  String _formatDuration(int milliseconds) {
-    final seconds = (milliseconds / 1000).round();
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '$minutes:${secs.toString().padLeft(2, '0')}';
+    if (qualityProfiles.isNotEmpty && _boundProfileId != profileId) {
+      _boundProfileId = profileId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          currentProfileId = profileId;
+          currentProfileName = getProfileName(profileId);
+        });
+      });
+    }
   }
 
   Future<void> _updateProfile(int profileId) async {
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
-      await lidarrService.updateArtistProfile(widget.artist.id, profileId);
+      await lidarrService.updateArtistProfile(widget.artistId, profileId);
       if (mounted) {
         updateProfileState(profileId);
         ref.invalidate(musicProvider);
@@ -459,24 +252,11 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     }
   }
 
-  Widget _buildSearchMenu({
-    required BuildContext context,
-    required VoidCallback onAutoSearch,
-    required VoidCallback onInteractiveSearch,
-    bool isLoading = false,
-  }) {
-    return MediaSearchPopupMenu(
-      onAutoSearch: onAutoSearch,
-      onInteractiveSearch: onInteractiveSearch,
-      isLoading: isLoading,
-    );
-  }
-
-  Future<void> _triggerSearch(BuildContext context, int artistId) async {
+  Future<void> _triggerSearch(BuildContext context) async {
     setState(() => _isSearching = true);
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
-      await lidarrService.searchArtist(artistId);
+      await lidarrService.searchArtist(widget.artistId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Search started for artist')),
@@ -495,15 +275,17 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
   }
 
   Future<void> _showInteractiveSearch(
-    BuildContext context,
-    int artistId,
-  ) async {
+    BuildContext context, {
+    required String title,
+  }) async {
     final lidarrService = ref.read(lidarrServiceProvider);
     await InteractiveSearchSheet.showAsync(
       context: context,
-      title: 'Releases for ${widget.artist.artistName}',
-      fetchReleases: (token) =>
-          lidarrService.getReleases(artistId: artistId, cancelToken: token),
+      title: 'Releases for $title',
+      fetchReleases: (token) => lidarrService.getReleases(
+        artistId: widget.artistId,
+        cancelToken: token,
+      ),
       onGrabRelease: (guid, indexerId) async {
         await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
       },
@@ -548,10 +330,13 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context) async {
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    required String title,
+  }) async {
     final result = await showDeleteMediaDialog(
       context: context,
-      title: widget.artist.artistName,
+      title: title,
       mediaType: 'artist',
     );
 
@@ -561,7 +346,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     try {
       final lidarrService = ref.read(lidarrServiceProvider);
       await lidarrService.deleteArtist(
-        widget.artist.id,
+        widget.artistId,
         deleteFiles: result.deleteFiles,
         addImportListExclusion: result.addExclusion,
       );
@@ -581,5 +366,228 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
+  }
+}
+
+class _MusicDetailLoadingState extends StatelessWidget {
+  const _MusicDetailLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const expandedHeight = 380.0;
+
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: expandedHeight,
+            pinned: true,
+            backgroundColor: colorScheme.surface,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                final overlayOpacity = mediaDetailOverlayCollapseOpacity(
+                  context,
+                  currentHeight: constraints.maxHeight,
+                  expandedHeight: expandedHeight,
+                );
+
+                return ClipRect(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              colorScheme.surfaceContainerHighest,
+                              colorScheme.surface,
+                            ],
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                          child: Opacity(
+                            opacity: overlayOpacity,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ShimmerPlaceholder.card(
+                                  width: 120,
+                                  height: 180,
+                                ),
+                                SizedBox(height: AppSpacing.sm),
+                                ShimmerPlaceholder(
+                                  width: 96,
+                                  height: 28,
+                                  borderRadius: AppRadius.borderRadiusLg,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerPlaceholder.text(width: 220, height: 32),
+                  SizedBox(height: AppSpacing.sm),
+                  ShimmerPlaceholder.text(width: 180),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 48),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 140),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MusicDetailErrorState extends StatelessWidget {
+  final Object error;
+  final String serviceName;
+
+  const _MusicDetailErrorState({
+    required this.error,
+    required this.serviceName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isNotConfigured = error.toString().contains('not configured');
+
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(pinned: true, backgroundColor: colorScheme.surface),
+          SliverFillRemaining(
+            child: isNotConfigured
+                ? NotConfiguredPlaceholder(serviceName: serviceName)
+                : Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'Error: $error',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MusicPosterOverlay extends StatelessWidget {
+  final String heroTag;
+  final String posterUrl;
+  final Map<String, String>? posterHeaders;
+  final bool hasFiles;
+  final String status;
+
+  const _MusicPosterOverlay({
+    required this.heroTag,
+    required this.posterUrl,
+    required this.posterHeaders,
+    required this.hasFiles,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MusicPosterCard(
+          heroTag: heroTag,
+          posterUrl: posterUrl,
+          posterHeaders: posterHeaders,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        StatusBadge.fromMedia(hasFile: hasFiles, status: status),
+      ],
+    );
+  }
+}
+
+class _MusicPosterCard extends StatelessWidget {
+  final String heroTag;
+  final String? posterUrl;
+  final Map<String, String>? posterHeaders;
+
+  const _MusicPosterCard({
+    required this.heroTag,
+    required this.posterUrl,
+    required this.posterHeaders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Hero(
+      tag: heroTag,
+      child: Material(
+        type: MaterialType.transparency,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.borderRadiusMd,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.4),
+                blurRadius: 16,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: AppRadius.borderRadiusMd,
+            child: SizedBox(
+              width: 120,
+              height: 180,
+              child: posterUrl != null && posterUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: posterUrl!,
+                      httpHeaders: posterHeaders,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          Container(color: colorScheme.surfaceContainer),
+                    )
+                  : Container(
+                      color: colorScheme.surfaceContainer,
+                      child: Icon(
+                        Icons.album_outlined,
+                        size: 48,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

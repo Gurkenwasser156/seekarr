@@ -39,6 +39,12 @@ void main() {
             {'seasonNumber': 1, 'monitored': true},
           ],
           'statistics': {'episodeFileCount': 10, 'totalEpisodeCount': 12},
+          'seriesType': 'standard',
+          'certification': 'TV-MA',
+          'firstAired': '2023-01-15T00:00:00Z',
+          'lastAired': '2023-12-20T00:00:00Z',
+          'added': '2023-01-01T00:00:00Z',
+          'originalLanguage': {'id': 1, 'name': 'English'},
         };
 
         final series = SonarrSeries.fromJson(json);
@@ -58,6 +64,12 @@ void main() {
         expect(series.genres, ['Drama', 'Sci-Fi']);
         expect(series.seasons.length, 1);
         expect(series.statistics?['episodeFileCount'], 10);
+        expect(series.seriesType, 'standard');
+        expect(series.certification, 'TV-MA');
+        expect(series.firstAired, '2023-01-15T00:00:00Z');
+        expect(series.lastAired, '2023-12-20T00:00:00Z');
+        expect(series.added, '2023-01-01T00:00:00Z');
+        expect(series.originalLanguage?['name'], 'English');
       });
 
       test('handles missing optional fields', () {
@@ -81,6 +93,12 @@ void main() {
         expect(series.path, isNull);
         expect(series.network, isNull);
         expect(series.statistics, isNull);
+        expect(series.seriesType, isNull);
+        expect(series.certification, isNull);
+        expect(series.firstAired, isNull);
+        expect(series.lastAired, isNull);
+        expect(series.added, isNull);
+        expect(series.originalLanguage, isNull);
       });
 
       test('handles null values with defaults', () {
@@ -99,6 +117,12 @@ void main() {
         expect(series.runtime, 0);
         expect(series.genres, isEmpty);
         expect(series.seasons, isEmpty);
+        expect(series.seriesType, isNull);
+        expect(series.certification, isNull);
+        expect(series.firstAired, isNull);
+        expect(series.lastAired, isNull);
+        expect(series.added, isNull);
+        expect(series.originalLanguage, isNull);
       });
 
       test('parses multi-source ratings', () {

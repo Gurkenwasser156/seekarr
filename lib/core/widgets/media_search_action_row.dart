@@ -19,49 +19,41 @@ class MediaSearchActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: isSearching ? null : onAutomaticSearch,
-            icon: isSearching
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.search_rounded),
-            label: const Text(
-              'Automatic Search',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-            ),
-            style: ElevatedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-            ),
+        FilledButton.icon(
+          onPressed: isSearching ? null : onAutomaticSearch,
+          icon: isSearching
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.search_rounded),
+          label: const Text(
+            'Automatic Search',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: isLoadingReleases ? null : onInteractiveSearch,
-            icon: isLoadingReleases
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.list_rounded),
-            label: const Text(
-              'Interactive Search',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-            ),
-            style: ElevatedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-            ),
+        OutlinedButton.icon(
+          onPressed: isLoadingReleases ? null : onInteractiveSearch,
+          icon: isLoadingReleases
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.list_rounded),
+          label: const Text(
+            'Interactive Search',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ),
       ],

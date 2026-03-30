@@ -15,6 +15,11 @@ class LidarrArtist {
   final List<String> genres;
   final int? qualityProfileId;
   final List<RatingSource> ratings;
+  final String? artistType;
+  final String? disambiguation;
+  final List<Map<String, dynamic>>? links;
+  final String? added;
+  final String? path;
 
   const LidarrArtist({
     required this.id,
@@ -27,6 +32,11 @@ class LidarrArtist {
     required this.genres,
     this.qualityProfileId,
     this.ratings = const [],
+    this.artistType,
+    this.disambiguation,
+    this.links,
+    this.added,
+    this.path,
   });
 
   factory LidarrArtist.fromJson(Map<String, dynamic> json) {
@@ -47,6 +57,13 @@ class LidarrArtist {
       genres: parseGenreList(json['genres']),
       qualityProfileId: json['qualityProfileId'],
       ratings: ratings,
+      artistType: json['artistType'],
+      disambiguation: json['disambiguation'],
+      links: (json['links'] as List?)
+          ?.whereType<Map<String, dynamic>>()
+          .toList(),
+      added: json['added'],
+      path: json['path'],
     );
   }
 

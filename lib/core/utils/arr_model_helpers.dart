@@ -98,7 +98,8 @@ String _iconForSource(String source) {
     case 'rotten':
       return 'RT';
     default:
-      return source.toUpperCase().substring(0, 2);
+      final upper = source.toUpperCase();
+      return upper.length >= 2 ? upper.substring(0, 2) : upper;
   }
 }
 

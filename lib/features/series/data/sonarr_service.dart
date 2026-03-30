@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
@@ -34,6 +35,16 @@ class SonarrService with ArrActivityMixin {
     return fetchAllItems('series', SonarrSeries.fromJson);
   }
 
+  /// Fetches a single series by its Sonarr ID.
+  Future<SonarrSeries?> getSeriesById(int seriesId) async {
+    try {
+      final response = await client.get('/api/v3/series/$seriesId');
+      return SonarrSeries.fromJson(response.data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Triggers an automatic search for the given series ID (entire series).
   Future<void> searchSeries(int seriesId) async {
     await client.post(
@@ -63,12 +74,17 @@ class SonarrService with ArrActivityMixin {
   }
 
   /// Fetches all episodes for a series.
-  Future<List<dynamic>> getEpisodes(int seriesId) async {
+  Future<List<SonarrEpisode>> getEpisodes(int seriesId) async {
     final response = await client.get(
       '/api/v3/episode',
       queryParameters: {'seriesId': seriesId},
     );
-    return response.data as List<dynamic>;
+    final data = response.data as List<dynamic>;
+    return data
+        .map(
+          (episode) => SonarrEpisode.fromJson(episode as Map<String, dynamic>),
+        )
+        .toList(growable: false);
   }
 
   /// Fetches releases for interactive search.

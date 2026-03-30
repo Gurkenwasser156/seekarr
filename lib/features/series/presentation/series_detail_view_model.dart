@@ -1,0 +1,172 @@
+import 'package:flutter/material.dart';
+
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/utils/string_utils.dart';
+import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
+
+class SeriesDetailViewModel {
+  final String title;
+  final String overview;
+  final String posterUrl;
+  final Map<String, String>? posterHeaders;
+  final String? backdropUrl;
+  final String status;
+  final bool hasFiles;
+  final String year;
+  final String? runtimeStr;
+  final String? network;
+  final List<String> genres;
+  final List<RatingSource> ratings;
+  final String? path;
+  final int? qualityProfileId;
+  final int seriesId;
+  final List<dynamic> seasons;
+  final int? seasonCount;
+  final int? episodeCount;
+  final String? seriesType;
+  final String? certification;
+  final String? firstAired;
+  final String? lastAired;
+  final String? originalLanguage;
+
+  const SeriesDetailViewModel({
+    required this.title,
+    required this.overview,
+    required this.posterUrl,
+    this.posterHeaders,
+    this.backdropUrl,
+    required this.status,
+    required this.hasFiles,
+    required this.year,
+    this.runtimeStr,
+    this.network,
+    required this.genres,
+    required this.ratings,
+    this.path,
+    this.qualityProfileId,
+    required this.seriesId,
+    required this.seasons,
+    this.seasonCount,
+    this.episodeCount,
+    this.seriesType,
+    this.certification,
+    this.firstAired,
+    this.lastAired,
+    this.originalLanguage,
+  });
+
+  String? get episodeSummary {
+    final parts = <String>[];
+
+    if (seasonCount != null && seasonCount! > 0) {
+      parts.add('$seasonCount ${seasonCount == 1 ? 'Season' : 'Seasons'}');
+    }
+
+    if (episodeCount != null && episodeCount! > 0) {
+      parts.add('$episodeCount ${episodeCount == 1 ? 'Episode' : 'Episodes'}');
+    }
+
+    if (parts.isEmpty) {
+      return null;
+    }
+
+    return parts.join(' • ');
+  }
+
+  List<String> get metadataItems => [
+    year,
+    episodeSummary ?? '',
+    if (runtimeStr != null) runtimeStr!,
+  ].where((item) => item.isNotEmpty).toList(growable: false);
+
+  List<MediaInfoGroup> buildInfoGroups() {
+    final airDateFacts = <MediaFact>[
+      if (firstAired != null && firstAired!.isNotEmpty)
+        MediaFact('First Aired', formatIsoDate(firstAired!)),
+      if (lastAired != null && lastAired!.isNotEmpty)
+        MediaFact('Last Aired', formatIsoDate(lastAired!)),
+    ];
+
+    return [
+      if (seriesType != null && seriesType!.isNotEmpty)
+        MediaInfoGroup(
+          title: 'Series Type',
+          child: Text(capitalizeFirst(seriesType!)),
+        ),
+      if (certification != null && certification!.isNotEmpty)
+        MediaInfoGroup(title: 'Certification', child: Text(certification!)),
+      if (originalLanguage != null && originalLanguage!.isNotEmpty)
+        MediaInfoGroup(
+          title: 'Original Language',
+          child: Text(originalLanguage!),
+        ),
+      if (airDateFacts.isNotEmpty)
+        MediaInfoGroup(
+          title: 'Air Dates',
+          child: MediaFactsList(facts: airDateFacts),
+        ),
+      if (genres.isNotEmpty)
+        MediaInfoGroup(
+          title: 'Genre',
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: genres
+                .map((genre) => GenreChip(genre: genre))
+                .toList(growable: false),
+          ),
+        ),
+      if (network != null && network!.isNotEmpty)
+        MediaInfoGroup(title: 'Network', child: Text(network!)),
+    ];
+  }
+
+  factory SeriesDetailViewModel.fromSeries(
+    SonarrSeries series, {
+    required String baseUrl,
+    required String apiKey,
+  }) {
+    final posterSource = ImageUtils.extractPosterUrl(
+      series.images,
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+    );
+    final backdropSource = ImageUtils.extractPosterUrl(
+      series.images,
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+      coverTypes: const ['fanart'],
+    );
+    final stats = series.statistics;
+
+    return SeriesDetailViewModel(
+      title: series.title,
+      overview: series.overview?.trim().isNotEmpty == true
+          ? series.overview!.trim()
+          : 'No description available.',
+      posterUrl: posterSource.url,
+      posterHeaders: posterSource.headers,
+      backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
+      status: series.status,
+      hasFiles: ((stats?['episodeFileCount'] as num?)?.toInt() ?? 0) > 0,
+      year: series.year > 0 ? series.year.toString() : '',
+      runtimeStr: series.runtime > 0 ? '${series.runtime} min' : null,
+      network: series.network,
+      genres: series.genres,
+      ratings: series.ratings,
+      path: series.path,
+      qualityProfileId: series.qualityProfileId,
+      seriesId: series.id,
+      seasons: series.seasons,
+      seasonCount: (stats?['seasonCount'] as num?)?.toInt(),
+      episodeCount: (stats?['episodeCount'] as num?)?.toInt(),
+      seriesType: series.seriesType,
+      certification: series.certification,
+      firstAired: series.firstAired,
+      lastAired: series.lastAired,
+      originalLanguage: series.originalLanguage?['name'] as String?,
+    );
+  }
+}

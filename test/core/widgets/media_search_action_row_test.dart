@@ -100,5 +100,22 @@ void main() {
       expect(buttons.length, 2);
       expect(buttons.every((button) => button.onPressed == null), isTrue);
     });
+
+    testWidgets(
+      'uses FilledButton for primary and OutlinedButton for secondary',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: MediaSearchActionRow())),
+        );
+
+        // FilledButton.icon returns _FilledButtonWithIcon, a private subclass,
+        // so find.byType(FilledButton) won't match; use an `is` predicate.
+        expect(
+          find.byWidgetPredicate((w) => w is FilledButton),
+          findsOneWidget,
+        );
+        expect(find.byType(OutlinedButton), findsOneWidget);
+      },
+    );
   });
 }

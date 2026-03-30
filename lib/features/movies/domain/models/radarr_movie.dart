@@ -22,6 +22,13 @@ class RadarrMovie {
   final List<String> genres;
   final int? qualityProfileId;
   final List<RatingSource> ratings;
+  final String? certification;
+  final Map<String, dynamic>? originalLanguage;
+  final String? inCinemas;
+  final String? digitalRelease;
+  final String? physicalRelease;
+  final String? added;
+  final String? minimumAvailability;
 
   const RadarrMovie({
     required this.id,
@@ -41,6 +48,13 @@ class RadarrMovie {
     required this.genres,
     this.qualityProfileId,
     this.ratings = const [],
+    this.certification,
+    this.originalLanguage,
+    this.inCinemas,
+    this.digitalRelease,
+    this.physicalRelease,
+    this.added,
+    this.minimumAvailability,
   });
 
   factory RadarrMovie.fromJson(Map<String, dynamic> json) {
@@ -64,6 +78,15 @@ class RadarrMovie {
       genres: parseGenreList(json['genres']),
       qualityProfileId: json['qualityProfileId'],
       ratings: ratings,
+      certification: json['certification'],
+      originalLanguage: json['originalLanguage'] is Map<String, dynamic>
+          ? json['originalLanguage'] as Map<String, dynamic>
+          : null,
+      inCinemas: json['inCinemas'],
+      digitalRelease: json['digitalRelease'],
+      physicalRelease: json['physicalRelease'],
+      added: json['added'],
+      minimumAvailability: json['minimumAvailability'],
     );
   }
 
