@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
 import 'package:seekarr/features/discover/presentation/manage_media_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 void main() {
   group('ManageMediaState', () {
@@ -45,9 +47,12 @@ void main() {
     ProviderContainer createContainer({
       required ManageMediaArgs args,
       FakeJellyseerrService? service,
+      SettingsModel? settings,
     }) {
       final container = ProviderContainer(
         overrides: [
+          if (settings != null)
+            currentSettingsProvider.overrideWith((ref) => settings),
           if (service != null)
             jellyseerrServiceProvider.overrideWith((ref) => service),
         ],
@@ -131,6 +136,129 @@ void main() {
       expect(notifier.externalServiceId, isNull);
       expect(notifier.hasExternalService, isFalse);
     });
+
+    test(
+      'isServiceConfigured returns true when radarr is configured for movie type',
+      () {
+        final args = _buildArgs(
+          mediaInfo: {'externalServiceId': 42, 'requests': const []},
+        );
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(
+            radarrUrl: 'https://radarr.example.com',
+            radarrApiKey: 'key',
+          ),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.isServiceConfigured, isTrue);
+      },
+    );
+
+    test(
+      'isServiceConfigured returns false when radarr is not configured for movie type',
+      () {
+        final args = _buildArgs(
+          mediaInfo: {'externalServiceId': 42, 'requests': const []},
+        );
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.isServiceConfigured, isFalse);
+      },
+    );
+
+    test(
+      'isServiceConfigured returns true when sonarr is configured for tv type',
+      () {
+        final args = _buildArgs(
+          mediaInfo: {'externalServiceId': 42, 'requests': const []},
+          mediaType: 'tv',
+          tvdbId: 555,
+        );
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(
+            sonarrUrl: 'https://sonarr.example.com',
+            sonarrApiKey: 'key',
+          ),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.isServiceConfigured, isTrue);
+      },
+    );
+
+    test(
+      'isServiceConfigured returns false when sonarr is not configured for tv type',
+      () {
+        final args = _buildArgs(
+          mediaInfo: {'externalServiceId': 42, 'requests': const []},
+          mediaType: 'tv',
+          tvdbId: 555,
+        );
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.isServiceConfigured, isFalse);
+      },
+    );
+
+    test('showMediaSection returns true only when both signals are true', () {
+      final args = _buildArgs(
+        mediaInfo: {'externalServiceId': 42, 'requests': const []},
+      );
+      final container = createContainer(
+        args: args,
+        settings: const SettingsModel(
+          radarrUrl: 'https://radarr.example.com',
+          radarrApiKey: 'key',
+        ),
+      );
+      final notifier = container.read(manageMediaProvider(args).notifier);
+
+      expect(notifier.showMediaSection, isTrue);
+    });
+
+    test(
+      'showMediaSection returns false when externalServiceId is null despite configured service',
+      () {
+        final args = _buildArgs(mediaInfo: {'requests': const []});
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(
+            radarrUrl: 'https://radarr.example.com',
+            radarrApiKey: 'key',
+          ),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.showMediaSection, isFalse);
+      },
+    );
+
+    test(
+      'showMediaSection returns false when service is not configured despite having externalServiceId',
+      () {
+        final args = _buildArgs(
+          mediaInfo: {'externalServiceId': 42, 'requests': const []},
+        );
+        final container = createContainer(
+          args: args,
+          settings: const SettingsModel(),
+        );
+        final notifier = container.read(manageMediaProvider(args).notifier);
+
+        expect(notifier.showMediaSection, isFalse);
+      },
+    );
 
     test('deleteRequest removes request from state', () async {
       final service = FakeJellyseerrService();
@@ -236,8 +364,17 @@ void main() {
   });
 }
 
-ManageMediaArgs _buildArgs({required Map<String, dynamic> mediaInfo}) {
-  return (mediaInfo: mediaInfo, mediaType: 'movie', tmdbId: 123, tvdbId: null);
+ManageMediaArgs _buildArgs({
+  required Map<String, dynamic> mediaInfo,
+  String mediaType = 'movie',
+  int? tvdbId,
+}) {
+  return (
+    mediaInfo: mediaInfo,
+    mediaType: mediaType,
+    tmdbId: 123,
+    tvdbId: tvdbId,
+  );
 }
 
 Map<String, dynamic> _validRequestJson({required int id}) {

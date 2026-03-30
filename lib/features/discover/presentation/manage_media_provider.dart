@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
 import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 typedef ManageMediaArgs = ({
   Map<String, dynamic> mediaInfo,
@@ -80,6 +81,18 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
   int? get externalServiceId => arg.mediaInfo['externalServiceId'] as int?;
 
   bool get hasExternalService => externalServiceId != null;
+
+  bool get isServiceConfigured {
+    final settings = ref.read(currentSettingsProvider);
+
+    if (arg.mediaType == 'movie') {
+      return settings.radarrUrl.isNotEmpty && settings.radarrApiKey.isNotEmpty;
+    }
+
+    return settings.sonarrUrl.isNotEmpty && settings.sonarrApiKey.isNotEmpty;
+  }
+
+  bool get showMediaSection => hasExternalService && isServiceConfigured;
 
   Future<String?> deleteRequest(int requestId) async {
     try {
