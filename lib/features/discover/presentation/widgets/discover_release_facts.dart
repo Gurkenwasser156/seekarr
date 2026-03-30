@@ -4,20 +4,32 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 
-class DiscoverReleaseFacts extends StatelessWidget {
-  final String title;
-  final List<_FactEntry> entries;
+class DiscoverReleaseInfoCard extends StatelessWidget {
+  final List<_FactEntry> releaseEntries;
   final String? emptyMessage;
+  final List<String> genresList;
+  final List<String> studios;
+  final List<String> directors;
+  final List<String> writers;
+  final String networks;
 
-  const DiscoverReleaseFacts._({
-    required this.title,
-    required this.entries,
+  const DiscoverReleaseInfoCard._({
+    required this.releaseEntries,
     this.emptyMessage,
+    this.genresList = const [],
+    this.studios = const [],
+    this.directors = const [],
+    this.writers = const [],
+    this.networks = '',
   });
 
-  factory DiscoverReleaseFacts.movie({
+  factory DiscoverReleaseInfoCard.movie({
     required List<MovieRelease> releases,
     required String region,
+    List<String> genresList = const [],
+    List<String> studios = const [],
+    List<String> directors = const [],
+    List<String> writers = const [],
   }) {
     final theatrical = _releaseByType(releases, 3);
     final digital = _releaseByType(releases, 4);
@@ -28,19 +40,27 @@ class DiscoverReleaseFacts extends StatelessWidget {
     _addDatedFactEntry(entries, 'Digital', digital?.releaseDate);
     _addDatedFactEntry(entries, 'Physical', physical?.releaseDate);
 
-    return DiscoverReleaseFacts._(
-      title: 'Release Info',
-      entries: entries,
+    return DiscoverReleaseInfoCard._(
+      releaseEntries: entries,
       emptyMessage: entries.isEmpty
           ? 'Release info is not available in your region ($region).'
           : null,
+      genresList: genresList,
+      studios: studios,
+      directors: directors,
+      writers: writers,
     );
   }
 
-  factory DiscoverReleaseFacts.tv({
+  factory DiscoverReleaseInfoCard.tv({
     String? firstAirDate,
     String? lastAirDate,
     TvEpisodeSummary? nextEpisodeToAir,
+    List<String> genresList = const [],
+    List<String> studios = const [],
+    List<String> directors = const [],
+    List<String> writers = const [],
+    String networks = '',
   }) {
     final entries = <_FactEntry>[];
 
@@ -63,59 +83,143 @@ class DiscoverReleaseFacts extends StatelessWidget {
       entries.add(_FactEntry('Next Episode', parts.join(' • ')));
     }
 
-    return DiscoverReleaseFacts._(
-      title: 'Release Info',
-      entries: entries,
+    return DiscoverReleaseInfoCard._(
+      releaseEntries: entries,
       emptyMessage: entries.isEmpty ? 'No release info available.' : null,
+      genresList: genresList,
+      studios: studios,
+      directors: directors,
+      writers: writers,
+      networks: networks,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final sectionChildren = <Widget>[
+      _InfoGroup(
+        title: 'Release Dates',
+        child: emptyMessage != null
+            ? Text(
+                emptyMessage!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              )
+            : _FactsList(entries: releaseEntries),
+      ),
+      if (genresList.isNotEmpty)
+        _InfoGroup(
+          title: 'Genre',
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: genresList
+                .map((genre) => GenreChip(genre: genre))
+                .toList(growable: false),
+          ),
+        ),
+      if (studios.isNotEmpty)
+        _InfoGroup(
+          title: 'Studios',
+          child: Text(studios.join(', '), style: theme.textTheme.bodyMedium),
+        ),
+      if (networks.isNotEmpty)
+        _InfoGroup(
+          title: 'Networks',
+          child: Text(networks, style: theme.textTheme.bodyMedium),
+        ),
+      if (directors.isNotEmpty || writers.isNotEmpty)
+        _InfoGroup(
+          title: 'Crew',
+          child: _FactsList(
+            entries: [
+              if (directors.isNotEmpty)
+                _FactEntry('Director', directors.join(', ')),
+              if (writers.isNotEmpty) _FactEntry('Writer', writers.join(', ')),
+            ],
+          ),
+        ),
+    ];
 
     return AppCard.filled(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (emptyMessage != null)
-            Text(
-              emptyMessage!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
-          else
-            ...entries.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 96,
-                      child: Text(
-                        entry.label,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(
-                        entry.value,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          for (var index = 0; index < sectionChildren.length; index++) ...[
+            if (index > 0) const SizedBox(height: AppSpacing.lg),
+            sectionChildren[index],
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _InfoGroup extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _InfoGroup({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        child,
+      ],
+    );
+  }
+}
+
+class _FactsList extends StatelessWidget {
+  final List<_FactEntry> entries;
+
+  const _FactsList({required this.entries});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < entries.length; index++) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 96,
+                child: Text(
+                  entries[index].label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  entries[index].value,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

@@ -73,13 +73,23 @@ class DiscoverDetailScreen extends ConsumerWidget {
             ? viewModel.movieContentRatingForRegion(region)
             : viewModel.tvContentRatingForRegion(region);
         final regionReleases = viewModel.releasesForRegion(region);
-        final metadataLine = viewModel.detailMetadataLine(isMovie: isMovie);
+        final metadataLine = [
+          viewModel.year,
+          if (isMovie) viewModel.runtimeStr,
+          if (!isMovie) viewModel.episodeSummary,
+          if (!isMovie && viewModel.runtimeStr != null) viewModel.runtimeStr,
+        ].whereType<String>().where((value) => value.isNotEmpty).join(' • ');
+        final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
+        final tagAlignment = hasBackdrop
+            ? WrapAlignment.center
+            : WrapAlignment.start;
+        final sectionAlignment = hasBackdrop
+            ? WrapAlignment.center
+            : WrapAlignment.start;
 
-        final isInService = isMovie && extras.libraryCheckDone
+        final isInService = extras.libraryCheckDone
             ? extras.isInLibrary ?? false
-            : viewModel.statusCode != null &&
-                  viewModel.statusCode! >= 2 &&
-                  viewModel.statusCode! <= 5;
+            : false;
 
         final tags = <Widget>[
           if (!hasBackdrop)
@@ -101,36 +111,48 @@ class DiscoverDetailScreen extends ConsumerWidget {
             : null;
 
         return MediaDetailView(
-          title: viewModel.title,
           heroTag: heroTag,
           posterUrl: viewModel.posterUrl,
           backdropUrl: viewModel.backdropUrl,
           posterOverlay: posterOverlay,
-          overview: viewModel.overview,
-          tags: tags,
-          actions: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (metadataLine.isNotEmpty) ...[
-                Text(
+          contentSections: [
+            MediaDetailTitleSection(
+              title: viewModel.title,
+              textAlign: titleTextAlign,
+            ),
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              MediaDetailTagSection(tags: tags, alignment: tagAlignment),
+            ],
+            if (metadataLine.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: Text(
                   metadataLine,
-                  textAlign: TextAlign.center,
+                  textAlign: titleTextAlign,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
-              ],
-              if (ratingWidgets.isNotEmpty) ...[
-                Wrap(
-                  alignment: WrapAlignment.center,
+              ),
+            ],
+            if (ratingWidgets.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: sectionAlignment,
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: ratingWidgets,
                 ),
-                const SizedBox(height: AppSpacing.xl),
-              ],
-              DiscoverActionButtons(
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: DiscoverActionButtons(
                 mediaId: mediaId,
                 mediaType: normalizedMediaType,
                 hasManageableMedia: viewModel.hasManageableMedia,
@@ -144,15 +166,43 @@ class DiscoverDetailScreen extends ConsumerWidget {
                     ? DiscoverVideosButton(videos: viewModel.playableVideos)
                     : null,
               ),
-              if (viewModel.hasCrew) ...[
-                const SizedBox(height: AppSpacing.xl),
-                _DiscoverCrewSection(
-                  directorNames: viewModel.directorNames,
-                  writerNames: viewModel.writerNames,
-                ),
-              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: isMovie
+                  ? DiscoverReleaseInfoCard.movie(
+                      releases: regionReleases,
+                      region: region,
+                      genresList: viewModel.genresList,
+                      studios: viewModel.studios,
+                      directors: viewModel.directors,
+                      writers: viewModel.writers,
+                    )
+                  : DiscoverReleaseInfoCard.tv(
+                      firstAirDate: viewModel.firstAirDate,
+                      lastAirDate: viewModel.lastAirDate,
+                      nextEpisodeToAir: viewModel.nextEpisodeToAir,
+                      genresList: viewModel.genresList,
+                      studios: viewModel.studios,
+                      directors: viewModel.directors,
+                      writers: viewModel.writers,
+                      networks: viewModel.networks,
+                    ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: DiscoverWatchProviders(
+                providers: watchProviders,
+                region: region,
+              ),
+            ),
+            if (viewModel.overview.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              MediaDetailOverviewSection(overview: viewModel.overview),
             ],
-          ),
+          ],
           slivers: [
             if (viewModel.keywords.isNotEmpty)
               SliverToBoxAdapter(
@@ -177,24 +227,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
                   mediaInfo: viewModel.mediaInfo,
                 ),
               ),
-            _DetailSectionSliver(
-              child: DiscoverWatchProviders(
-                providers: watchProviders,
-                region: region,
-              ),
-            ),
-            _DetailSectionSliver(
-              child: isMovie
-                  ? DiscoverReleaseFacts.movie(
-                      releases: regionReleases,
-                      region: region,
-                    )
-                  : DiscoverReleaseFacts.tv(
-                      firstAirDate: viewModel.firstAirDate,
-                      lastAirDate: viewModel.lastAirDate,
-                      nextEpisodeToAir: viewModel.nextEpisodeToAir,
-                    ),
-            ),
           ],
         );
       },
@@ -387,54 +419,6 @@ class _DiscoverDetailErrorState extends StatelessWidget {
   }
 }
 
-class _DiscoverCrewSection extends StatelessWidget {
-  final String directorNames;
-  final String writerNames;
-
-  const _DiscoverCrewSection({
-    required this.directorNames,
-    required this.writerNames,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.sm,
-      children: [
-        if (directorNames.isNotEmpty)
-          _DiscoverCrewLabel(label: 'Director', names: directorNames),
-        if (writerNames.isNotEmpty)
-          _DiscoverCrewLabel(label: 'Writer', names: writerNames),
-      ],
-    );
-  }
-}
-
-class _DiscoverCrewLabel extends StatelessWidget {
-  final String label;
-  final String names;
-
-  const _DiscoverCrewLabel({required this.label, required this.names});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$label: ',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        Flexible(child: Text(names)),
-      ],
-    );
-  }
-}
-
 class _DiscoverKeywordsSection extends StatelessWidget {
   final List<String> keywords;
 
@@ -512,19 +496,31 @@ class _DiscoverPosterCard extends StatelessWidget {
       tag: heroTag,
       child: Material(
         type: MaterialType.transparency,
-        child: ClipRRect(
-          borderRadius: AppRadius.borderRadiusMd,
-          child: SizedBox(
-            width: 120,
-            height: 180,
-            child: posterUrl != null && posterUrl!.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: posterUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) =>
-                        Container(color: colorScheme.surfaceContainer),
-                  )
-                : Container(color: colorScheme.surfaceContainer),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.borderRadiusMd,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.4),
+                blurRadius: 16,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: AppRadius.borderRadiusMd,
+            child: SizedBox(
+              width: 120,
+              height: 180,
+              child: posterUrl != null && posterUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: posterUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          Container(color: colorScheme.surfaceContainer),
+                    )
+                  : Container(color: colorScheme.surfaceContainer),
+            ),
           ),
         ),
       ),

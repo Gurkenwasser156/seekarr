@@ -23,6 +23,11 @@ void main() {
           {'name': 'Action'},
           {'name': 'Drama'},
         ],
+        'production_companies': [
+          {'name': 'Studio A'},
+          {'name': 'Studio B'},
+          {'name': 'Studio C'},
+        ],
         'releaseDate': '2024-03-25',
         'runtime': 123,
         'voteAverage': 7.4,
@@ -51,8 +56,10 @@ void main() {
       expect(viewModel.isAvailable, isFalse);
       expect(viewModel.isPartiallyAvailable, isTrue);
       expect(viewModel.genres, 'Action, Drama');
+      expect(viewModel.genresList, ['Action', 'Drama']);
       expect(viewModel.year, '2024');
       expect(viewModel.runtimeStr, '123min');
+      expect(viewModel.studios, ['Studio A', 'Studio B', 'Studio C']);
       expect(viewModel.voteAverage, 7.4);
       expect(viewModel.voteCount, 240);
       expect(viewModel.cast, hasLength(20));
@@ -119,10 +126,12 @@ void main() {
       expect(viewModel.jellyseerrStatus, 'Available to Request');
       expect(viewModel.isAvailable, isFalse);
       expect(viewModel.genres, isEmpty);
+      expect(viewModel.genresList, isEmpty);
       expect(viewModel.year, isEmpty);
       expect(viewModel.runtimeStr, isNull);
       expect(viewModel.numberOfSeasons, isNull);
       expect(viewModel.networks, isEmpty);
+      expect(viewModel.studios, isEmpty);
       expect(viewModel.voteAverage, isNull);
       expect(viewModel.voteCount, isNull);
       expect(viewModel.cast, isEmpty);

@@ -85,13 +85,25 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     }
 
     return MediaDetailView(
-      title: title,
       heroTag: widget.heroTag,
       posterUrl: imageSource.url,
       posterHeaders: imageSource.headers,
-      overview: overview,
-      tags: tags,
-      actions: _buildActions(context, colorScheme, movie, filename, studio),
+      contentSections: [
+        MediaDetailTitleSection(title: title),
+        const SizedBox(height: AppSpacing.sm),
+        if (tags.isNotEmpty) ...[
+          MediaDetailTagSection(tags: tags),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: _buildActions(context, colorScheme, movie, filename, studio),
+        ),
+        if (overview.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          MediaDetailOverviewSection(overview: overview),
+        ],
+      ],
     );
   }
 
