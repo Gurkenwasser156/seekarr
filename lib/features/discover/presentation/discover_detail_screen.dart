@@ -36,7 +36,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final normalizedMediaType = mediaType == 'movie' ? 'movie' : 'tv';
     final region = ref.watch(regionProvider);
     final detailsAsync = ref.watch(
@@ -73,12 +72,12 @@ class DiscoverDetailScreen extends ConsumerWidget {
             ? viewModel.movieContentRatingForRegion(region)
             : viewModel.tvContentRatingForRegion(region);
         final regionReleases = viewModel.releasesForRegion(region);
-        final metadataLine = [
+        final metadataItems = [
           viewModel.year,
           if (isMovie) viewModel.runtimeStr,
           if (!isMovie) viewModel.episodeSummary,
           if (!isMovie && viewModel.runtimeStr != null) viewModel.runtimeStr,
-        ].whereType<String>().where((value) => value.isNotEmpty).join(' • ');
+        ].whereType<String>().where((value) => value.isNotEmpty).toList();
         final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
         final tagAlignment = hasBackdrop
             ? WrapAlignment.center
@@ -124,17 +123,11 @@ class DiscoverDetailScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.sm),
               MediaDetailTagSection(tags: tags, alignment: tagAlignment),
             ],
-            if (metadataLine.isNotEmpty) ...[
+            if (metadataItems.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: Text(
-                  metadataLine,
-                  textAlign: titleTextAlign,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              MediaMetadataLine(
+                items: metadataItems,
+                textAlign: titleTextAlign,
               ),
             ],
             if (ratingWidgets.isNotEmpty) ...[

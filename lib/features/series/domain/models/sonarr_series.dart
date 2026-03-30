@@ -22,6 +22,12 @@ class SonarrSeries {
   final Map<String, dynamic>? statistics;
   final int? qualityProfileId;
   final List<RatingSource> ratings;
+  final String? seriesType;
+  final String? certification;
+  final String? firstAired;
+  final String? lastAired;
+  final String? added;
+  final Map<String, dynamic>? originalLanguage;
 
   const SonarrSeries({
     required this.id,
@@ -41,6 +47,12 @@ class SonarrSeries {
     this.statistics,
     this.qualityProfileId,
     this.ratings = const [],
+    this.seriesType,
+    this.certification,
+    this.firstAired,
+    this.lastAired,
+    this.added,
+    this.originalLanguage,
   });
 
   factory SonarrSeries.fromJson(Map<String, dynamic> json) {
@@ -64,6 +76,14 @@ class SonarrSeries {
       statistics: json['statistics'],
       qualityProfileId: json['qualityProfileId'],
       ratings: ratings,
+      seriesType: json['seriesType'],
+      certification: json['certification'],
+      firstAired: json['firstAired'],
+      lastAired: json['lastAired'],
+      added: json['added'],
+      originalLanguage: json['originalLanguage'] is Map<String, dynamic>
+          ? json['originalLanguage'] as Map<String, dynamic>
+          : null,
     );
   }
 

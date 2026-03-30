@@ -1,0 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:seekarr/features/movies/data/radarr_service.dart';
+import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+
+final movieDetailProvider = FutureProvider.autoDispose
+    .family<RadarrMovie?, int>((ref, movieId) async {
+      final service = ref.watch(radarrServiceProvider);
+      return service.getMovie(movieId);
+    });

@@ -5,7 +5,7 @@ import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 
 class DiscoverReleaseInfoCard extends StatelessWidget {
-  final List<_FactEntry> releaseEntries;
+  final List<MediaFact> releaseEntries;
   final String? emptyMessage;
   final List<String> genresList;
   final List<String> studios;
@@ -34,7 +34,7 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
     final theatrical = _releaseByType(releases, 3);
     final digital = _releaseByType(releases, 4);
     final physical = _releaseByType(releases, 5);
-    final entries = <_FactEntry>[];
+    final entries = <MediaFact>[];
 
     _addDatedFactEntry(entries, 'Theatrical', theatrical?.releaseDate);
     _addDatedFactEntry(entries, 'Digital', digital?.releaseDate);
@@ -62,7 +62,7 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
     List<String> writers = const [],
     String networks = '',
   }) {
-    final entries = <_FactEntry>[];
+    final entries = <MediaFact>[];
 
     _addDatedFactEntry(entries, 'First Aired', firstAirDate);
     _addDatedFactEntry(entries, 'Last Aired', lastAirDate);
@@ -80,7 +80,7 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
       }
       parts.add(_formatDate(nextEpisodeToAir.airDate!));
 
-      entries.add(_FactEntry('Next Episode', parts.join(' • ')));
+      entries.add(MediaFact('Next Episode', parts.join(' • ')));
     }
 
     return DiscoverReleaseInfoCard._(
@@ -98,8 +98,8 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final sectionChildren = <Widget>[
-      _InfoGroup(
+    final sectionChildren = <MediaInfoGroup>[
+      MediaInfoGroup(
         title: 'Release Dates',
         child: emptyMessage != null
             ? Text(
@@ -108,10 +108,10 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
                   color: colorScheme.onSurfaceVariant,
                 ),
               )
-            : _FactsList(entries: releaseEntries),
+            : MediaFactsList(facts: releaseEntries),
       ),
       if (genresList.isNotEmpty)
-        _InfoGroup(
+        MediaInfoGroup(
           title: 'Genre',
           child: Wrap(
             spacing: AppSpacing.sm,
@@ -122,121 +122,38 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
           ),
         ),
       if (studios.isNotEmpty)
-        _InfoGroup(
+        MediaInfoGroup(
           title: 'Studios',
           child: Text(studios.join(', '), style: theme.textTheme.bodyMedium),
         ),
       if (networks.isNotEmpty)
-        _InfoGroup(
+        MediaInfoGroup(
           title: 'Networks',
           child: Text(networks, style: theme.textTheme.bodyMedium),
         ),
       if (directors.isNotEmpty || writers.isNotEmpty)
-        _InfoGroup(
+        MediaInfoGroup(
           title: 'Crew',
-          child: _FactsList(
-            entries: [
+          child: MediaFactsList(
+            facts: [
               if (directors.isNotEmpty)
-                _FactEntry('Director', directors.join(', ')),
-              if (writers.isNotEmpty) _FactEntry('Writer', writers.join(', ')),
+                MediaFact('Director', directors.join(', ')),
+              if (writers.isNotEmpty) MediaFact('Writer', writers.join(', ')),
             ],
           ),
         ),
     ];
 
-    return AppCard.filled(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var index = 0; index < sectionChildren.length; index++) ...[
-            if (index > 0) const SizedBox(height: AppSpacing.lg),
-            sectionChildren[index],
-          ],
-        ],
-      ),
-    );
+    return MediaInfoCard(groups: sectionChildren);
   }
 }
 
-class _InfoGroup extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _InfoGroup({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        child,
-      ],
-    );
-  }
-}
-
-class _FactsList extends StatelessWidget {
-  final List<_FactEntry> entries;
-
-  const _FactsList({required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var index = 0; index < entries.length; index++) ...[
-          if (index > 0) const SizedBox(height: AppSpacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 96,
-                child: Text(
-                  entries[index].label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  entries[index].value,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _FactEntry {
-  final String label;
-  final String value;
-
-  const _FactEntry(this.label, this.value);
-}
-
-void _addDatedFactEntry(List<_FactEntry> entries, String label, String? value) {
+void _addDatedFactEntry(List<MediaFact> entries, String label, String? value) {
   if (value == null || value.isEmpty) {
     return;
   }
 
-  entries.add(_FactEntry(label, _formatDate(value)));
+  entries.add(MediaFact(label, _formatDate(value)));
 }
 
 MovieRelease? _releaseByType(List<MovieRelease> releases, int type) {

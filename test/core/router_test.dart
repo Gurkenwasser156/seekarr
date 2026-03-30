@@ -13,9 +13,11 @@ import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_screen.dart';
 import 'package:seekarr/features/movies/presentation/movies_screen.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -68,50 +70,43 @@ void main() {
       },
     );
 
-    testWidgets('preserves default hero tags for library detail routes', (
-      tester,
-    ) async {
-      final container = await _pumpRouter(tester);
-      final router = container.read(routerProvider);
+    testWidgets(
+      'supports deep-linked library detail routes without extras and preserves default hero tags',
+      (tester) async {
+        final container = await _pumpRouter(tester);
+        final router = container.read(routerProvider);
 
-      router.go('/movies/42', extra: _buildMovie());
-      await tester.pumpAndSettle();
+        router.go('/movies/42');
+        await tester.pumpAndSettle();
 
-      final movieScreen = tester.widget<MovieDetailScreen>(
-        find.byType(MovieDetailScreen),
-      );
-      expect(movieScreen.heroTag, 'movie_42');
+        final movieScreen = tester.widget<MovieDetailScreen>(
+          find.byType(MovieDetailScreen),
+        );
+        expect(movieScreen.heroTag, 'movie_42');
+        expect(movieScreen.movieId, 42);
+        expect(movieScreen.initialMovie, isNull);
 
-      router.go('/series/55', extra: _buildSeries());
-      await tester.pumpAndSettle();
+        router.go('/series/55');
+        await tester.pumpAndSettle();
 
-      final seriesScreen = tester.widget<SeriesDetailScreen>(
-        find.byType(SeriesDetailScreen),
-      );
-      expect(seriesScreen.heroTag, 'series_55');
+        final seriesScreen = tester.widget<SeriesDetailScreen>(
+          find.byType(SeriesDetailScreen),
+        );
+        expect(seriesScreen.heroTag, 'series_55');
+        expect(seriesScreen.seriesId, 55);
+        expect(seriesScreen.initialSeries, isNull);
 
-      router.go('/music/9', extra: _buildArtist());
-      await tester.pumpAndSettle();
+        router.go('/music/9');
+        await tester.pumpAndSettle();
 
-      final musicScreen = tester.widget<MusicDetailScreen>(
-        find.byType(MusicDetailScreen),
-      );
-      expect(musicScreen.heroTag, 'artist_9');
-    });
-
-    testWidgets('redirects library detail route when extra is missing', (
-      tester,
-    ) async {
-      final container = await _pumpRouter(tester);
-      final router = container.read(routerProvider);
-
-      router.go('/movies/42');
-      await tester.pumpAndSettle();
-
-      expect(router.state.uri.toString(), '/movies');
-      expect(find.byType(MoviesScreen), findsOneWidget);
-      expect(find.byType(MovieDetailScreen), findsNothing);
-    });
+        final musicScreen = tester.widget<MusicDetailScreen>(
+          find.byType(MusicDetailScreen),
+        );
+        expect(musicScreen.heroTag, 'artist_9');
+        expect(musicScreen.artistId, 9);
+        expect(musicScreen.initialArtist, isNull);
+      },
+    );
 
     testWidgets('redirects invalid library detail ids back to movies', (
       tester,
@@ -128,7 +123,7 @@ void main() {
     });
 
     testWidgets(
-      'redirects library detail route when extra type is wrong or id mismatches',
+      'library detail routes ignore wrong-type and mismatched extras instead of redirecting',
       (tester) async {
         final container = await _pumpRouter(tester);
         final router = container.read(routerProvider);
@@ -136,14 +131,22 @@ void main() {
         router.go('/movies/42', extra: _buildArtist());
         await tester.pumpAndSettle();
 
-        expect(router.state.uri.toString(), '/movies');
-        expect(find.byType(MoviesScreen), findsOneWidget);
+        expect(router.state.uri.toString(), '/movies/42');
+        var movieScreen = tester.widget<MovieDetailScreen>(
+          find.byType(MovieDetailScreen),
+        );
+        expect(movieScreen.movieId, 42);
+        expect(movieScreen.initialMovie, isNull);
 
         router.go('/movies/42', extra: _buildMovie(id: 7));
         await tester.pumpAndSettle();
 
-        expect(router.state.uri.toString(), '/movies');
-        expect(find.byType(MoviesScreen), findsOneWidget);
+        expect(router.state.uri.toString(), '/movies/42');
+        movieScreen = tester.widget<MovieDetailScreen>(
+          find.byType(MovieDetailScreen),
+        );
+        expect(movieScreen.movieId, 42);
+        expect(movieScreen.initialMovie?.id, 7);
       },
     );
 
@@ -241,6 +244,9 @@ class FakeRadarrService extends RadarrService {
   Future<List<RadarrMovie>> getMovies() async => const [];
 
   @override
+  Future<RadarrMovie?> getMovie(int movieId) async => _buildMovie(id: movieId);
+
+  @override
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 }
 
@@ -252,10 +258,15 @@ class FakeSonarrService extends SonarrService {
   Future<List<SonarrSeries>> getSeries() async => const [];
 
   @override
+  Future<SonarrSeries?> getSeriesById(int seriesId) async =>
+      _buildSeries(id: seriesId);
+
+  @override
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 
   @override
-  Future<List<dynamic>> getEpisodes(int seriesId) async => const [];
+  Future<List<SonarrEpisode>> getEpisodes(int seriesId) async =>
+      const <SonarrEpisode>[];
 }
 
 class FakeLidarrService extends LidarrService {
@@ -266,10 +277,15 @@ class FakeLidarrService extends LidarrService {
   Future<List<LidarrArtist>> getArtists() async => const [];
 
   @override
+  Future<LidarrArtist?> getArtistById(int artistId) async =>
+      _buildArtist(id: artistId);
+
+  @override
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 
   @override
-  Future<List<dynamic>> getAlbums(int artistId) async => const [];
+  Future<List<LidarrAlbum>> getAlbums(int artistId) async =>
+      const <LidarrAlbum>[];
 }
 
 RadarrMovie _buildMovie({int id = 42}) {
@@ -289,11 +305,11 @@ RadarrMovie _buildMovie({int id = 42}) {
   );
 }
 
-SonarrSeries _buildSeries() {
-  return const SonarrSeries(
-    id: 55,
-    title: 'Series 55',
-    sortTitle: 'series-55',
+SonarrSeries _buildSeries({int id = 55}) {
+  return SonarrSeries(
+    id: id,
+    title: 'Series $id',
+    sortTitle: 'series-$id',
     status: 'continuing',
     monitored: true,
     year: 2024,
@@ -305,10 +321,10 @@ SonarrSeries _buildSeries() {
   );
 }
 
-LidarrArtist _buildArtist() {
-  return const LidarrArtist(
-    id: 9,
-    artistName: 'Artist 9',
+LidarrArtist _buildArtist({int id = 9}) {
+  return LidarrArtist(
+    id: id,
+    artistName: 'Artist $id',
     status: 'active',
     monitored: true,
     images: [],

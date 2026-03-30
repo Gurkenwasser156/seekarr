@@ -37,6 +37,13 @@ void main() {
           'runtime': 120,
           'studio': 'Test Studio',
           'genres': ['Action', 'Drama'],
+          'certification': 'PG-13',
+          'originalLanguage': {'id': 1, 'name': 'English'},
+          'inCinemas': '2023-06-15T00:00:00Z',
+          'digitalRelease': '2023-09-01T00:00:00Z',
+          'physicalRelease': '2023-10-01T00:00:00Z',
+          'added': '2023-01-01T00:00:00Z',
+          'minimumAvailability': 'released',
         };
 
         final movie = RadarrMovie.fromJson(json);
@@ -56,6 +63,13 @@ void main() {
         expect(movie.runtime, 120);
         expect(movie.studio, 'Test Studio');
         expect(movie.genres, ['Action', 'Drama']);
+        expect(movie.certification, 'PG-13');
+        expect(movie.originalLanguage?['name'], 'English');
+        expect(movie.inCinemas, '2023-06-15T00:00:00Z');
+        expect(movie.digitalRelease, '2023-09-01T00:00:00Z');
+        expect(movie.physicalRelease, '2023-10-01T00:00:00Z');
+        expect(movie.added, '2023-01-01T00:00:00Z');
+        expect(movie.minimumAvailability, 'released');
       });
 
       test('handles missing optional fields', () {
@@ -79,6 +93,13 @@ void main() {
         expect(movie.overview, isNull);
         expect(movie.path, isNull);
         expect(movie.studio, isNull);
+        expect(movie.certification, isNull);
+        expect(movie.originalLanguage, isNull);
+        expect(movie.inCinemas, isNull);
+        expect(movie.digitalRelease, isNull);
+        expect(movie.physicalRelease, isNull);
+        expect(movie.added, isNull);
+        expect(movie.minimumAvailability, isNull);
       });
 
       test('handles null values with defaults', () {
@@ -98,6 +119,13 @@ void main() {
         expect(movie.tmdbId, 0);
         expect(movie.runtime, 0);
         expect(movie.genres, isEmpty);
+        expect(movie.certification, isNull);
+        expect(movie.originalLanguage, isNull);
+        expect(movie.inCinemas, isNull);
+        expect(movie.digitalRelease, isNull);
+        expect(movie.physicalRelease, isNull);
+        expect(movie.added, isNull);
+        expect(movie.minimumAvailability, isNull);
       });
 
       test('parses multi-source ratings', () {

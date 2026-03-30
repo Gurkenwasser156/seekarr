@@ -16,6 +16,8 @@ export 'section_header.dart';
 export 'media_grid.dart';
 export 'media_browse_scaffold.dart';
 export 'media_detail_view.dart';
+export 'media_info_card.dart';
+export 'media_metadata_line.dart';
 export 'media_search_action_row.dart';
 export 'media_management_row.dart';
 

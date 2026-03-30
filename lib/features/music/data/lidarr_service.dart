@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_track.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 final lidarrServiceProvider = Provider<LidarrService>((ref) {
@@ -44,22 +46,38 @@ class LidarrService with ArrActivityMixin {
     }
   }
 
+  /// Fetches a single artist by ID, returning a typed model.
+  Future<LidarrArtist?> getArtistById(int artistId) async {
+    try {
+      final response = await client.get('/api/v1/artist/$artistId');
+      return LidarrArtist.fromJson(response.data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Fetches all albums for an artist.
-  Future<List<dynamic>> getAlbums(int artistId) async {
+  Future<List<LidarrAlbum>> getAlbums(int artistId) async {
     final response = await client.get(
       '/api/v1/album',
       queryParameters: {'artistId': artistId},
     );
-    return response.data as List<dynamic>;
+    final data = response.data as List<dynamic>;
+    return data
+        .map((album) => LidarrAlbum.fromJson(album as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Fetches all tracks for an album.
-  Future<List<dynamic>> getTracks(int albumId) async {
+  Future<List<LidarrTrack>> getTracks(int albumId) async {
     final response = await client.get(
       '/api/v1/track',
       queryParameters: {'albumId': albumId},
     );
-    return response.data as List<dynamic>;
+    final data = response.data as List<dynamic>;
+    return data
+        .map((track) => LidarrTrack.fromJson(track as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Triggers an automatic search for an artist.

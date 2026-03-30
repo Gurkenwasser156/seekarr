@@ -34,6 +34,16 @@ class RadarrService with ArrActivityMixin {
     return fetchAllItems('movie', RadarrMovie.fromJson);
   }
 
+  /// Fetches a single movie by its Radarr ID.
+  Future<RadarrMovie?> getMovie(int movieId) async {
+    try {
+      final response = await client.get('/api/v3/movie/$movieId');
+      return RadarrMovie.fromJson(response.data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Triggers an automatic search for the given movie ID.
   Future<void> searchMovie(int movieId) async {
     await client.post(

@@ -51,22 +51,21 @@ Page<void> _discoverDetailPage(
 Page<void> _libraryDetailPage<T>(
   GoRouterState state, {
   required String fallbackLocation,
-  required int Function(T item) getId,
   required String heroPrefix,
-  required Widget Function(T item, String heroTag) buildChild,
+  required Widget Function(int id, String heroTag, T? initialItem) buildChild,
 }) {
   final id = RouteUtils.safeIntParam(state, 'id');
-  final item = RouteUtils.safeExtra<T>(state);
-  if (id == null || item == null || getId(item) != id) {
+  if (id == null) {
     return RouteUtils.redirectPage(
       key: state.pageKey,
       location: fallbackLocation,
     );
   }
+  final item = RouteUtils.safeExtra<T>(state);
   final heroTag = state.uri.queryParameters['heroTag'] ?? '${heroPrefix}_$id';
   return RouteUtils.cupertinoPage(
     key: state.pageKey,
-    child: buildChild(item, heroTag),
+    child: buildChild(id, heroTag, item),
   );
 }
 
@@ -125,10 +124,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     _libraryDetailPage<RadarrMovie>(
                       state,
                       fallbackLocation: '/movies',
-                      getId: (movie) => movie.id,
                       heroPrefix: 'movie',
-                      buildChild: (movie, heroTag) =>
-                          MovieDetailScreen(movie: movie, heroTag: heroTag),
+                      buildChild: (id, heroTag, movie) => MovieDetailScreen(
+                        movieId: id,
+                        heroTag: heroTag,
+                        initialMovie: movie,
+                      ),
                     ),
               ),
             ],
@@ -143,10 +144,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     _libraryDetailPage<SonarrSeries>(
                       state,
                       fallbackLocation: '/series',
-                      getId: (series) => series.id,
                       heroPrefix: 'series',
-                      buildChild: (series, heroTag) =>
-                          SeriesDetailScreen(series: series, heroTag: heroTag),
+                      buildChild: (id, heroTag, series) => SeriesDetailScreen(
+                        seriesId: id,
+                        heroTag: heroTag,
+                        initialSeries: series,
+                      ),
                     ),
               ),
             ],
@@ -161,10 +164,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     _libraryDetailPage<LidarrArtist>(
                       state,
                       fallbackLocation: '/music',
-                      getId: (artist) => artist.id,
                       heroPrefix: 'artist',
-                      buildChild: (artist, heroTag) =>
-                          MusicDetailScreen(artist: artist, heroTag: heroTag),
+                      buildChild: (id, heroTag, artist) => MusicDetailScreen(
+                        artistId: id,
+                        heroTag: heroTag,
+                        initialArtist: artist,
+                      ),
                     ),
               ),
             ],

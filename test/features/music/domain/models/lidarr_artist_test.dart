@@ -30,6 +30,13 @@ void main() {
           ],
           'statistics': {'albumCount': 5, 'trackCount': 50},
           'genres': ['Rock', 'Alternative'],
+          'artistType': 'Group',
+          'disambiguation': 'UK band',
+          'links': [
+            {'url': 'https://example.com', 'name': 'Official'},
+          ],
+          'added': '2023-01-01T00:00:00Z',
+          'path': '/music/Test Artist',
         };
 
         final artist = LidarrArtist.fromJson(json);
@@ -42,6 +49,11 @@ void main() {
         expect(artist.images.length, 1);
         expect(artist.statistics?['albumCount'], 5);
         expect(artist.genres, ['Rock', 'Alternative']);
+        expect(artist.artistType, 'Group');
+        expect(artist.disambiguation, 'UK band');
+        expect(artist.links, hasLength(1));
+        expect(artist.added, '2023-01-01T00:00:00Z');
+        expect(artist.path, '/music/Test Artist');
       });
 
       test('handles missing optional fields', () {
@@ -58,6 +70,11 @@ void main() {
 
         expect(artist.overview, isNull);
         expect(artist.statistics, isNull);
+        expect(artist.artistType, isNull);
+        expect(artist.disambiguation, isNull);
+        expect(artist.links, isNull);
+        expect(artist.added, isNull);
+        expect(artist.path, isNull);
       });
 
       test('handles null values with defaults', () {
@@ -71,6 +88,11 @@ void main() {
         expect(artist.monitored, false);
         expect(artist.images, isEmpty);
         expect(artist.genres, isEmpty);
+        expect(artist.artistType, isNull);
+        expect(artist.disambiguation, isNull);
+        expect(artist.links, isNull);
+        expect(artist.added, isNull);
+        expect(artist.path, isNull);
       });
 
       test('parses single-source ratings', () {
