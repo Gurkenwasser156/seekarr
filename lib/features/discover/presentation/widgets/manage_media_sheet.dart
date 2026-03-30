@@ -125,16 +125,18 @@ class ManageMediaSheet extends ConsumerWidget {
                               _deleteRequest(context, ref, args, requestId);
                             },
                           ),
-                          const SizedBox(height: AppSpacing.xl),
-                          MediaSection(
-                            isMovie: isMovie,
-                            hasExternalService: notifier.hasExternalService,
-                            isDeleting: state.isDeleting,
-                            onOpen: () => _openInService(context, ref),
-                            onRemove: () {
-                              _removeFromService(context, ref, args);
-                            },
-                          ),
+                          if (notifier.showMediaSection) ...[
+                            const SizedBox(height: AppSpacing.xl),
+                            MediaSection(
+                              isMovie: isMovie,
+                              hasExternalService: notifier.hasExternalService,
+                              isDeleting: state.isDeleting,
+                              onOpen: () => _openInService(context, ref),
+                              onRemove: () {
+                                _removeFromService(context, ref, args);
+                              },
+                            ),
+                          ],
                           const SizedBox(height: AppSpacing.xl),
                           AdvancedSection(
                             isMovie: isMovie,
@@ -316,7 +318,7 @@ class ManageMediaSheet extends ConsumerWidget {
       tmdbId: tmdbId,
       tvdbId: tvdbId,
       dismissSheet: () => Navigator.pop(context),
-      showConfigurationAlert: false,
+      showConfigurationAlert: true,
       movieNotFoundMessage: 'Movie not found in Radarr',
       seriesNotFoundMessage: 'Series not found in Sonarr',
     );
