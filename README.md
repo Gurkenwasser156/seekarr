@@ -5,6 +5,7 @@ A Flutter mobile application for managing self-hosted media services including J
 ## Features
 
 - **Discover**: Browse trending movies and TV shows via Jellyseerr integration
+  - **Rich Details**: View backdrops, content ratings, watch providers, trailers, release facts, seasons, and collections
   - **Manage Media**: View requests, delete media from Radarr/Sonarr, clear data
 - **Movies**: View and manage your Radarr movie library
 - **TV Series**: View and manage your Sonarr TV series library
@@ -64,7 +65,8 @@ lib/
 
 ## Configuration
 
-Configure your service URLs and API keys in the Settings screen:
+Configure your service URLs, API keys, and app preferences in the Settings screen:
+- General settings (e.g. Region for watch providers)
 - Jellyseerr URL + API Key
 - Radarr URL + API Key
 - Sonarr URL + API Key

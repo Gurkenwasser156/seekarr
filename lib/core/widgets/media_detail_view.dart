@@ -12,6 +12,14 @@ class MediaDetailView extends StatelessWidget {
   final String heroTag;
   final String? posterUrl;
   final Map<String, String>? posterHeaders;
+
+  /// Optional backdrop image shown in the expanded header.
+  final String? backdropUrl;
+
+  /// Optional overlay shown above the backdrop header while expanded.
+  ///
+  /// This is only used when [backdropUrl] is also provided.
+  final Widget? posterOverlay;
   final Widget? actions;
   final List<Widget> tags;
   final String overview;
@@ -24,6 +32,8 @@ class MediaDetailView extends StatelessWidget {
     required this.heroTag,
     this.posterUrl,
     this.posterHeaders,
+    this.backdropUrl,
+    this.posterOverlay,
     this.actions,
     this.tags = const [],
     required this.overview,
@@ -35,46 +45,97 @@ class MediaDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final hasBackdrop = backdropUrl != null && backdropUrl!.isNotEmpty;
+    final usesBackdropOverlay = hasBackdrop && posterOverlay != null;
+    final expandedHeight = hasBackdrop ? 380.0 : 500.0;
+    final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
+    final tagAlignment = hasBackdrop
+        ? WrapAlignment.center
+        : WrapAlignment.start;
+    final scrollBottomPadding =
+        FloatingNavBarMetrics.getScrollViewBottomPadding(context);
 
-    return Scaffold(
-      body: CustomScrollView(
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 500,
+            expandedHeight: expandedHeight,
             pinned: true,
             backgroundColor: colorScheme.surface,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Hero poster image
-                  Hero(
-                    tag: heroTag,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: posterUrl != null && posterUrl!.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: posterUrl!,
-                              httpHeaders: posterHeaders,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Container(
-                                color: colorScheme.surfaceContainer,
-                              ),
-                            )
-                          : Container(
-                              color: colorScheme.surfaceContainer,
-                              child: Icon(
-                                Icons.movie_outlined,
-                                size: 64,
-                                color: colorScheme.onSurfaceVariant,
+            flexibleSpace: usesBackdropOverlay
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final overlayOpacity = mediaDetailOverlayCollapseOpacity(
+                        context,
+                        currentHeight: constraints.maxHeight,
+                        expandedHeight: expandedHeight,
+                      );
+
+                      return ClipRect(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _BackdropHeader(
+                              backdropUrl: backdropUrl!,
+                              surfaceColor: colorScheme.surface,
+                            ),
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.xl,
+                                ),
+                                child: Opacity(
+                                  opacity: overlayOpacity,
+                                  child: posterOverlay!,
+                                ),
                               ),
                             ),
+                            if (background != null) background!,
+                          ],
+                        ),
+                      );
+                    },
+                  )
+                : FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (hasBackdrop)
+                          _BackdropHeader(
+                            backdropUrl: backdropUrl!,
+                            surfaceColor: colorScheme.surface,
+                          )
+                        else
+                          Hero(
+                            tag: heroTag,
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: posterUrl != null && posterUrl!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: posterUrl!,
+                                      httpHeaders: posterHeaders,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: colorScheme.surfaceContainer,
+                                          ),
+                                    )
+                                  : Container(
+                                      color: colorScheme.surfaceContainer,
+                                      child: Icon(
+                                        Icons.movie_outlined,
+                                        size: 64,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        if (background != null) background!,
+                      ],
                     ),
                   ),
-                  if (background != null) background!,
-                ],
-              ),
-            ),
           ),
 
           // Main content
@@ -85,27 +146,34 @@ class MediaDetailView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  Text(
-                    title,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      title,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: titleTextAlign,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
-                  // Tags (genres, year, etc.)
                   if (tags.isNotEmpty) ...[
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: tags,
+                    SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: tagAlignment,
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: tags,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
 
                   // Actions (buttons)
                   if (actions != null) ...[
-                    actions!,
+                    SizedBox(width: double.infinity, child: actions!),
                     const SizedBox(height: AppSpacing.xl),
                   ],
 
@@ -124,34 +192,75 @@ class MediaDetailView extends StatelessWidget {
                         height: 1.6,
                         color: colorScheme.onSurfaceVariant,
                       ),
+                      textAlign: TextAlign.start,
                     ),
                   ],
 
-                  // Bottom padding if no extra slivers
-                  if (slivers.isEmpty)
-                    SizedBox(
-                      height: FloatingNavBarMetrics.getScrollViewBottomPadding(
-                        context,
-                      ),
-                    ),
+                  if (slivers.isEmpty) SizedBox(height: scrollBottomPadding),
                 ],
               ),
             ),
           ),
 
-          // Additional slivers
           ...slivers,
 
           if (slivers.isNotEmpty)
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: FloatingNavBarMetrics.getScrollViewBottomPadding(
-                  context,
-                ),
-              ),
-            ),
+            SliverToBoxAdapter(child: SizedBox(height: scrollBottomPadding)),
         ],
       ),
+    );
+  }
+}
+
+double mediaDetailOverlayCollapseOpacity(
+  BuildContext context, {
+  required double currentHeight,
+  required double expandedHeight,
+}) {
+  final collapsedHeight = kToolbarHeight + MediaQuery.paddingOf(context).top;
+  final availableHeight = expandedHeight - collapsedHeight;
+  if (availableHeight <= 0) {
+    return 0;
+  }
+
+  final progress = ((currentHeight - collapsedHeight) / availableHeight).clamp(
+    0.0,
+    1.0,
+  );
+  return Curves.easeOut.transform(progress);
+}
+
+class _BackdropHeader extends StatelessWidget {
+  final String backdropUrl;
+  final Color surfaceColor;
+
+  const _BackdropHeader({
+    required this.backdropUrl,
+    required this.surfaceColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CachedNetworkImage(
+          imageUrl: backdropUrl,
+          fit: BoxFit.cover,
+          errorWidget: (context, url, error) =>
+              Container(color: Theme.of(context).colorScheme.surfaceContainer),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, surfaceColor],
+              stops: const [0.4, 1],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

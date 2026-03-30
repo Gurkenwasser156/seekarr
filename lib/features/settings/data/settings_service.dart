@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 abstract interface class SecureSettingsStore {
@@ -36,6 +39,7 @@ class SettingsService {
   static const _kRadarrUrl = 'radarr_url';
   static const _kSonarrUrl = 'sonarr_url';
   static const _kLidarrUrl = 'lidarr_url';
+  static const _kRegion = 'region';
 
   static const _kLegacyJellyseerrApiKey = 'jellyseerr_api_key';
   static const _kLegacyRadarrApiKey = 'radarr_api_key';
@@ -79,6 +83,11 @@ class SettingsService {
   }
 
   Future<SettingsModel> loadSettings() async {
+    final storedRegion = _prefs.getString(_kRegion);
+    final normalizedRegion = SettingsModel.normalizeRegion(
+      storedRegion ?? PlatformDispatcher.instance.locale.countryCode,
+    );
+
     return SettingsModel(
       jellyseerrUrl: _prefs.getString(_kJellyseerrUrl) ?? '',
       jellyseerrApiKey:
@@ -89,14 +98,18 @@ class SettingsService {
       sonarrApiKey: await _secureStore.read(key: _kSecureSonarrApiKey) ?? '',
       lidarrUrl: _prefs.getString(_kLidarrUrl) ?? '',
       lidarrApiKey: await _secureStore.read(key: _kSecureLidarrApiKey) ?? '',
+      region: normalizedRegion,
     );
   }
 
   Future<void> saveSettings(SettingsModel settings) async {
+    final normalizedRegion = SettingsModel.normalizeRegion(settings.region);
+
     await _prefs.setString(_kJellyseerrUrl, settings.jellyseerrUrl);
     await _prefs.setString(_kRadarrUrl, settings.radarrUrl);
     await _prefs.setString(_kSonarrUrl, settings.sonarrUrl);
     await _prefs.setString(_kLidarrUrl, settings.lidarrUrl);
+    await _prefs.setString(_kRegion, normalizedRegion);
 
     await _saveApiKey(_kSecureJellyseerrApiKey, settings.jellyseerrApiKey);
     await _saveApiKey(_kSecureRadarrApiKey, settings.radarrApiKey);

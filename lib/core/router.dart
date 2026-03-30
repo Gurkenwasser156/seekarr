@@ -17,6 +17,7 @@ import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_see_all_screen.dart';
 import 'package:seekarr/features/settings/presentation/settings_home_screen.dart';
+import 'package:seekarr/features/settings/presentation/settings_region_screen.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
@@ -172,6 +173,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (context, state) => const SettingsHomeScreen(),
             routes: [
+              GoRoute(
+                path: 'region',
+                pageBuilder: (context, state) => RouteUtils.cupertinoPage(
+                  key: state.pageKey,
+                  child: const SettingsRegionScreen(),
+                ),
+              ),
               GoRoute(
                 path: 'service/:service',
                 pageBuilder: (context, state) {

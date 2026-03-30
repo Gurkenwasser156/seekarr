@@ -9,6 +9,12 @@ class SettingsModel {
   final String sonarrApiKey;
   final String lidarrUrl;
   final String lidarrApiKey;
+  final String region;
+
+  static String normalizeRegion(String? region) {
+    final normalized = region?.trim().toUpperCase() ?? '';
+    return normalized.isEmpty ? 'US' : normalized;
+  }
 
   const SettingsModel({
     this.jellyseerrUrl = '',
@@ -19,6 +25,7 @@ class SettingsModel {
     this.sonarrApiKey = '',
     this.lidarrUrl = '',
     this.lidarrApiKey = '',
+    this.region = 'US',
   });
 
   SettingsModel copyWith({
@@ -30,6 +37,7 @@ class SettingsModel {
     String? sonarrApiKey,
     String? lidarrUrl,
     String? lidarrApiKey,
+    String? region,
   }) {
     return SettingsModel(
       jellyseerrUrl: jellyseerrUrl ?? this.jellyseerrUrl,
@@ -40,6 +48,7 @@ class SettingsModel {
       sonarrApiKey: sonarrApiKey ?? this.sonarrApiKey,
       lidarrUrl: lidarrUrl ?? this.lidarrUrl,
       lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
+      region: region ?? this.region,
     );
   }
 

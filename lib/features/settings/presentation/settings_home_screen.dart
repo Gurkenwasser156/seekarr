@@ -8,6 +8,7 @@ import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/regions.dart';
 
 class SettingsHomeScreen extends ConsumerWidget {
   const SettingsHomeScreen({super.key});
@@ -32,6 +33,16 @@ class SettingsHomeScreen extends ConsumerWidget {
             ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                const SectionHeader(title: 'General'),
+                const SizedBox(height: AppSpacing.sm),
+                SettingsCard(
+                  leading: const Icon(Icons.language_rounded),
+                  title: 'Region',
+                  subtitle: _formatRegionLabel(settings.region),
+                  onTap: () => context.push('/settings/region'),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
                 // Services Section
                 const SectionHeader(title: 'Services'),
                 const SizedBox(height: AppSpacing.sm),
@@ -94,5 +105,11 @@ class SettingsHomeScreen extends ConsumerWidget {
 
     final host = service.extractHost(url);
     return host != null ? host : url;
+  }
+
+  String _formatRegionLabel(String region) {
+    final normalizedRegion = SettingsModel.normalizeRegion(region);
+    final regionName = commonRegions[normalizedRegion] ?? normalizedRegion;
+    return '$regionName ($normalizedRegion)';
   }
 }

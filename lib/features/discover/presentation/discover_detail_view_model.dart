@@ -1,4 +1,5 @@
 import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 
 typedef DiscoverDetailRating = ({
   String name,
@@ -17,8 +18,10 @@ class DiscoverDetailViewModel {
   final String title;
   final String overview;
   final String posterUrl;
+  final String? backdropUrl;
   final String jellyseerrStatus;
   final bool isAvailable;
+  final bool isPartiallyAvailable;
   final int? statusCode;
   final Map<String, dynamic>? mediaInfo;
   final String genres;
@@ -33,13 +36,26 @@ class DiscoverDetailViewModel {
   final List<String> writers;
   final List<String> keywords;
   final int? tvdbId;
+  final List<WatchProviderRegion> watchProviders;
+  final List<RelatedVideo> relatedVideos;
+  final CollectionInfo? collection;
+  final List<TvSeason> seasons;
+  final int? numberOfEpisodes;
+  final TvEpisodeSummary? lastEpisodeToAir;
+  final TvEpisodeSummary? nextEpisodeToAir;
+  final String? firstAirDate;
+  final String? lastAirDate;
+  final List<MovieRelease> movieReleases;
+  final List<TvContentRating> contentRatings;
 
-  const DiscoverDetailViewModel({
+  DiscoverDetailViewModel({
     required this.title,
     required this.overview,
     required this.posterUrl,
+    required this.backdropUrl,
     required this.jellyseerrStatus,
     required this.isAvailable,
+    required this.isPartiallyAvailable,
     required this.statusCode,
     required this.mediaInfo,
     required this.genres,
@@ -54,10 +70,30 @@ class DiscoverDetailViewModel {
     required this.writers,
     required this.keywords,
     required this.tvdbId,
+    this.watchProviders = const [],
+    this.relatedVideos = const [],
+    this.collection,
+    this.seasons = const [],
+    this.numberOfEpisodes,
+    this.lastEpisodeToAir,
+    this.nextEpisodeToAir,
+    this.firstAirDate,
+    this.lastAirDate,
+    this.movieReleases = const [],
+    this.contentRatings = const [],
   });
 
   String get metadataLine =>
       [genres, networks].where((value) => value.isNotEmpty).join(' • ');
+
+  String detailMetadataLine({required bool isMovie}) {
+    return [
+      year,
+      isMovie ? runtimeStr : episodeSummary ?? runtimeStr,
+      genres,
+      if (!isMovie && networks.isNotEmpty) networks,
+    ].whereType<String>().where((value) => value.isNotEmpty).join(' • ');
+  }
 
   bool get hasCrew => directors.isNotEmpty || writers.isNotEmpty;
 
@@ -68,6 +104,85 @@ class DiscoverDetailViewModel {
   String get directorNames => directors.join(', ');
 
   String get writerNames => writers.join(', ');
+
+  late final List<RelatedVideo> playableVideos = relatedVideos
+      .where((video) => video.url.isNotEmpty)
+      .toList(growable: false);
+
+  bool get hasRelatedVideos => playableVideos.isNotEmpty;
+
+  bool get hasCollection => collection != null;
+
+  bool get hasSeasons => seasons.isNotEmpty;
+
+  String? get episodeSummary {
+    final parts = <String>[];
+
+    if (numberOfSeasons != null) {
+      final seasonsLabel = numberOfSeasons == 1 ? 'Season' : 'Seasons';
+      parts.add('$numberOfSeasons $seasonsLabel');
+    }
+
+    if (numberOfEpisodes != null) {
+      final episodesLabel = numberOfEpisodes == 1 ? 'Episode' : 'Episodes';
+      parts.add('$numberOfEpisodes $episodesLabel');
+    }
+
+    if (parts.isEmpty) {
+      return null;
+    }
+
+    return parts.join(' • ');
+  }
+
+  WatchProviderRegion? watchProvidersForRegion(String region) {
+    final normalizedRegion = _normalizeRegion(region);
+    for (final provider in watchProviders) {
+      if (provider.iso3166 == normalizedRegion) {
+        return provider;
+      }
+    }
+
+    return null;
+  }
+
+  String? movieContentRatingForRegion(String region) {
+    for (final release in releasesForRegion(region)) {
+      final certification = release.certification ?? '';
+      if (certification.isNotEmpty) {
+        return certification;
+      }
+    }
+
+    return null;
+  }
+
+  String? tvContentRatingForRegion(String region) {
+    final normalizedRegion = _normalizeRegion(region);
+    for (final rating in contentRatings) {
+      if (rating.iso3166 == normalizedRegion && rating.rating.isNotEmpty) {
+        return rating.rating;
+      }
+    }
+
+    return null;
+  }
+
+  List<MovieRelease> releasesForRegion(String region) {
+    final normalizedRegion = _normalizeRegion(region);
+    final filteredReleases = movieReleases
+        .where((release) => release.iso3166 == normalizedRegion)
+        .toList(growable: false);
+
+    final sortedReleases = [...filteredReleases]
+      ..sort(
+        (left, right) => _movieReleasePriority(
+          left.type,
+        ).compareTo(_movieReleasePriority(right.type)),
+      );
+
+    return sortedReleases;
+  }
 
   factory DiscoverDetailViewModel.fromResponse(
     Map<String, dynamic> details, {
@@ -81,12 +196,31 @@ class DiscoverDetailViewModel {
         details['release_date'] ??
         details['firstAirDate'] ??
         details['first_air_date'];
-    final runtime = (details['runtime'] as num?)?.toInt();
+    final runtime = _extractRuntime(details);
     final credits = _asMap(details['credits']);
     final crew = _asMapList(credits?['crew']);
     final cast = _asMapList(credits?['cast']);
     final posterPath =
         details['posterPath']?.toString() ?? details['poster_path']?.toString();
+    final backdropPath =
+        details['backdropPath']?.toString() ??
+        details['backdrop_path']?.toString();
+    final watchProviders = _asMapList(
+      details['watchProviders'],
+    ).map(WatchProviderRegion.fromJson).toList(growable: false);
+    final relatedVideos = _asMapList(
+      details['relatedVideos'],
+    ).map(RelatedVideo.fromJson).toList(growable: false);
+    final collection = _asMap(details['collection']);
+    final seasons = _asMapList(
+      details['seasons'],
+    ).map(TvSeason.fromJson).toList(growable: false);
+    final lastEpisodeToAir = _asMap(details['lastEpisodeToAir']);
+    final nextEpisodeToAir = _asMap(details['nextEpisodeToAir']);
+    final releases = _flattenMovieReleases(_asMap(details['releases']));
+    final contentRatings = _asMapList(
+      _asMap(details['contentRatings'])?['results'],
+    ).map(TvContentRating.fromJson).toList(growable: false);
 
     return DiscoverDetailViewModel(
       title:
@@ -97,8 +231,10 @@ class DiscoverDetailViewModel {
       posterUrl: initialPosterUrl != null && initialPosterUrl.isNotEmpty
           ? initialPosterUrl
           : ImageUtils.buildTmdbPosterUrl(posterPath, size: 'w500'),
+      backdropUrl: ImageUtils.buildTmdbPosterUrl(backdropPath, size: 'w1280'),
       jellyseerrStatus: mapJellyseerrStatus(statusCode),
-      isAvailable: statusCode == 4 || statusCode == 5,
+      isAvailable: statusCode == 5,
+      isPartiallyAvailable: statusCode == 4,
       statusCode: statusCode,
       mediaInfo: mediaInfo,
       genres: _joinNamedValues(details['genres']),
@@ -119,6 +255,23 @@ class DiscoverDetailViewModel {
       tvdbId:
           (externalIds?['tvdbId'] as num?)?.toInt() ??
           (details['tvdbId'] as num?)?.toInt(),
+      watchProviders: watchProviders,
+      relatedVideos: relatedVideos,
+      collection: collection != null
+          ? CollectionInfo.fromJson(collection)
+          : null,
+      seasons: seasons,
+      numberOfEpisodes: (details['numberOfEpisodes'] as num?)?.toInt(),
+      lastEpisodeToAir: lastEpisodeToAir != null
+          ? TvEpisodeSummary.fromJson(lastEpisodeToAir)
+          : null,
+      nextEpisodeToAir: nextEpisodeToAir != null
+          ? TvEpisodeSummary.fromJson(nextEpisodeToAir)
+          : null,
+      firstAirDate: details['firstAirDate']?.toString(),
+      lastAirDate: details['lastAirDate']?.toString(),
+      movieReleases: releases,
+      contentRatings: contentRatings,
     );
   }
 
@@ -127,18 +280,33 @@ class DiscoverDetailViewModel {
 
     switch (status) {
       case 1:
-        return 'Pending';
+        return 'Unknown';
       case 2:
-        return 'Processing';
+        return 'Pending';
       case 3:
-        return 'Partial';
+        return 'Processing';
       case 4:
+        return 'Partially Available';
       case 5:
         return 'Available';
+      case 6:
+        return 'Deleted';
       default:
         return 'Unknown';
     }
   }
+}
+
+int _movieReleasePriority(int type) {
+  return switch (type) {
+    3 => 0,
+    4 => 1,
+    5 => 2,
+    2 => 3,
+    1 => 4,
+    6 => 5,
+    _ => 99,
+  };
 }
 
 DiscoverCastMember _toCastMember(Map<String, dynamic> member) {
@@ -197,6 +365,71 @@ List<Map<String, dynamic>> _asMapList(Object? value) {
 String _extractYear(Object? releaseDate) {
   final value = releaseDate?.toString() ?? '';
   return value.length >= 4 ? value.substring(0, 4) : '';
+}
+
+int? _extractRuntime(Map<String, dynamic> details) {
+  int? parseMinutes(Object? value) {
+    return switch (value) {
+      int minutes => minutes,
+      num minutes => minutes.toInt(),
+      String minutes => int.tryParse(minutes),
+      _ => null,
+    };
+  }
+
+  final runtime = parseMinutes(details['runtime']);
+  if (runtime != null && runtime > 0) {
+    return runtime;
+  }
+
+  final episodeRunTime =
+      details['episodeRunTime'] ?? details['episode_run_time'];
+  if (episodeRunTime is List) {
+    for (final value in episodeRunTime) {
+      final minutes = parseMinutes(value);
+      if (minutes != null && minutes > 0) {
+        return minutes;
+      }
+    }
+  }
+
+  return null;
+}
+
+String _normalizeRegion(String region) {
+  return region.trim().toUpperCase();
+}
+
+List<MovieRelease> _flattenMovieReleases(Map<String, dynamic>? releases) {
+  if (releases == null) {
+    return const [];
+  }
+
+  final flattenedReleases = <MovieRelease>[];
+  final releaseRegions = _asMapList(releases['results']);
+
+  for (final region in releaseRegions) {
+    final iso3166 = region['iso_3166_1']?.toString().toUpperCase() ?? '';
+    if (iso3166.isEmpty) {
+      continue;
+    }
+
+    final releaseDates = _asMapList(region['release_dates']);
+    for (final release in releaseDates) {
+      flattenedReleases.add(
+        MovieRelease.fromJson({
+          ...release,
+          'iso_3166_1': iso3166,
+          'releaseDate':
+              release['releaseDate']?.toString() ??
+              release['release_date']?.toString() ??
+              '',
+        }),
+      );
+    }
+  }
+
+  return flattenedReleases;
 }
 
 String _joinNamedValues(Object? value, {int? take}) {

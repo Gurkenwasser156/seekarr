@@ -47,8 +47,9 @@ void main() {
       expect(viewModel.title, 'Test Movie');
       expect(viewModel.overview, 'A movie overview.');
       expect(viewModel.posterUrl, 'https://image.tmdb.org/t/p/w500/poster.jpg');
-      expect(viewModel.jellyseerrStatus, 'Available');
-      expect(viewModel.isAvailable, isTrue);
+      expect(viewModel.jellyseerrStatus, 'Partially Available');
+      expect(viewModel.isAvailable, isFalse);
+      expect(viewModel.isPartiallyAvailable, isTrue);
       expect(viewModel.genres, 'Action, Drama');
       expect(viewModel.year, '2024');
       expect(viewModel.runtimeStr, '123min');
@@ -97,7 +98,7 @@ void main() {
 
       expect(viewModel.title, 'Test Show');
       expect(viewModel.posterUrl, 'https://cdn.example.com/poster.jpg');
-      expect(viewModel.jellyseerrStatus, 'Processing');
+      expect(viewModel.jellyseerrStatus, 'Pending');
       expect(viewModel.year, '2021');
       expect(viewModel.numberOfSeasons, 3);
       expect(viewModel.networks, 'HBO, Max');
@@ -139,12 +140,25 @@ void main() {
         DiscoverDetailViewModel.mapJellyseerrStatus(null),
         'Available to Request',
       );
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(1), 'Pending');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(2), 'Processing');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(3), 'Partial');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(4), 'Available');
+      expect(DiscoverDetailViewModel.mapJellyseerrStatus(1), 'Unknown');
+      expect(DiscoverDetailViewModel.mapJellyseerrStatus(2), 'Pending');
+      expect(DiscoverDetailViewModel.mapJellyseerrStatus(3), 'Processing');
+      expect(
+        DiscoverDetailViewModel.mapJellyseerrStatus(4),
+        'Partially Available',
+      );
       expect(DiscoverDetailViewModel.mapJellyseerrStatus(5), 'Available');
+      expect(DiscoverDetailViewModel.mapJellyseerrStatus(6), 'Deleted');
       expect(DiscoverDetailViewModel.mapJellyseerrStatus(99), 'Unknown');
+    });
+
+    test('parses runtime from string episode runtimes without crashing', () {
+      final viewModel = DiscoverDetailViewModel.fromResponse({
+        'name': 'Runtime Test Show',
+        'episodeRunTime': ['45', 50],
+      });
+
+      expect(viewModel.runtimeStr, '45min');
     });
   });
 }
