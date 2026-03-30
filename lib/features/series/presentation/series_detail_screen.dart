@@ -109,43 +109,55 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     );
 
     return MediaDetailView(
-      title: title,
       heroTag: widget.heroTag,
       posterUrl: imageSource.url,
       posterHeaders: imageSource.headers,
-      overview: overview,
-      tags: tags,
-      actions: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RatingChipsRow(ratings: series.ratings),
-          MediaSearchActionRow(
-            isSearching: _isSearching,
-            isLoadingReleases: _isLoadingReleases,
-            onAutomaticSearch: () => _triggerSearch(context, series.id),
-            onInteractiveSearch: () =>
-                _showInteractiveSearch(context, series.id),
-          ),
-          // File info section (only when available)
-          if (hasFiles && series.path != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            FileInfoSection(path: series.path),
-          ],
-          // Profile selector (split button) + delete button
-          if (currentProfileName != null) ...[
-            const SizedBox(height: AppSpacing.lg),
-            MediaManagementRow(
-              currentProfileName: currentProfileName!,
-              currentProfileId: currentProfileId,
-              qualityProfiles: qualityProfiles,
-              onProfileSelected: _updateProfile,
-              isDeleting: _isDeleting,
-              onDelete: () => _confirmDelete(context),
-              deleteTooltip: 'Delete Series',
-            ),
-          ],
+      contentSections: [
+        MediaDetailTitleSection(title: title),
+        const SizedBox(height: AppSpacing.sm),
+        if (tags.isNotEmpty) ...[
+          MediaDetailTagSection(tags: tags),
+          const SizedBox(height: AppSpacing.xl),
         ],
-      ),
+        SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RatingChipsRow(ratings: series.ratings),
+              MediaSearchActionRow(
+                isSearching: _isSearching,
+                isLoadingReleases: _isLoadingReleases,
+                onAutomaticSearch: () => _triggerSearch(context, series.id),
+                onInteractiveSearch: () =>
+                    _showInteractiveSearch(context, series.id),
+              ),
+              // File info section (only when available)
+              if (hasFiles && series.path != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                FileInfoSection(path: series.path),
+              ],
+              // Profile selector (split button) + delete button
+              if (currentProfileName != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                MediaManagementRow(
+                  currentProfileName: currentProfileName!,
+                  currentProfileId: currentProfileId,
+                  qualityProfiles: qualityProfiles,
+                  onProfileSelected: _updateProfile,
+                  isDeleting: _isDeleting,
+                  onDelete: () => _confirmDelete(context),
+                  deleteTooltip: 'Delete Series',
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (overview.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          MediaDetailOverviewSection(overview: overview),
+        ],
+      ],
       slivers: [
         SliverToBoxAdapter(
           child: Padding(

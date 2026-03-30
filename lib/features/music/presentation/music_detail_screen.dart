@@ -141,38 +141,50 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     }
 
     return MediaDetailView(
-      title: title,
       heroTag: widget.heroTag,
       posterUrl: imageSource.url,
       posterHeaders: imageSource.headers,
-      overview: overview,
-      tags: tags,
-      actions: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RatingChipsRow(ratings: artist.ratings),
-          MediaSearchActionRow(
-            isSearching: _isSearching,
-            isLoadingReleases: _isLoadingReleases,
-            onAutomaticSearch: () => _triggerSearch(context, artist.id),
-            onInteractiveSearch: () =>
-                _showInteractiveSearch(context, artist.id),
-          ),
-          // Profile selector (split button) + delete button
-          if (currentProfileName != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            MediaManagementRow(
-              currentProfileName: currentProfileName!,
-              currentProfileId: currentProfileId,
-              qualityProfiles: qualityProfiles,
-              onProfileSelected: _updateProfile,
-              isDeleting: _isDeleting,
-              onDelete: () => _confirmDelete(context),
-              deleteTooltip: 'Delete Artist',
-            ),
-          ],
+      contentSections: [
+        MediaDetailTitleSection(title: title),
+        const SizedBox(height: AppSpacing.sm),
+        if (tags.isNotEmpty) ...[
+          MediaDetailTagSection(tags: tags),
+          const SizedBox(height: AppSpacing.xl),
         ],
-      ),
+        SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RatingChipsRow(ratings: artist.ratings),
+              MediaSearchActionRow(
+                isSearching: _isSearching,
+                isLoadingReleases: _isLoadingReleases,
+                onAutomaticSearch: () => _triggerSearch(context, artist.id),
+                onInteractiveSearch: () =>
+                    _showInteractiveSearch(context, artist.id),
+              ),
+              // Profile selector (split button) + delete button
+              if (currentProfileName != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                MediaManagementRow(
+                  currentProfileName: currentProfileName!,
+                  currentProfileId: currentProfileId,
+                  qualityProfiles: qualityProfiles,
+                  onProfileSelected: _updateProfile,
+                  isDeleting: _isDeleting,
+                  onDelete: () => _confirmDelete(context),
+                  deleteTooltip: 'Delete Artist',
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (overview.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          MediaDetailOverviewSection(overview: overview),
+        ],
+      ],
       slivers: [
         SliverToBoxAdapter(
           child: Padding(

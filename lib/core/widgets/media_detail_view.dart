@@ -8,7 +8,6 @@ import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 ///
 /// Follows Material Design 3 styling with proper color tokens.
 class MediaDetailView extends StatelessWidget {
-  final String title;
   final String heroTag;
   final String? posterUrl;
   final Map<String, String>? posterHeaders;
@@ -20,38 +19,28 @@ class MediaDetailView extends StatelessWidget {
   ///
   /// This is only used when [backdropUrl] is also provided.
   final Widget? posterOverlay;
-  final Widget? actions;
-  final List<Widget> tags;
-  final String overview;
+  final List<Widget> contentSections;
   final List<Widget> slivers;
   final Widget? background;
 
   const MediaDetailView({
     super.key,
-    required this.title,
     required this.heroTag,
+    required this.contentSections,
     this.posterUrl,
     this.posterHeaders,
     this.backdropUrl,
     this.posterOverlay,
-    this.actions,
-    this.tags = const [],
-    required this.overview,
     this.slivers = const [],
     this.background,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final hasBackdrop = backdropUrl != null && backdropUrl!.isNotEmpty;
     final usesBackdropOverlay = hasBackdrop && posterOverlay != null;
     final expandedHeight = hasBackdrop ? 380.0 : 500.0;
-    final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
-    final tagAlignment = hasBackdrop
-        ? WrapAlignment.center
-        : WrapAlignment.start;
     final scrollBottomPadding =
         FloatingNavBarMetrics.getScrollViewBottomPadding(context);
 
@@ -145,57 +134,7 @@ class MediaDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      title,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: titleTextAlign,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-
-                  if (tags.isNotEmpty) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        alignment: tagAlignment,
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: tags,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-
-                  // Actions (buttons)
-                  if (actions != null) ...[
-                    SizedBox(width: double.infinity, child: actions!),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-
-                  // Overview section
-                  if (overview.isNotEmpty) ...[
-                    Text(
-                      'Overview',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      overview,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        height: 1.6,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.start,
-                    ),
-                  ],
-
+                  ...contentSections,
                   if (slivers.isEmpty) SizedBox(height: scrollBottomPadding),
                 ],
               ),
@@ -208,6 +147,101 @@ class MediaDetailView extends StatelessWidget {
             SliverToBoxAdapter(child: SizedBox(height: scrollBottomPadding)),
         ],
       ),
+    );
+  }
+}
+
+class MediaDetailTitleSection extends StatelessWidget {
+  final String title;
+  final TextAlign textAlign;
+
+  const MediaDetailTitleSection({
+    super.key,
+    required this.title,
+    this.textAlign = TextAlign.start,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        textAlign: textAlign,
+      ),
+    );
+  }
+}
+
+class MediaDetailTagSection extends StatelessWidget {
+  final List<Widget> tags;
+  final WrapAlignment alignment;
+
+  const MediaDetailTagSection({
+    super.key,
+    required this.tags,
+    this.alignment = WrapAlignment.start,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (tags.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: alignment,
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.sm,
+        children: tags,
+      ),
+    );
+  }
+}
+
+class MediaDetailOverviewSection extends StatelessWidget {
+  final String overview;
+  final String heading;
+
+  const MediaDetailOverviewSection({
+    super.key,
+    required this.overview,
+    this.heading = 'Overview',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    if (overview.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          heading,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          overview,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            height: 1.6,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          textAlign: TextAlign.start,
+        ),
+      ],
     );
   }
 }
@@ -255,8 +289,12 @@ class _BackdropHeader extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.transparent, surfaceColor],
-              stops: const [0.4, 1],
+              colors: [
+                Colors.transparent,
+                surfaceColor.withValues(alpha: 0.6),
+                surfaceColor,
+              ],
+              stops: const [0.2, 0.7, 1.0],
             ),
           ),
         ),

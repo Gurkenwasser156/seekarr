@@ -25,10 +25,12 @@ class DiscoverDetailViewModel {
   final int? statusCode;
   final Map<String, dynamic>? mediaInfo;
   final String genres;
+  final List<String> genresList;
   final String year;
   final String? runtimeStr;
   final int? numberOfSeasons;
   final String networks;
+  final List<String> studios;
   final double? voteAverage;
   final int? voteCount;
   final List<DiscoverCastMember> cast;
@@ -59,10 +61,12 @@ class DiscoverDetailViewModel {
     required this.statusCode,
     required this.mediaInfo,
     required this.genres,
+    required this.genresList,
     required this.year,
     required this.runtimeStr,
     required this.numberOfSeasons,
     required this.networks,
+    required this.studios,
     required this.voteAverage,
     required this.voteCount,
     required this.cast,
@@ -221,6 +225,13 @@ class DiscoverDetailViewModel {
     final contentRatings = _asMapList(
       _asMap(details['contentRatings'])?['results'],
     ).map(TvContentRating.fromJson).toList(growable: false);
+    final genresList = _takeNames(_asMapList(details['genres']));
+    final studios = _takeNames(
+      _asMapList(
+        details['production_companies'] ?? details['productionCompanies'],
+      ),
+      limit: 4,
+    );
 
     return DiscoverDetailViewModel(
       title:
@@ -238,10 +249,12 @@ class DiscoverDetailViewModel {
       statusCode: statusCode,
       mediaInfo: mediaInfo,
       genres: _joinNamedValues(details['genres']),
+      genresList: genresList,
       year: _extractYear(releaseDate),
       runtimeStr: runtime != null && runtime > 0 ? '${runtime}min' : null,
       numberOfSeasons: (details['numberOfSeasons'] as num?)?.toInt(),
       networks: _joinNamedValues(details['networks'], take: 2),
+      studios: studios,
       voteAverage:
           (details['voteAverage'] as num?)?.toDouble() ??
           (details['vote_average'] as num?)?.toDouble(),

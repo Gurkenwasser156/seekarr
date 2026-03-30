@@ -19,15 +19,19 @@ final discoverDetailExtrasProvider = FutureProvider.autoDispose
     >((ref, arg) async {
       final settings = ref.watch(currentSettingsProvider);
       final mediaType = arg.mediaType == 'movie' ? 'movie' : 'tv';
+      final isRadarrConfigured =
+          settings.radarrUrl.isNotEmpty && settings.radarrApiKey.isNotEmpty;
+      final isSonarrConfigured =
+          settings.sonarrUrl.isNotEmpty && settings.sonarrApiKey.isNotEmpty;
 
       bool? isInLibrary;
       List<DiscoverDetailRating>? lookupRatings;
+      final libraryCheckDone = mediaType == 'movie'
+          ? isRadarrConfigured
+          : isSonarrConfigured && arg.tvdbId != null;
 
       if (mediaType == 'movie') {
-        final isConfigured =
-            settings.radarrUrl.isNotEmpty && settings.radarrApiKey.isNotEmpty;
-
-        if (isConfigured) {
+        if (isRadarrConfigured) {
           final radarrService = ref.read(radarrServiceProvider);
 
           try {
@@ -51,28 +55,34 @@ final discoverDetailExtrasProvider = FutureProvider.autoDispose
           }
         }
       } else {
-        final isConfigured =
-            settings.sonarrUrl.isNotEmpty && settings.sonarrApiKey.isNotEmpty;
-
-        if (isConfigured && arg.tvdbId != null && arg.voteAverage == null) {
+        if (isSonarrConfigured && arg.tvdbId != null) {
           final sonarrService = ref.read(sonarrServiceProvider);
 
           try {
-            final results = await sonarrService.lookupSeries(
-              'tvdb:${arg.tvdbId}',
-            );
-            if (results.isNotEmpty) {
-              lookupRatings = _mapRatings(results.first.ratings);
-            }
+            final series = await sonarrService.getSeriesByTvdbId(arg.tvdbId!);
+            isInLibrary = series != null;
           } catch (_) {
-            lookupRatings = null;
+            isInLibrary = null;
+          }
+
+          if (arg.voteAverage == null) {
+            try {
+              final results = await sonarrService.lookupSeries(
+                'tvdb:${arg.tvdbId}',
+              );
+              if (results.isNotEmpty) {
+                lookupRatings = _mapRatings(results.first.ratings);
+              }
+            } catch (_) {
+              lookupRatings = null;
+            }
           }
         }
       }
 
       return (
         isInLibrary: isInLibrary,
-        libraryCheckDone: true,
+        libraryCheckDone: libraryCheckDone,
         lookupRatings: lookupRatings,
       );
     });

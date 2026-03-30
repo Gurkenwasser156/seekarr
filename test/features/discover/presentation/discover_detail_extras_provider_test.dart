@@ -79,7 +79,7 @@ void main() {
     });
 
     test(
-      'skips tv library lookup when status is driven by Jellyseerr',
+      'performs Sonarr library lookup for tv when configured with tvdbId',
       () async {
         final sonarrService = FakeSonarrService(seriesByTvdbId: _buildSeries());
         final container = createContainer(
@@ -99,10 +99,10 @@ void main() {
           )).future,
         );
 
-        expect(result.isInLibrary, isNull);
+        expect(result.isInLibrary, isTrue);
         expect(result.libraryCheckDone, isTrue);
         expect(result.lookupRatings, isNull);
-        expect(sonarrService.getSeriesByTvdbIdCallCount, 0);
+        expect(sonarrService.getSeriesByTvdbIdCallCount, 1);
       },
     );
 
@@ -126,7 +126,7 @@ void main() {
       );
 
       expect(result.isInLibrary, isNull);
-      expect(result.libraryCheckDone, isTrue);
+      expect(result.libraryCheckDone, isFalse);
       expect(result.lookupRatings, isNull);
       expect(sonarrService.getSeriesByTvdbIdCallCount, 0);
       expect(sonarrService.lookupSeriesCallCount, 0);
@@ -149,7 +149,7 @@ void main() {
       );
 
       expect(result.isInLibrary, isNull);
-      expect(result.libraryCheckDone, isTrue);
+      expect(result.libraryCheckDone, isFalse);
       expect(result.lookupRatings, isNull);
       expect(radarrService.getMovieByTmdbIdCallCount, 0);
       expect(radarrService.lookupMoviesCallCount, 0);
@@ -207,12 +207,57 @@ void main() {
         )).future,
       );
 
-      expect(result.isInLibrary, isNull);
+      expect(result.isInLibrary, isTrue);
       expect(result.lookupRatings, hasLength(1));
       expect(result.lookupRatings!.single.name, 'TVDB');
       expect(result.lookupRatings!.single.value, 8.4);
-      expect(sonarrService.getSeriesByTvdbIdCallCount, 0);
+      expect(sonarrService.getSeriesByTvdbIdCallCount, 1);
       expect(sonarrService.lookupSeriesCallCount, 1);
+    });
+
+    test('returns false when series is not found in Sonarr', () async {
+      final sonarrService = FakeSonarrService(seriesByTvdbId: null);
+      final container = createContainer(
+        settings: const SettingsModel(
+          sonarrUrl: 'https://sonarr.example.com',
+          sonarrApiKey: 'sonarr-key',
+        ),
+        sonarrService: sonarrService,
+      );
+
+      final result = await container.read(
+        discoverDetailExtrasProvider((
+          mediaId: 456,
+          mediaType: 'tv',
+          tvdbId: 555,
+          voteAverage: 8.0,
+        )).future,
+      );
+
+      expect(result.isInLibrary, isFalse);
+      expect(result.libraryCheckDone, isTrue);
+      expect(sonarrService.getSeriesByTvdbIdCallCount, 1);
+    });
+
+    test('skips Sonarr library lookup when Sonarr is not configured', () async {
+      final sonarrService = FakeSonarrService(seriesByTvdbId: _buildSeries());
+      final container = createContainer(
+        settings: const SettingsModel(),
+        sonarrService: sonarrService,
+      );
+
+      final result = await container.read(
+        discoverDetailExtrasProvider((
+          mediaId: 456,
+          mediaType: 'tv',
+          tvdbId: 555,
+          voteAverage: 8.0,
+        )).future,
+      );
+
+      expect(result.isInLibrary, isNull);
+      expect(result.libraryCheckDone, isFalse);
+      expect(sonarrService.getSeriesByTvdbIdCallCount, 0);
     });
 
     test(
@@ -271,7 +316,10 @@ void main() {
     });
 
     test('falls back cleanly when Sonarr lookup throws', () async {
-      final sonarrService = FakeSonarrService(throwOnLookupSeries: true);
+      final sonarrService = FakeSonarrService(
+        throwOnGetSeriesByTvdbId: true,
+        throwOnLookupSeries: true,
+      );
       final container = createContainer(
         settings: const SettingsModel(
           sonarrUrl: 'https://sonarr.example.com',
@@ -292,7 +340,7 @@ void main() {
       expect(result.isInLibrary, isNull);
       expect(result.libraryCheckDone, isTrue);
       expect(result.lookupRatings, isNull);
-      expect(sonarrService.getSeriesByTvdbIdCallCount, 0);
+      expect(sonarrService.getSeriesByTvdbIdCallCount, 1);
       expect(sonarrService.lookupSeriesCallCount, 1);
     });
   });
