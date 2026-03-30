@@ -34,6 +34,10 @@ final currentSettingsProvider = Provider<SettingsModel>((ref) {
   return ref.watch(settingsProvider);
 });
 
+final regionProvider = Provider<String>((ref) {
+  return ref.watch(currentSettingsProvider).region;
+});
+
 class SettingsNotifier extends Notifier<SettingsModel> {
   late final SettingsService _service;
 

@@ -149,6 +149,15 @@ class JellyseerrService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> getCollection(int collectionId) async {
+    try {
+      final response = await _client.get('/api/v1/collection/$collectionId');
+      return response.data;
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Searches for movies and TV shows by query string.
   /// Filters out 'person' results to only return movies and TV shows.
   Future<List<MediaPreview>> search(String query, {int page = 1}) async {
