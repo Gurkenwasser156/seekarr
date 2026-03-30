@@ -1,38 +1,26 @@
+# Important Disclaimer
+This project was developed with heavy use of OpenCode. 
+The main purpose of this project is to solve a personal need: to flawlessly manage my self-hosted *arr stack with my phone, from anywhere.
+
+Despite the use of LLMs, my priority with this app is to push Agentic Coding to its limits, thus seeking the best coding quality possible.
+
 # Seekarr
 
-A Flutter mobile application for managing self-hosted media services including Jellyseerr, Radarr, Sonarr, and Lidarr.
+A Flutter mobile application for managing self-hosted media services.
+Supported services are: Seerr, Radarr, Sonarr, and Lidarr.
 
 ## Features
 
-- **Discover**: Browse trending movies and TV shows via Jellyseerr integration
-  - **Rich Details**: View backdrops, content ratings, watch providers, trailers, release facts, seasons, and collections
+- **Discover**: Browse trending movies and TV shows via Seerr integration
+  - **Rich Details**: View backdrops, content ratings, watch providers, trailers, release dates, seasons, and collections
   - **Manage Media**: View requests, delete media from Radarr/Sonarr, clear data
 - **Movies**: View and manage your Radarr movie library
 - **TV Series**: View and manage your Sonarr TV series library
 - **Music**: View and manage your Lidarr music library
 - **Search**: Search across all sections with always-visible search bars
-  - Discover: Search movies and TV shows via Jellyseerr
-  - Movies: Lookup movies via Radarr
-  - Series: Lookup TV series via Sonarr
-  - Music: Lookup artists via Lidarr
 - **Activity**: Monitor download queues, history, and wanted items across all services
-- **Pull-to-Refresh**: Swipe down on any screen to refresh data
-- **iOS-style Navigation**: Swipe from left edge to go back on detail screens
-- **Material Design 3**: Modern design with Jellyseerr-inspired color palette
-
-## Design System
-
-Seekarr uses a comprehensive Material Design 3 design system:
-
-- **Colors**: Jellyseerr-inspired palette (Indigo primary with dark theme surfaces)
-- **Typography**: Outfit font family with M3 type scale
-- **Spacing**: 4dp grid system (`AppSpacing`)
-- **Radius**: M3-aligned border radius tokens (`AppRadius`)
-- **Animation**: Standard M3 durations and easing curves (`AppAnimation`)
-
-Core design tokens are in `lib/core/`:
-- `theme.dart` - ColorScheme, component themes
-- `app_spacing.dart`, `app_radius.dart`, `app_animation.dart` - Design tokens
+- **Multiplatform**: Currently working and tested for Android, iOS and MacOS
+- **Material Design 3**: Modern design with Seerr-inspired color palette
 
 ## Architecture
 
@@ -44,7 +32,7 @@ lib/
 │   ├── utils/         # Utilities (image, URL, routing)
 │   └── widgets/       # Shared widgets (ContentCard, MediaGrid, ReleaseListItem, etc.)
 ├── features/
-│   ├── discover/      # Jellyseerr integration
+│   ├── discover/      # Seerr integration
 │   │   └── presentation/widgets/  # RequestBottomSheet
 │   ├── movies/        # Radarr integration
 │   ├── series/        # Sonarr integration
@@ -67,7 +55,7 @@ lib/
 
 Configure your service URLs, API keys, and app preferences in the Settings screen:
 - General settings (e.g. Region for watch providers)
-- Jellyseerr URL + API Key
+- Seerr URL + API Key
 - Radarr URL + API Key
 - Sonarr URL + API Key
 - Lidarr URL + API Key
