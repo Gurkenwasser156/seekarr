@@ -33,6 +33,7 @@ class MediaPosterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
 
     return Hero(
       tag: heroTag,
@@ -51,7 +52,7 @@ class MediaPosterCard extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: AppRadius.borderRadiusMd,
-            child: imageUrl != null && imageUrl!.isNotEmpty
+            child: hasImage
                 ? CachedNetworkImage(
                     imageUrl: imageUrl!,
                     httpHeaders: imageHeaders,
