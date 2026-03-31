@@ -27,8 +27,7 @@ class MediaProfileSelector extends StatelessWidget {
   /// Whether to use haptic feedback when opening selector.
   final bool enableHaptics;
 
-  /// Whether to use split button variant.
-  final bool isSplit;
+  final bool _isSplit;
 
   const MediaProfileSelector({
     super.key,
@@ -37,8 +36,7 @@ class MediaProfileSelector extends StatelessWidget {
     required this.qualityProfiles,
     required this.onProfileSelected,
     this.enableHaptics = true,
-    this.isSplit = false,
-  });
+  }) : _isSplit = false;
 
   /// Named constructor for split button variant.
   const MediaProfileSelector.split({
@@ -48,13 +46,13 @@ class MediaProfileSelector extends StatelessWidget {
     required this.qualityProfiles,
     required this.onProfileSelected,
     this.enableHaptics = true,
-  }) : isSplit = true;
+  }) : _isSplit = true;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (isSplit) {
+    if (_isSplit) {
       return SizedBox(
         height: HeaderActionRow.buttonHeight,
         child: OutlinedButton(

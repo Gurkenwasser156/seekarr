@@ -34,8 +34,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     with QualityProfileMixin<MovieDetailScreen> {
   bool _isSearching = false;
   bool _isDeleting = false;
-  bool _profilesRequested = false;
-  int? _boundProfileId;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +43,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
 
     if (movie == null) {
       if (movieAsync.isLoading) {
-        return const _MovieDetailLoadingState();
+        return const MediaDetailLoadingView();
       }
 
       return _MovieDetailErrorState(
@@ -54,7 +52,10 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       );
     }
 
-    _ensureQualityProfiles(movie.qualityProfileId);
+    ensureQualityProfiles(
+      profileId: movie.qualityProfileId,
+      fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
+    );
 
     final viewModel = MovieDetailViewModel.fromMovie(
       movie,
@@ -124,39 +125,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
         ],
       ],
     );
-  }
-
-  void _ensureQualityProfiles(int? profileId) {
-    if (!_profilesRequested) {
-      _profilesRequested = true;
-      _boundProfileId = profileId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        loadQualityProfiles(
-          fetchProfiles: () =>
-              ref.read(radarrServiceProvider).getQualityProfiles(),
-          initialProfileId: profileId,
-        );
-      });
-      return;
-    }
-
-    if (qualityProfiles.isNotEmpty && _boundProfileId != profileId) {
-      _boundProfileId = profileId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          currentProfileId = profileId;
-          currentProfileName = getProfileName(profileId);
-        });
-      });
-    }
   }
 
   Future<void> _updateProfile(int profileId) async {
@@ -251,47 +219,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
-  }
-}
-
-class _MovieDetailLoadingState extends StatelessWidget {
-  const _MovieDetailLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.surface,
-      child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: MediaDetailView.expandedHeight,
-            pinned: true,
-            backgroundColor: colorScheme.surface,
-            collapsedHeight: MediaDetailView.collapsedHeight,
-            flexibleSpace: const MediaDetailLoadingHeader(),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerPlaceholder.text(width: 220, height: 32),
-                  SizedBox(height: AppSpacing.sm),
-                  ShimmerPlaceholder.text(width: 160),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 48),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 140),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

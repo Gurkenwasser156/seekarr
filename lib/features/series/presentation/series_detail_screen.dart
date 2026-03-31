@@ -35,8 +35,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
   bool _isDeleting = false;
   final Set<int> _searchingSeasons = {};
   final Set<int> _searchingEpisodes = {};
-  bool _profilesRequested = false;
-  int? _boundProfileId;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +45,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
 
     if (series == null) {
       if (seriesAsync.isLoading) {
-        return const _SeriesDetailLoadingState();
+        return const MediaDetailLoadingView(subtitleWidth: 180);
       }
 
       return _SeriesDetailErrorState(
@@ -56,7 +54,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       );
     }
 
-    _ensureQualityProfiles(series.qualityProfileId);
+    ensureQualityProfiles(
+      profileId: series.qualityProfileId,
+      fetchProfiles: () => ref.read(sonarrServiceProvider).getQualityProfiles(),
+    );
 
     final viewModel = SeriesDetailViewModel.fromSeries(
       series,
@@ -158,39 +159,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         ),
       ],
     );
-  }
-
-  void _ensureQualityProfiles(int? profileId) {
-    if (!_profilesRequested) {
-      _profilesRequested = true;
-      _boundProfileId = profileId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        loadQualityProfiles(
-          fetchProfiles: () =>
-              ref.read(sonarrServiceProvider).getQualityProfiles(),
-          initialProfileId: profileId,
-        );
-      });
-      return;
-    }
-
-    if (qualityProfiles.isNotEmpty && _boundProfileId != profileId) {
-      _boundProfileId = profileId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          currentProfileId = profileId;
-          currentProfileName = getProfileName(profileId);
-        });
-      });
-    }
   }
 
   Future<void> _triggerSearch(BuildContext context) async {
@@ -372,47 +340,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
-  }
-}
-
-class _SeriesDetailLoadingState extends StatelessWidget {
-  const _SeriesDetailLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.surface,
-      child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: MediaDetailView.expandedHeight,
-            pinned: true,
-            backgroundColor: colorScheme.surface,
-            collapsedHeight: MediaDetailView.collapsedHeight,
-            flexibleSpace: const MediaDetailLoadingHeader(),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerPlaceholder.text(width: 220, height: 32),
-                  SizedBox(height: AppSpacing.sm),
-                  ShimmerPlaceholder.text(width: 180),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 48),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 140),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
