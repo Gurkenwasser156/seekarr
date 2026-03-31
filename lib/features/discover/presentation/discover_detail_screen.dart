@@ -14,7 +14,6 @@ import 'package:seekarr/features/discover/presentation/widgets/discover_cast_lis
 import 'package:seekarr/features/discover/presentation/widgets/discover_collection_banner.dart';
 import 'package:seekarr/features/discover/presentation/widgets/discover_release_facts.dart';
 import 'package:seekarr/features/discover/presentation/widgets/discover_seasons_list.dart';
-import 'package:seekarr/features/discover/presentation/widgets/discover_videos_button.dart';
 import 'package:seekarr/features/discover/presentation/widgets/discover_watch_providers.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
@@ -105,22 +104,21 @@ class DiscoverDetailScreen extends ConsumerWidget {
               imageUrl: viewModel.posterUrl,
               fallbackIcon: isMovie ? Icons.movie_outlined : Icons.tv_outlined,
             ),
-            actionButtons: [
-              DiscoverActionButtons(
-                mediaId: mediaId,
-                mediaType: normalizedMediaType,
-                hasManageableMedia: viewModel.hasManageableMedia,
-                isInService: isInService,
-                isAvailable: viewModel.isAvailable,
-                tvdbId: viewModel.tvdbId,
-                mediaInfo: viewModel.mediaInfo,
-                title: viewModel.title,
-                voteAverage: viewModel.voteAverage,
-                secondaryAction: viewModel.hasRelatedVideos
-                    ? DiscoverVideosButton(videos: viewModel.playableVideos)
-                    : null,
-              ),
-            ],
+            actions: DiscoverActionButtons(
+              mediaId: mediaId,
+              mediaType: normalizedMediaType,
+              hasManageableMedia: viewModel.hasManageableMedia,
+              isInService: isInService,
+              isAvailable: viewModel.isAvailable,
+              tvdbId: viewModel.tvdbId,
+              mediaInfo: viewModel.mediaInfo,
+              title: viewModel.title,
+              voteAverage: viewModel.voteAverage,
+              collapseFactor: collapseFactor,
+              videos: viewModel.hasRelatedVideos
+                  ? viewModel.playableVideos
+                  : const [],
+            ),
           ),
           contentSections: [
             MediaDetailTitleSection(title: viewModel.title),

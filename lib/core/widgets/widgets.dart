@@ -20,6 +20,8 @@ export 'media_detail_poster_row.dart';
 export 'media_poster_card.dart';
 export 'media_info_card.dart';
 export 'media_metadata_line.dart';
+export 'header_action_row.dart';
+export 'library_detail_actions.dart';
 export 'media_search_action_row.dart';
 export 'media_management_row.dart';
 
