@@ -1,11 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
-import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
@@ -64,18 +62,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       baseUrl: settings.radarrUrl,
       apiKey: settings.radarrApiKey,
     );
-    final hasBackdrop = (viewModel.backdropUrl ?? '').isNotEmpty;
-    final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
-    final tagAlignment = hasBackdrop
-        ? WrapAlignment.center
-        : WrapAlignment.start;
-    final tags = <Widget>[
-      if (!hasBackdrop)
-        StatusBadge.fromMedia(
-          hasFile: viewModel.hasFile,
-          status: viewModel.status,
-        ),
-    ];
     final infoGroups = viewModel.buildInfoGroups();
 
     return MediaDetailView(
@@ -83,30 +69,43 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       posterUrl: viewModel.posterUrl,
       posterHeaders: viewModel.posterHeaders,
       backdropUrl: viewModel.backdropUrl,
-      posterOverlay: hasBackdrop
-          ? _MoviePosterOverlay(
-              heroTag: widget.heroTag,
-              posterUrl: viewModel.posterUrl,
-              posterHeaders: viewModel.posterHeaders,
-              hasFile: viewModel.hasFile,
-              status: viewModel.status,
-            )
-          : null,
-      contentSections: [
-        MediaDetailTitleSection(
-          title: viewModel.title,
-          textAlign: titleTextAlign,
+      posterRow: (collapseFactor) => MediaDetailPosterRow(
+        collapseFactor: collapseFactor,
+        statusBadge: StatusBadge.fromMedia(
+          hasFile: viewModel.hasFile,
+          status: viewModel.status,
         ),
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          MediaDetailTagSection(tags: tags, alignment: tagAlignment),
+        posterCard: MediaPosterCard(
+          heroTag: widget.heroTag,
+          imageUrl: viewModel.posterUrl,
+          imageHeaders: viewModel.posterHeaders,
+          fallbackIcon: Icons.movie_outlined,
+        ),
+        actionButtons: [
+          if (currentProfileName != null)
+            MediaManagementRow(
+              currentProfileName: currentProfileName!,
+              currentProfileId: currentProfileId,
+              qualityProfiles: qualityProfiles,
+              onProfileSelected: _updateProfile,
+              isDeleting: _isDeleting,
+              onDelete: () => _confirmDelete(context, title: viewModel.title),
+              deleteTooltip: 'Delete Movie',
+            ),
+          MediaSearchActionRow(
+            isSearching: _isSearching,
+            isLoadingReleases: _isLoadingReleases,
+            onAutomaticSearch: () => _triggerSearch(context),
+            onInteractiveSearch: () =>
+                _showInteractiveSearch(context, title: viewModel.title),
+          ),
         ],
+      ),
+      contentSections: [
+        MediaDetailTitleSection(title: viewModel.title),
         if (viewModel.metadataItems.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
-          MediaMetadataLine(
-            items: viewModel.metadataItems,
-            textAlign: titleTextAlign,
-          ),
+          MediaMetadataLine(items: viewModel.metadataItems),
         ],
         if (viewModel.ratings.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
@@ -130,26 +129,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
           const SizedBox(height: AppSpacing.xl),
           FileInfoSection(path: viewModel.path, filename: viewModel.filename),
         ],
-        if (currentProfileName != null) ...[
-          const SizedBox(height: AppSpacing.lg),
-          MediaManagementRow(
-            currentProfileName: currentProfileName!,
-            currentProfileId: currentProfileId,
-            qualityProfiles: qualityProfiles,
-            onProfileSelected: _updateProfile,
-            isDeleting: _isDeleting,
-            onDelete: () => _confirmDelete(context, title: viewModel.title),
-            deleteTooltip: 'Delete Movie',
-          ),
-        ],
-        const SizedBox(height: AppSpacing.xl),
-        MediaSearchActionRow(
-          isSearching: _isSearching,
-          isLoadingReleases: _isLoadingReleases,
-          onAutomaticSearch: () => _triggerSearch(context),
-          onInteractiveSearch: () =>
-              _showInteractiveSearch(context, title: viewModel.title),
-        ),
       ],
     );
   }
@@ -290,69 +269,17 @@ class _MovieDetailLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    const expandedHeight = 380.0;
 
     return Material(
       color: colorScheme.surface,
       child: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: expandedHeight,
+            expandedHeight: MediaDetailView.expandedHeight,
             pinned: true,
             backgroundColor: colorScheme.surface,
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                final overlayOpacity = mediaDetailOverlayCollapseOpacity(
-                  context,
-                  currentHeight: constraints.maxHeight,
-                  expandedHeight: expandedHeight,
-                );
-
-                return ClipRect(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              colorScheme.surfaceContainerHighest,
-                              colorScheme.surface,
-                            ],
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                          child: Opacity(
-                            opacity: overlayOpacity,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ShimmerPlaceholder.card(
-                                  width: 120,
-                                  height: 180,
-                                ),
-                                SizedBox(height: AppSpacing.sm),
-                                ShimmerPlaceholder(
-                                  width: 96,
-                                  height: 28,
-                                  borderRadius: AppRadius.borderRadiusLg,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+            collapsedHeight: MediaDetailView.collapsedHeight,
+            flexibleSpace: const MediaDetailLoadingHeader(),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -411,97 +338,6 @@ class _MovieDetailErrorState extends StatelessWidget {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MoviePosterOverlay extends StatelessWidget {
-  final String heroTag;
-  final String posterUrl;
-  final Map<String, String>? posterHeaders;
-  final bool hasFile;
-  final String status;
-
-  const _MoviePosterOverlay({
-    required this.heroTag,
-    required this.posterUrl,
-    required this.posterHeaders,
-    required this.hasFile,
-    required this.status,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _MoviePosterCard(
-          heroTag: heroTag,
-          posterUrl: posterUrl,
-          posterHeaders: posterHeaders,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        StatusBadge.fromMedia(hasFile: hasFile, status: status),
-      ],
-    );
-  }
-}
-
-class _MoviePosterCard extends StatelessWidget {
-  final String heroTag;
-  final String? posterUrl;
-  final Map<String, String>? posterHeaders;
-
-  const _MoviePosterCard({
-    required this.heroTag,
-    required this.posterUrl,
-    required this.posterHeaders,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Hero(
-      tag: heroTag,
-      child: Material(
-        type: MaterialType.transparency,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.borderRadiusMd,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.4),
-                blurRadius: 16,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.borderRadiusMd,
-            child: SizedBox(
-              width: 120,
-              height: 180,
-              child: posterUrl != null && posterUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: posterUrl!,
-                      httpHeaders: posterHeaders,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          Container(color: colorScheme.surfaceContainer),
-                    )
-                  : Container(
-                      color: colorScheme.surfaceContainer,
-                      child: Icon(
-                        Icons.movie_outlined,
-                        size: 48,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-            ),
-          ),
-        ),
       ),
     );
   }
