@@ -211,6 +211,23 @@ class _PinnedPosterRowFlexibleSpace extends StatelessWidget {
 
               if (background != null) background!,
 
+              // Smooth transition overlay at the bottom edge
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: AppSpacing.xxl,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [surfaceColor.withValues(alpha: 0), surfaceColor],
+                    ),
+                  ),
+                ),
+              ),
+
               // Poster row — pinned at bottom
               Positioned(
                 left: AppSpacing.xl,
@@ -383,7 +400,6 @@ class MediaDetailLoadingHeader extends StatelessWidget {
                     height: 28,
                     borderRadius: AppRadius.borderRadiusLg,
                   ),
-                  actionButtons: const [],
                 ),
               ),
             ],

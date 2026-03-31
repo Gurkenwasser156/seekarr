@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/widgets/header_action_row.dart';
 
 /// A reusable quality profile selector widget.
 ///
@@ -53,65 +55,41 @@ class MediaProfileSelector extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (isSplit) {
-      return Container(
-        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainer,
-          borderRadius: AppRadius.borderRadiusSm,
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: () => _showProfileSelector(context),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppRadius.sm),
-                  bottomLeft: Radius.circular(AppRadius.sm),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.high_quality_rounded,
-                        size: 18,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Flexible(
-                        child: Text(
-                          currentProfileName,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+      return SizedBox(
+        height: HeaderActionRow.buttonHeight,
+        child: OutlinedButton(
+          onPressed: () => _showProfileSelector(context),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colorScheme.primary,
+            backgroundColor: Colors.transparent,
+            side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: AppRadius.borderRadiusSm,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.high_quality_rounded,
+                size: 18,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  currentProfileName,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-            Container(
-              width: 1,
-              color: colorScheme.outline.withValues(alpha: 0.3),
-            ),
-            InkWell(
-              onTap: () => _showProfileSelector(context),
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(AppRadius.sm),
-                bottomRight: Radius.circular(AppRadius.sm),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Icon(Icons.expand_more, size: 20),
-              ),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.xs),
+              const Icon(Icons.expand_more, size: 20),
+            ],
+          ),
         ),
       );
     }

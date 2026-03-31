@@ -2,14 +2,24 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
+import 'package:seekarr/core/widgets/header_action_row.dart';
+import 'package:seekarr/core/widgets/media_detail_poster_row.dart';
+import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_extras_provider.dart';
 import 'package:seekarr/features/discover/presentation/discover_details_provider.dart';
 import 'package:seekarr/features/discover/presentation/discover_navigation_utils.dart';
+import 'package:seekarr/features/discover/presentation/widgets/discover_videos_button.dart';
 import 'package:seekarr/features/discover/presentation/widgets/manage_media_sheet.dart';
 import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sheet.dart';
 
+/// Action buttons for the discover detail screen header.
+///
+/// Renders a [Column] of [HeaderActionRow] widgets that adapt to
+/// the poster row's [collapseFactor].
+///
+/// Row 1: Request (expanded, OutlinedButton) + Videos (icon-only).
+/// Row 2: Manage (expanded) + Open in Service (icon-only). Only shown when applicable.
 class DiscoverActionButtons extends ConsumerWidget {
   final int mediaId;
   final String mediaType;
@@ -20,7 +30,12 @@ class DiscoverActionButtons extends ConsumerWidget {
   final Map<String, dynamic>? mediaInfo;
   final String title;
   final double? voteAverage;
-  final Widget? secondaryAction;
+
+  /// Collapse progress passed through from [MediaDetailPosterRow].
+  final double collapseFactor;
+
+  /// Related videos for the Videos icon-only button.
+  final List<RelatedVideo> videos;
 
   const DiscoverActionButtons({
     super.key,
@@ -33,61 +48,71 @@ class DiscoverActionButtons extends ConsumerWidget {
     required this.mediaInfo,
     required this.title,
     required this.voteAverage,
-    this.secondaryAction,
+    required this.collapseFactor,
+    required this.videos,
   });
 
   String get _normalizedMediaType => mediaType == 'movie' ? 'movie' : 'tv';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final showOpen = isInService;
-    final showManage = hasManageableMedia;
+    final gap = MediaDetailPosterRow.actionGap(collapseFactor);
+    final showManageRow = hasManageableMedia || isInService;
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        FilledButton.icon(
-          onPressed: () => _showRequestSheet(context, ref),
-          icon: const Icon(Icons.add_circle_outline),
-          label: const Text('Request'),
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
+        // Row 1: Request + Videos
+        HeaderActionRow(
+          expanded: OutlinedButton.icon(
+            onPressed: () => _showRequestSheet(context, ref),
+            icon: const Icon(Icons.add_circle_outline),
+            label: const Text('Request'),
           ),
+          trailing: videos.isNotEmpty
+              ? DiscoverVideosButton.iconOnly(videos: videos)
+              : null,
         ),
-        if (secondaryAction != null) secondaryAction!,
-        if (showOpen) _buildOpenButton(context, ref),
-        if (showManage) _buildManageButton(context, ref),
+
+        if (showManageRow) ...[
+          SizedBox(height: gap),
+          // Row 2: Manage + Open in Service
+          HeaderActionRow(
+            expanded: hasManageableMedia
+                ? OutlinedButton.icon(
+                    onPressed: () => _showManageSheet(context, ref),
+                    icon: const Icon(Icons.settings),
+                    label: Text(
+                      _normalizedMediaType == 'movie'
+                          ? 'Manage Movie'
+                          : 'Manage Series',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: () => _openInService(context, ref),
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(
+                      _normalizedMediaType == 'movie'
+                          ? 'Open in Radarr'
+                          : 'Open in Sonarr',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+            trailing: hasManageableMedia && isInService
+                ? OutlinedButton(
+                    onPressed: () => _openInService(context, ref),
+                    style: HeaderActionRow.iconOnlyButtonStyle(),
+                    child: const Icon(Icons.open_in_new),
+                  )
+                : null,
+          ),
+        ],
       ],
-    );
-  }
-
-  Widget _buildOpenButton(BuildContext context, WidgetRef ref) {
-    return OutlinedButton.icon(
-      onPressed: () => _openInService(context, ref),
-      icon: const Icon(Icons.open_in_new),
-      label: Text(
-        _normalizedMediaType == 'movie' ? 'Open in Radarr' : 'Open in Sonarr',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        softWrap: false,
-      ),
-    );
-  }
-
-  Widget _buildManageButton(BuildContext context, WidgetRef ref) {
-    return OutlinedButton.icon(
-      onPressed: () => _showManageSheet(context, ref),
-      icon: const Icon(Icons.settings),
-      label: Text(
-        _normalizedMediaType == 'movie' ? 'Manage Movie' : 'Manage Series',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        softWrap: false,
-      ),
     );
   }
 

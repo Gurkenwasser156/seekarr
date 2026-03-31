@@ -33,7 +33,6 @@ class MovieDetailScreen extends ConsumerStatefulWidget {
 class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     with QualityProfileMixin<MovieDetailScreen> {
   bool _isSearching = false;
-  bool _isLoadingReleases = false;
   bool _isDeleting = false;
   bool _profilesRequested = false;
   int? _boundProfileId;
@@ -81,25 +80,19 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
           imageHeaders: viewModel.posterHeaders,
           fallbackIcon: Icons.movie_outlined,
         ),
-        actionButtons: [
-          if (currentProfileName != null)
-            MediaManagementRow(
-              currentProfileName: currentProfileName!,
-              currentProfileId: currentProfileId,
-              qualityProfiles: qualityProfiles,
-              onProfileSelected: _updateProfile,
-              isDeleting: _isDeleting,
-              onDelete: () => _confirmDelete(context, title: viewModel.title),
-              deleteTooltip: 'Delete Movie',
-            ),
-          MediaSearchActionRow(
-            isSearching: _isSearching,
-            isLoadingReleases: _isLoadingReleases,
-            onAutomaticSearch: () => _triggerSearch(context),
-            onInteractiveSearch: () =>
-                _showInteractiveSearch(context, title: viewModel.title),
-          ),
-        ],
+        actions: LibraryDetailActions(
+          collapseFactor: collapseFactor,
+          isSearching: _isSearching,
+          isDeleting: _isDeleting,
+          currentProfileName: currentProfileName,
+          currentProfileId: currentProfileId,
+          qualityProfiles: qualityProfiles,
+          onInteractiveSearch: () =>
+              _showInteractiveSearch(context, title: viewModel.title),
+          onAutoSearch: () => _triggerSearch(context),
+          onProfileSelected: _updateProfile,
+          onDelete: () => _confirmDelete(context, title: viewModel.title),
+        ),
       ),
       contentSections: [
         MediaDetailTitleSection(title: viewModel.title),

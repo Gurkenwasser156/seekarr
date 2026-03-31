@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_spacing.dart';
 
 /// A row layout for media detail screens with poster on the left
-/// and status badge + action buttons on the right.
+/// and status badge + action content on the right.
 ///
 /// Scales smoothly between expanded and collapsed sizes based on
 /// [collapseFactor] (0.0 = fully expanded, 1.0 = fully collapsed).
@@ -14,11 +14,14 @@ class MediaDetailPosterRow extends StatelessWidget {
   /// Will be sized by the row based on [collapseFactor].
   final Widget posterCard;
 
-  /// Optional status badge shown above the action buttons.
+  /// Optional status badge shown above the actions.
   final Widget? statusBadge;
 
-  /// Action buttons displayed in a [Wrap] below the status badge.
-  final List<Widget> actionButtons;
+  /// Action content displayed below the status badge.
+  ///
+  /// Typically a [Column] of [HeaderActionRow] widgets. The caller
+  /// should use [actionGap] for consistent vertical spacing between rows.
+  final Widget? actions;
 
   /// Collapse progress: 0.0 = fully expanded, 1.0 = fully collapsed.
   final double collapseFactor;
@@ -26,9 +29,9 @@ class MediaDetailPosterRow extends StatelessWidget {
   const MediaDetailPosterRow({
     super.key,
     required this.posterCard,
-    required this.actionButtons,
     required this.collapseFactor,
     this.statusBadge,
+    this.actions,
   });
 
   // Poster dimensions at expanded state.
@@ -39,11 +42,12 @@ class MediaDetailPosterRow extends StatelessWidget {
   static const collapsedWidth = 80.0;
   static const collapsedHeight = 120.0;
 
-  /// Threshold after which action buttons start fading out.
+  /// Calculates the vertical gap between action rows based on collapse progress.
   ///
-  /// Buttons are fully visible when [collapseFactor] ≤ this value
-  /// and fully hidden when [collapseFactor] = 1.0.
-  static const _buttonsFadeStart = 0.4;
+  /// Lerps from [AppSpacing.sm] (expanded) to [AppSpacing.xs] (collapsed)
+  /// for a tighter layout in the collapsed state.
+  static double actionGap(double collapseFactor) =>
+      lerpDouble(AppSpacing.sm, AppSpacing.xs, collapseFactor)!;
 
   @override
   Widget build(BuildContext context) {
@@ -57,15 +61,7 @@ class MediaDetailPosterRow extends StatelessWidget {
       collapsedHeight,
       collapseFactor,
     )!;
-
-    // Buttons fade out between _buttonsFadeStart and 1.0 to prevent overflow
-    // in the collapsed state where vertical space is limited.
-    final buttonsOpacity = collapseFactor <= _buttonsFadeStart
-        ? 1.0
-        : (1.0 -
-                  ((collapseFactor - _buttonsFadeStart) /
-                      (1.0 - _buttonsFadeStart)))
-              .clamp(0.0, 1.0);
+    final gap = actionGap(collapseFactor);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -81,22 +77,9 @@ class MediaDetailPosterRow extends StatelessWidget {
               children: [
                 if (statusBadge != null) ...[
                   statusBadge!,
-                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(height: gap),
                 ],
-                if (actionButtons.isNotEmpty)
-                  Flexible(
-                    child: IgnorePointer(
-                      ignoring: buttonsOpacity == 0,
-                      child: Opacity(
-                        opacity: buttonsOpacity,
-                        child: Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
-                          children: actionButtons,
-                        ),
-                      ),
-                    ),
-                  ),
+                if (actions != null) Flexible(child: actions!),
               ],
             ),
           ),

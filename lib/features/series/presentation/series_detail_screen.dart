@@ -32,7 +32,6 @@ class SeriesDetailScreen extends ConsumerStatefulWidget {
 class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     with QualityProfileMixin<SeriesDetailScreen> {
   bool _isSearching = false;
-  bool _isLoadingReleases = false;
   bool _isDeleting = false;
   final Set<int> _searchingSeasons = {};
   final Set<int> _searchingEpisodes = {};
@@ -83,25 +82,19 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
           imageHeaders: viewModel.posterHeaders,
           fallbackIcon: Icons.tv_outlined,
         ),
-        actionButtons: [
-          if (currentProfileName != null)
-            MediaManagementRow(
-              currentProfileName: currentProfileName!,
-              currentProfileId: currentProfileId,
-              qualityProfiles: qualityProfiles,
-              onProfileSelected: _updateProfile,
-              isDeleting: _isDeleting,
-              onDelete: () => _confirmDelete(context, title: viewModel.title),
-              deleteTooltip: 'Delete Series',
-            ),
-          MediaSearchActionRow(
-            isSearching: _isSearching,
-            isLoadingReleases: _isLoadingReleases,
-            onAutomaticSearch: () => _triggerSearch(context),
-            onInteractiveSearch: () =>
-                _showInteractiveSearch(context, title: viewModel.title),
-          ),
-        ],
+        actions: LibraryDetailActions(
+          collapseFactor: collapseFactor,
+          isSearching: _isSearching,
+          isDeleting: _isDeleting,
+          currentProfileName: currentProfileName,
+          currentProfileId: currentProfileId,
+          qualityProfiles: qualityProfiles,
+          onInteractiveSearch: () =>
+              _showInteractiveSearch(context, title: viewModel.title),
+          onAutoSearch: () => _triggerSearch(context),
+          onProfileSelected: _updateProfile,
+          onDelete: () => _confirmDelete(context, title: viewModel.title),
+        ),
       ),
       contentSections: [
         MediaDetailTitleSection(title: viewModel.title),
