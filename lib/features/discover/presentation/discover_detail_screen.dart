@@ -207,7 +207,7 @@ class DiscoverDetailScreen extends ConsumerWidget {
     );
   }
 
-  Color _statusColor(DiscoverDetailViewModel viewModel) {
+  static Color _statusColor(DiscoverDetailViewModel viewModel) {
     if (viewModel.isAvailable) {
       return AppColors.success;
     }
@@ -219,7 +219,7 @@ class DiscoverDetailScreen extends ConsumerWidget {
     return AppColors.info;
   }
 
-  List<Widget> _buildRatingWidgets(
+  static List<Widget> _buildRatingWidgets(
     DiscoverDetailViewModel viewModel,
     List<DiscoverDetailRating>? lookupRatings,
   ) {

@@ -52,7 +52,6 @@ class _DiscoverVideosIconButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 void _showVideosSheet(BuildContext context, List<RelatedVideo> videos) {
-  final pageContext = context;
   final sortedVideos = [...videos]..sort(_compareVideos);
 
   SheetUtils.showSeekarrModalSheet<void>(
@@ -82,7 +81,7 @@ void _showVideosSheet(BuildContext context, List<RelatedVideo> videos) {
                   onTap: video.url.isEmpty
                       ? null
                       : () => _openVideo(
-                          pageContext: pageContext,
+                          pageContext: context,
                           sheetContext: sheetContext,
                           video: video,
                         ),

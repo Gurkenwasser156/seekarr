@@ -4,6 +4,11 @@ import 'package:seekarr/core/widgets/header_action_row.dart';
 import 'package:seekarr/core/widgets/media_detail_poster_row.dart';
 import 'package:seekarr/core/widgets/media_profile_selector.dart';
 
+const _kSpinner = SizedBox.square(
+  dimension: 16,
+  child: CircularProgressIndicator(strokeWidth: 2),
+);
+
 /// Shared action buttons for library detail screens (Movies, Series, Music).
 ///
 /// Row 1: Interactive Search (expanded) + Auto Search (icon-only).
@@ -64,12 +69,7 @@ class LibraryDetailActions extends StatelessWidget {
         HeaderActionRow(
           expanded: OutlinedButton.icon(
             onPressed: isSearching ? null : onInteractiveSearch,
-            icon: isSearching
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.search),
+            icon: isSearching ? _kSpinner : const Icon(Icons.search),
             label: const Text('Interactive Search'),
           ),
           trailing: OutlinedButton(
@@ -93,12 +93,7 @@ class LibraryDetailActions extends StatelessWidget {
                 foregroundColor: colorScheme.error,
                 borderColor: colorScheme.error,
               ),
-              child: isDeleting
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.delete_outline),
+              child: isDeleting ? _kSpinner : const Icon(Icons.delete_outline),
             ),
           ),
         ],
