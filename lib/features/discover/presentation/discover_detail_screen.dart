@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/app_radius.dart';
@@ -65,7 +64,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
         final extras =
             extrasAsync.asData?.value ??
             (isInLibrary: null, libraryCheckDone: false, lookupRatings: null);
-        final hasBackdrop = (viewModel.backdropUrl ?? '').isNotEmpty;
         final statusColor = _statusColor(viewModel);
         final watchProviders = viewModel.watchProvidersForRegion(region);
         final contentRating = isMovie
@@ -78,21 +76,12 @@ class DiscoverDetailScreen extends ConsumerWidget {
           if (!isMovie) viewModel.episodeSummary,
           if (!isMovie && viewModel.runtimeStr != null) viewModel.runtimeStr,
         ].whereType<String>().where((value) => value.isNotEmpty).toList();
-        final titleTextAlign = hasBackdrop ? TextAlign.center : TextAlign.start;
-        final tagAlignment = hasBackdrop
-            ? WrapAlignment.center
-            : WrapAlignment.start;
-        final sectionAlignment = hasBackdrop
-            ? WrapAlignment.center
-            : WrapAlignment.start;
 
         final isInService = extras.libraryCheckDone
             ? extras.isInLibrary ?? false
             : false;
 
         final tags = <Widget>[
-          if (!hasBackdrop)
-            TagChip(text: viewModel.jellyseerrStatus, color: statusColor),
           if (contentRating != null && contentRating.isNotEmpty)
             _CertificationChip(text: contentRating),
         ];
@@ -100,52 +89,24 @@ class DiscoverDetailScreen extends ConsumerWidget {
           viewModel,
           extras.lookupRatings,
         );
-        final posterOverlay = hasBackdrop
-            ? _DiscoverPosterOverlay(
-                heroTag: heroTag,
-                posterUrl: viewModel.posterUrl,
-                statusText: viewModel.jellyseerrStatus,
-                statusColor: statusColor,
-              )
-            : null;
 
         return MediaDetailView(
           heroTag: heroTag,
           posterUrl: viewModel.posterUrl,
           backdropUrl: viewModel.backdropUrl,
-          posterOverlay: posterOverlay,
-          contentSections: [
-            MediaDetailTitleSection(
-              title: viewModel.title,
-              textAlign: titleTextAlign,
+          posterRow: (collapseFactor) => MediaDetailPosterRow(
+            collapseFactor: collapseFactor,
+            statusBadge: TagChip(
+              text: viewModel.jellyseerrStatus,
+              color: statusColor,
             ),
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              MediaDetailTagSection(tags: tags, alignment: tagAlignment),
-            ],
-            if (metadataItems.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              MediaMetadataLine(
-                items: metadataItems,
-                textAlign: titleTextAlign,
-              ),
-            ],
-            if (ratingWidgets.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                child: Wrap(
-                  alignment: sectionAlignment,
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: ratingWidgets,
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.xl),
-            SizedBox(
-              width: double.infinity,
-              child: DiscoverActionButtons(
+            posterCard: MediaPosterCard(
+              heroTag: heroTag,
+              imageUrl: viewModel.posterUrl,
+              fallbackIcon: isMovie ? Icons.movie_outlined : Icons.tv_outlined,
+            ),
+            actionButtons: [
+              DiscoverActionButtons(
                 mediaId: mediaId,
                 mediaType: normalizedMediaType,
                 hasManageableMedia: viewModel.hasManageableMedia,
@@ -159,7 +120,29 @@ class DiscoverDetailScreen extends ConsumerWidget {
                     ? DiscoverVideosButton(videos: viewModel.playableVideos)
                     : null,
               ),
-            ),
+            ],
+          ),
+          contentSections: [
+            MediaDetailTitleSection(title: viewModel.title),
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              MediaDetailTagSection(tags: tags),
+            ],
+            if (metadataItems.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              MediaMetadataLine(items: metadataItems),
+            ],
+            if (ratingWidgets.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: ratingWidgets,
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
             SizedBox(
               width: double.infinity,
@@ -282,105 +265,39 @@ class _DiscoverDetailLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    const expandedHeight = 380.0;
 
     return Material(
       color: colorScheme.surface,
       child: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: expandedHeight,
+            expandedHeight: MediaDetailView.expandedHeight,
             pinned: true,
             backgroundColor: colorScheme.surface,
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                final overlayOpacity = mediaDetailOverlayCollapseOpacity(
-                  context,
-                  currentHeight: constraints.maxHeight,
-                  expandedHeight: expandedHeight,
-                );
-
-                return ClipRect(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              colorScheme.surfaceContainerHighest,
-                              colorScheme.surface,
-                            ],
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                          child: Opacity(
-                            opacity: overlayOpacity,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _DiscoverPosterCard(
-                                  heroTag: heroTag,
-                                  posterUrl: initialPosterUrl,
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Container(
-                                  height: 28,
-                                  width: 100,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerHighest,
-                                    borderRadius: AppRadius.borderRadiusLg,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            collapsedHeight: MediaDetailView.collapsedHeight,
+            flexibleSpace: MediaDetailLoadingHeader(
+              posterCard: initialPosterUrl != null
+                  ? MediaPosterCard(
+                      heroTag: heroTag,
+                      imageUrl: initialPosterUrl,
+                      fallbackIcon: Icons.movie_outlined,
+                    )
+                  : null,
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: AppSpacing.xl),
-                  Container(
-                    height: 32,
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: AppRadius.borderRadiusSm,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Container(
-                    height: 16,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: AppRadius.borderRadiusSm,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Container(
-                    height: 100,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: AppRadius.borderRadiusMd,
-                    ),
-                  ),
+                  ShimmerPlaceholder.text(width: 220, height: 32),
+                  SizedBox(height: AppSpacing.sm),
+                  ShimmerPlaceholder.text(width: 160),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 48),
+                  SizedBox(height: AppSpacing.xl),
+                  ShimmerPlaceholder.card(height: 140),
                 ],
               ),
             ),
@@ -444,78 +361,6 @@ class _DiscoverKeywordsSection extends StatelessWidget {
                 .toList(growable: false),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DiscoverPosterOverlay extends StatelessWidget {
-  final String heroTag;
-  final String posterUrl;
-  final String statusText;
-  final Color statusColor;
-
-  const _DiscoverPosterOverlay({
-    required this.heroTag,
-    required this.posterUrl,
-    required this.statusText,
-    required this.statusColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _DiscoverPosterCard(heroTag: heroTag, posterUrl: posterUrl),
-        const SizedBox(height: AppSpacing.sm),
-        TagChip(text: statusText, color: statusColor),
-      ],
-    );
-  }
-}
-
-class _DiscoverPosterCard extends StatelessWidget {
-  final String heroTag;
-  final String? posterUrl;
-
-  const _DiscoverPosterCard({required this.heroTag, this.posterUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Hero(
-      tag: heroTag,
-      child: Material(
-        type: MaterialType.transparency,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.borderRadiusMd,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.4),
-                blurRadius: 16,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.borderRadiusMd,
-            child: SizedBox(
-              width: 120,
-              height: 180,
-              child: posterUrl != null && posterUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: posterUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          Container(color: colorScheme.surfaceContainer),
-                    )
-                  : Container(color: colorScheme.surfaceContainer),
-            ),
-          ),
-        ),
       ),
     );
   }
