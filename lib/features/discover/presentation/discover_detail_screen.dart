@@ -41,9 +41,14 @@ class DiscoverDetailScreen extends ConsumerWidget {
     );
 
     return detailsAsync.when(
-      loading: () => _DiscoverDetailLoadingState(
-        heroTag: heroTag,
-        initialPosterUrl: initialPosterUrl,
+      loading: () => MediaDetailLoadingView(
+        posterCard: initialPosterUrl != null
+            ? MediaPosterCard(
+                heroTag: heroTag,
+                imageUrl: initialPosterUrl,
+                fallbackIcon: Icons.movie_outlined,
+              )
+            : null,
       ),
       error: (error, stackTrace) => _DiscoverDetailErrorState(error: error),
       data: (details) {
@@ -248,61 +253,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
         sourceIcon: 'TMDB',
       ),
     ];
-  }
-}
-
-class _DiscoverDetailLoadingState extends StatelessWidget {
-  final String heroTag;
-  final String? initialPosterUrl;
-
-  const _DiscoverDetailLoadingState({
-    required this.heroTag,
-    required this.initialPosterUrl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.surface,
-      child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: MediaDetailView.expandedHeight,
-            pinned: true,
-            backgroundColor: colorScheme.surface,
-            collapsedHeight: MediaDetailView.collapsedHeight,
-            flexibleSpace: MediaDetailLoadingHeader(
-              posterCard: initialPosterUrl != null
-                  ? MediaPosterCard(
-                      heroTag: heroTag,
-                      imageUrl: initialPosterUrl,
-                      fallbackIcon: Icons.movie_outlined,
-                    )
-                  : null,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerPlaceholder.text(width: 220, height: 32),
-                  SizedBox(height: AppSpacing.sm),
-                  ShimmerPlaceholder.text(width: 160),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 48),
-                  SizedBox(height: AppSpacing.xl),
-                  ShimmerPlaceholder.card(height: 140),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

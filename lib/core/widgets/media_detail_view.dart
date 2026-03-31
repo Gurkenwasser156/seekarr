@@ -146,6 +146,21 @@ class MediaDetailView extends StatelessWidget {
   }
 }
 
+double _collapseFactorForHeights({
+  required BoxConstraints constraints,
+  required double topPadding,
+  required double collapsedHeight,
+  required double expandedHeight,
+}) {
+  final minHeight = collapsedHeight + topPadding;
+  final maxHeight = expandedHeight + topPadding;
+  final range = maxHeight - minHeight;
+
+  return range > 0
+      ? (1.0 - ((constraints.maxHeight - minHeight) / range)).clamp(0.0, 1.0)
+      : 0.0;
+}
+
 /// Internal widget that manages the flexible space with a pinned poster row.
 ///
 /// Uses [LayoutBuilder] to calculate the collapse progress and positions
@@ -174,16 +189,12 @@ class _PinnedPosterRowFlexibleSpace extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final minHeight = collapsedHeight + topPadding;
-        final maxHeight = expandedHeight + topPadding;
-        final range = maxHeight - minHeight;
-
-        final collapseFactor = range > 0
-            ? (1.0 - ((constraints.maxHeight - minHeight) / range)).clamp(
-                0.0,
-                1.0,
-              )
-            : 0.0;
+        final collapseFactor = _collapseFactorForHeights(
+          constraints: constraints,
+          topPadding: topPadding,
+          collapsedHeight: collapsedHeight,
+          expandedHeight: expandedHeight,
+        );
 
         return ClipRect(
           child: Stack(
@@ -346,6 +357,38 @@ class MediaDetailOverviewSection extends StatelessWidget {
 /// Provide a custom [posterCard] widget (e.g. a [MediaPosterCard] with
 /// an initial URL for hero animation) or leave `null` for the default
 /// [ShimmerPlaceholder.card].
+class MediaDetailLoadingView extends StatelessWidget {
+  final Widget? posterCard;
+  final double subtitleWidth;
+
+  const MediaDetailLoadingView({
+    super.key,
+    this.posterCard,
+    this.subtitleWidth = 160,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colorScheme.surface,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: MediaDetailView.expandedHeight,
+            pinned: true,
+            backgroundColor: colorScheme.surface,
+            collapsedHeight: MediaDetailView.collapsedHeight,
+            flexibleSpace: MediaDetailLoadingHeader(posterCard: posterCard),
+          ),
+          _MediaDetailLoadingBody(subtitleWidth: subtitleWidth),
+        ],
+      ),
+    );
+  }
+}
+
 class MediaDetailLoadingHeader extends StatelessWidget {
   final Widget? posterCard;
 
@@ -358,15 +401,12 @@ class MediaDetailLoadingHeader extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final minHeight = MediaDetailView.collapsedHeight + topPadding;
-        final maxHeight = MediaDetailView.expandedHeight + topPadding;
-        final range = maxHeight - minHeight;
-        final collapseFactor = range > 0
-            ? (1.0 - ((constraints.maxHeight - minHeight) / range)).clamp(
-                0.0,
-                1.0,
-              )
-            : 0.0;
+        final collapseFactor = _collapseFactorForHeights(
+          constraints: constraints,
+          topPadding: topPadding,
+          collapsedHeight: MediaDetailView.collapsedHeight,
+          expandedHeight: MediaDetailView.expandedHeight,
+        );
 
         return ClipRect(
           child: Stack(
@@ -406,6 +446,33 @@ class MediaDetailLoadingHeader extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _MediaDetailLoadingBody extends StatelessWidget {
+  final double subtitleWidth;
+
+  const _MediaDetailLoadingBody({required this.subtitleWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShimmerPlaceholder.text(width: 220, height: 32),
+            const SizedBox(height: AppSpacing.sm),
+            ShimmerPlaceholder.text(width: subtitleWidth),
+            const SizedBox(height: AppSpacing.xl),
+            ShimmerPlaceholder.card(height: 48),
+            const SizedBox(height: AppSpacing.xl),
+            ShimmerPlaceholder.card(height: 140),
+          ],
+        ),
+      ),
     );
   }
 }
