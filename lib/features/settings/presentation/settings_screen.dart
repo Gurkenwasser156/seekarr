@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:seekarr/core/app_spacing.dart';
+
 import 'package:seekarr/core/app_radius.dart';
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 /// Settings screen for configuring service URLs and API keys.
 ///
@@ -81,15 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
       await ref.read(settingsProvider.notifier).updateSettings(newSettings);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Settings saved successfully'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: AppRadius.borderRadiusMd,
-            ),
-          ),
-        );
+        SnackBarHelper.success(context, 'Settings saved successfully');
       }
     }
   }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
@@ -134,11 +135,11 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       if (mounted) {
         updateProfileState(profileId);
         ref.invalidate(moviesProvider);
-        _showSnackBar('Quality profile updated');
+        SnackBarHelper.success(context, 'Quality profile updated');
       }
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar('Failed to update profile: $e');
+      SnackBarHelper.error(context, 'Failed to update profile: $e');
     }
   }
 
@@ -165,11 +166,11 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
         addImportExclusion: result.addExclusion,
       );
       if (!context.mounted) return;
-      _showSnackBar('Movie deleted');
+      SnackBarHelper.success(context, 'Movie deleted');
       context.pop();
     } catch (e) {
       if (!context.mounted) return;
-      _showErrorSnackBar('Failed to delete movie: $e');
+      SnackBarHelper.error(context, 'Failed to delete movie: $e');
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
@@ -182,10 +183,10 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       final radarrService = ref.read(radarrServiceProvider);
       await radarrService.searchMovie(widget.movieId);
       if (!context.mounted) return;
-      _showSnackBar('Search started');
+      SnackBarHelper.success(context, 'Search started');
     } catch (e) {
       if (!context.mounted) return;
-      _showErrorSnackBar('Search failed: $e');
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
@@ -205,21 +206,6 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       onGrabRelease: (guid, indexerId) async {
         await radarrService.grabRelease(guid: guid, indexerId: indexerId);
       },
-    );
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
     );
   }
 }

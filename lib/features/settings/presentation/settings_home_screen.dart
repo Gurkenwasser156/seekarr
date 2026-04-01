@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
@@ -77,7 +78,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                 SettingsCard(
                   leading: const Icon(Icons.share_rounded),
                   title: 'Share App',
-                  onTap: () => _showSnackBar(context, 'Coming soon!'),
+                  onTap: () => SnackBarHelper.info(context, 'Coming soon!'),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -140,13 +141,7 @@ class SettingsHomeScreen extends ConsumerWidget {
   }) async {
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && context.mounted) {
-      _showSnackBar(context, failureMessage);
+      SnackBarHelper.info(context, failureMessage);
     }
-  }
-
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
