@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/utils/url_utils.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -53,12 +55,7 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
     if (!mounted) return;
 
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${widget.service.title} settings saved'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    SnackBarHelper.success(context, '${widget.service.title} settings saved');
   }
 
   SettingsModel _updateServiceSettings(SettingsModel current) {
@@ -148,12 +145,7 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
     final apiKey = _apiKeyController.text.trim();
     if (apiKey.isNotEmpty) {
       Clipboard.setData(ClipboardData(text: apiKey));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('API key copied to clipboard'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      SnackBarHelper.info(context, 'API key copied to clipboard');
     }
   }
 }

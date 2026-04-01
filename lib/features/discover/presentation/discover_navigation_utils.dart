@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
@@ -62,7 +63,7 @@ Future<bool> _openMovieInService({
     }
 
     if (movie == null) {
-      _showSnackBar(context, notFoundMessage);
+      SnackBarHelper.info(context, notFoundMessage);
       return false;
     }
 
@@ -75,7 +76,7 @@ Future<bool> _openMovieInService({
       return false;
     }
 
-    _showSnackBar(context, 'Error: $error');
+    SnackBarHelper.info(context, 'Error: $error');
     return false;
   }
 }
@@ -97,7 +98,7 @@ Future<bool> _openSeriesInService({
   }
 
   if (tvdbId == null) {
-    _showSnackBar(context, 'TVDB ID not available');
+    SnackBarHelper.info(context, 'TVDB ID not available');
     return false;
   }
 
@@ -109,7 +110,7 @@ Future<bool> _openSeriesInService({
     }
 
     if (series == null) {
-      _showSnackBar(context, notFoundMessage);
+      SnackBarHelper.info(context, notFoundMessage);
       return false;
     }
 
@@ -125,7 +126,7 @@ Future<bool> _openSeriesInService({
       return false;
     }
 
-    _showSnackBar(context, 'Error: $error');
+    SnackBarHelper.info(context, 'Error: $error');
     return false;
   }
 }
@@ -146,8 +147,4 @@ void _showNotConfiguredDialog(BuildContext context, String serviceName) {
       ],
     ),
   );
-}
-
-void _showSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
