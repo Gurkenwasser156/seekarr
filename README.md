@@ -19,6 +19,7 @@ Supported services are: Seerr, Radarr, Sonarr, and Lidarr.
 - **Music**: View and manage your Lidarr music library
 - **Search**: Search across all sections with always-visible search bars
 - **Activity**: Monitor download queues, history, and wanted items across all services
+- **Customization**: Choose appearance theme (Light, Dark, System) and configure which services to display in the navigation bar
 - **Multiplatform**: Currently working and tested for Android, iOS and MacOS
 - **Material Design 3**: Modern design with Seerr-inspired color palette
 
@@ -54,7 +55,7 @@ lib/
 ## Configuration
 
 Configure your service URLs, API keys, and app preferences in the Settings screen:
-- General settings (e.g. Region for watch providers)
+- General settings: Appearance theme, Service visibility, and Region for watch providers
 - Seerr URL + API Key
 - Radarr URL + API Key
 - Sonarr URL + API Key

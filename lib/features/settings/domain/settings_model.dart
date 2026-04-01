@@ -1,4 +1,32 @@
+import 'package:flutter/material.dart' show ThemeMode;
+
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
+
+enum AppThemeMode {
+  system(label: 'System'),
+  light(label: 'Light'),
+  dark(label: 'Dark');
+
+  const AppThemeMode({required this.label});
+
+  final String label;
+
+  static final Map<String, AppThemeMode> _modesByName = {
+    for (final mode in values) mode.name: mode,
+  };
+
+  ThemeMode get materialThemeMode {
+    return switch (this) {
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.dark => ThemeMode.dark,
+      AppThemeMode.system => ThemeMode.system,
+    };
+  }
+
+  static AppThemeMode fromName(String? value) =>
+      _modesByName[value] ?? AppThemeMode.system;
+}
 
 class SettingsModel {
   final String jellyseerrUrl;
@@ -10,10 +38,16 @@ class SettingsModel {
   final String lidarrUrl;
   final String lidarrApiKey;
   final String region;
+  final AppThemeMode themeMode;
+  final Set<NavTab> hiddenTabs;
 
   static String normalizeRegion(String? region) {
     final normalized = region?.trim().toUpperCase() ?? '';
     return normalized.isEmpty ? 'US' : normalized;
+  }
+
+  static Set<NavTab> sanitizeHiddenTabs(Iterable<NavTab> tabs) {
+    return tabs.where((tab) => tab.canBeHidden).toSet();
   }
 
   const SettingsModel({
@@ -26,6 +60,8 @@ class SettingsModel {
     this.lidarrUrl = '',
     this.lidarrApiKey = '',
     this.region = 'US',
+    this.themeMode = AppThemeMode.system,
+    this.hiddenTabs = const <NavTab>{},
   });
 
   SettingsModel copyWith({
@@ -38,6 +74,8 @@ class SettingsModel {
     String? lidarrUrl,
     String? lidarrApiKey,
     String? region,
+    AppThemeMode? themeMode,
+    Set<NavTab>? hiddenTabs,
   }) {
     return SettingsModel(
       jellyseerrUrl: jellyseerrUrl ?? this.jellyseerrUrl,
@@ -49,7 +87,17 @@ class SettingsModel {
       lidarrUrl: lidarrUrl ?? this.lidarrUrl,
       lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
       region: region ?? this.region,
+      themeMode: themeMode ?? this.themeMode,
+      hiddenTabs: hiddenTabs == null
+          ? this.hiddenTabs
+          : sanitizeHiddenTabs(hiddenTabs),
     );
+  }
+
+  ThemeMode get resolvedThemeMode => themeMode.materialThemeMode;
+
+  bool isTabVisible(NavTab tab) {
+    return !tab.canBeHidden || !hiddenTabs.contains(tab);
   }
 
   /// Returns the URL configured for [service].
