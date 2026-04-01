@@ -295,7 +295,7 @@ class _NavBarItem extends StatelessWidget {
           // Label
           AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 200),
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: fontWeight,
               color: labelColor,

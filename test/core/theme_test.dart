@@ -19,12 +19,12 @@ void main() {
 
     setUp(() {
       google_fonts_base.clearCache();
-      google_fonts_base.assetManifest = _FakeAssetManifest(_outfitAssets);
+      google_fonts_base.assetManifest = _FakeAssetManifest(_interAssets);
       binding.defaultBinaryMessenger.setMockMessageHandler('flutter/assets', (
         message,
       ) async {
         final key = const StringCodec().decodeMessage(message);
-        if (key != null && _outfitAssets.contains(key)) {
+        if (key != null && _interAssets.contains(key)) {
           return fontData;
         }
         return null;
@@ -76,12 +76,12 @@ void main() {
   });
 }
 
-const _outfitAssets = <String>{
-  'google_fonts/Outfit-Regular.ttf',
-  'google_fonts/Outfit-Medium.ttf',
-  'google_fonts/Outfit-SemiBold.ttf',
-  'google_fonts/Outfit-Bold.ttf',
-  'google_fonts/Outfit-Light.ttf',
+const _interAssets = <String>{
+  'google_fonts/Inter-Regular.ttf',
+  'google_fonts/Inter-Medium.ttf',
+  'google_fonts/Inter-SemiBold.ttf',
+  'google_fonts/Inter-Bold.ttf',
+  'google_fonts/Inter-Light.ttf',
 };
 
 Future<Uint8List> _loadFallbackFontBytes() async {
