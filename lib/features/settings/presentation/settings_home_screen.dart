@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
-import 'package:seekarr/features/settings/domain/service_key.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
+import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/regions.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 class SettingsHomeScreen extends ConsumerWidget {
   const SettingsHomeScreen({super.key});
+
+  static final Uri _githubUri = Uri.parse(
+    'https://github.com/matthw-labs/seekarr',
+  );
+  static final Uri _feedbackUri = Uri(
+    scheme: 'mailto',
+    path: 'matthw.labs@gmail.com',
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,18 +77,14 @@ class SettingsHomeScreen extends ConsumerWidget {
                 SettingsCard(
                   leading: const Icon(Icons.share_rounded),
                   title: 'Share App',
-                  onTap: () {
-                    // TODO: Implement share functionality
-                  },
+                  onTap: () => _showSnackBar(context, 'Coming soon!'),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: SettingsCard(
                     leading: const Icon(Icons.code_rounded),
                     title: 'GitHub',
-                    onTap: () {
-                      // TODO: Implement GitHub link
-                    },
+                    onTap: () => _openGitHub(context),
                   ),
                 ),
                 Padding(
@@ -86,9 +92,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   child: SettingsCard(
                     leading: const Icon(Icons.feedback_rounded),
                     title: 'Send Feedback',
-                    onTap: () {
-                      // TODO: Implement feedback action
-                    },
+                    onTap: () => _sendFeedback(context),
                   ),
                 ),
               ]),
@@ -111,5 +115,38 @@ class SettingsHomeScreen extends ConsumerWidget {
     final normalizedRegion = SettingsModel.normalizeRegion(region);
     final regionName = commonRegions[normalizedRegion] ?? normalizedRegion;
     return '$regionName ($normalizedRegion)';
+  }
+
+  Future<void> _openGitHub(BuildContext context) {
+    return _launchExternalUri(
+      context: context,
+      uri: _githubUri,
+      failureMessage: 'Unable to open the GitHub repository.',
+    );
+  }
+
+  Future<void> _sendFeedback(BuildContext context) {
+    return _launchExternalUri(
+      context: context,
+      uri: _feedbackUri,
+      failureMessage: 'Unable to open the email composer.',
+    );
+  }
+
+  Future<void> _launchExternalUri({
+    required BuildContext context,
+    required Uri uri,
+    required String failureMessage,
+  }) async {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      _showSnackBar(context, failureMessage);
+    }
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
