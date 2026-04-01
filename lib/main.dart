@@ -40,6 +40,7 @@ class CheckerrApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
@@ -47,7 +48,7 @@ class CheckerrApp extends ConsumerWidget {
           title: 'Seekarr',
           theme: AppTheme.lightTheme(lightDynamic),
           darkTheme: AppTheme.darkTheme(darkDynamic),
-          themeMode: ThemeMode.system, // Respect system setting
+          themeMode: themeMode,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
         );

@@ -71,7 +71,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     HapticFeedback.mediumImpact();
 
     if (_formKey.currentState!.validate()) {
-      final newSettings = SettingsModel(
+      final currentSettings = ref.read(currentSettingsProvider);
+      final newSettings = currentSettings.copyWith(
         jellyseerrUrl: _jellyseerrUrlController.text.trim(),
         jellyseerrApiKey: _jellyseerrApiKeyController.text.trim(),
         radarrUrl: _radarrUrlController.text.trim(),

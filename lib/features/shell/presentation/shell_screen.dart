@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 
 /// Main shell screen with floating bottom navigation.
 ///
@@ -15,37 +17,29 @@ class ShellScreen extends ConsumerWidget {
 
   const ShellScreen({super.key, required this.child});
 
-  static const _destinations = [
-    FloatingNavDestination(
-      icon: Icons.explore_outlined,
-      selectedIcon: Icons.explore,
-      label: 'Discover',
-    ),
-    FloatingNavDestination(
-      icon: Icons.movie_outlined,
-      selectedIcon: Icons.movie,
-      label: 'Movies',
-    ),
-    FloatingNavDestination(
-      icon: Icons.tv_outlined,
-      selectedIcon: Icons.tv,
-      label: 'Series',
-    ),
-    FloatingNavDestination(
-      icon: Icons.library_music_outlined,
-      selectedIcon: Icons.library_music,
-      label: 'Music',
-    ),
-    FloatingNavDestination(
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-      label: 'Settings',
-    ),
-  ];
+  static final Map<NavTab, FloatingNavDestination> _allDestinations = {
+    for (final tab in NavTab.values)
+      tab: FloatingNavDestination(
+        icon: tab.icon,
+        selectedIcon: tab.selectedIcon,
+        label: tab.label,
+      ),
+  };
+
+  static const Map<NavTab, NavigationSection> _refreshSectionsByTab = {
+    NavTab.discover: NavigationSection.discover,
+    NavTab.movies: NavigationSection.movies,
+    NavTab.series: NavigationSection.series,
+    NavTab.music: NavigationSection.music,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = _calculateSelectedIndex(context);
+    final visibleTabs = ref.watch(visibleNavTabsProvider);
+    final destinations = [
+      for (final tab in visibleTabs) _allDestinations[tab]!,
+    ];
+    final selectedIndex = _calculateSelectedIndex(context, visibleTabs);
 
     return Scaffold(
       // Extend body behind the nav bar for true floating effect
@@ -54,20 +48,22 @@ class ShellScreen extends ConsumerWidget {
       bottomNavigationBar: FloatingBottomNavBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (int idx) =>
-            _onItemTapped(idx, context, ref, selectedIndex),
-        destinations: _destinations,
+            _onItemTapped(idx, context, ref, selectedIndex, visibleTabs),
+        destinations: destinations,
       ),
     );
   }
 
-  static int _calculateSelectedIndex(BuildContext context) {
+  static int _calculateSelectedIndex(
+    BuildContext context,
+    List<NavTab> visibleTabs,
+  ) {
     final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/discover')) return 0;
-    if (location.startsWith('/movies')) return 1;
-    if (location.startsWith('/series')) return 2;
-    if (location.startsWith('/music')) return 3;
-    if (location.startsWith('/settings')) return 4;
-    return 0;
+    final selectedIndex = visibleTabs.indexWhere(
+      (tab) => location.startsWith(tab.routePath),
+    );
+
+    return selectedIndex >= 0 ? selectedIndex : 0;
   }
 
   void _onItemTapped(
@@ -75,35 +71,22 @@ class ShellScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     int currentIndex,
+    List<NavTab> visibleTabs,
   ) {
     // Add light haptic feedback on tab change
     HapticFeedback.selectionClick();
 
-    // Map index to navigation section for refresh trigger
-    final sectionMap = {
-      0: NavigationSection.discover,
-      1: NavigationSection.movies,
-      2: NavigationSection.series,
-      3: NavigationSection.music,
-    };
+    final tab = visibleTabs[index];
 
     // If tapping on the current tab, trigger a refresh
-    if (index == currentIndex && sectionMap.containsKey(index)) {
-      ref.triggerNavigationRefresh(sectionMap[index]!);
+    if (index == currentIndex) {
+      final refreshSection = _refreshSectionsByTab[tab];
+      if (refreshSection != null) {
+        ref.triggerNavigationRefresh(refreshSection);
+      }
     }
 
     // Always navigate (even if same tab, to reset navigation stack)
-    switch (index) {
-      case 0:
-        context.go('/discover');
-      case 1:
-        context.go('/movies');
-      case 2:
-        context.go('/series');
-      case 3:
-        context.go('/music');
-      case 4:
-        context.go('/settings');
-    }
+    context.go(tab.routePath);
   }
 }

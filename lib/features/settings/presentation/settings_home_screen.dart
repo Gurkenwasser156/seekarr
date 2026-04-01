@@ -9,6 +9,7 @@ import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/regions.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
@@ -51,6 +52,24 @@ class SettingsHomeScreen extends ConsumerWidget {
                   title: 'Region',
                   subtitle: _formatRegionLabel(settings.region),
                   onTap: () => context.push('/settings/region'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: SettingsCard(
+                    leading: const Icon(Icons.palette_rounded),
+                    title: 'Appearance',
+                    subtitle: settings.themeMode.label,
+                    onTap: () => context.push('/settings/appearance'),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: SettingsCard(
+                    leading: const Icon(Icons.apps_rounded),
+                    title: 'Services',
+                    subtitle: _formatServicesVisibilityLabel(settings),
+                    onTap: () => context.push('/settings/services'),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
@@ -106,16 +125,26 @@ class SettingsHomeScreen extends ConsumerWidget {
 
   String _getServiceSubtitle(SettingsModel settings, ServiceKey service) {
     final url = settings.urlFor(service);
-    if (url.isEmpty) return 'Not configured';
-
-    final host = service.extractHost(url);
-    return host != null ? host : url;
+    return url.isEmpty ? 'Not configured' : service.extractHost(url) ?? url;
   }
 
   String _formatRegionLabel(String region) {
     final normalizedRegion = SettingsModel.normalizeRegion(region);
     final regionName = commonRegions[normalizedRegion] ?? normalizedRegion;
     return '$regionName ($normalizedRegion)';
+  }
+
+  String _formatServicesVisibilityLabel(SettingsModel settings) {
+    final hiddenTabs = NavTab.hideableValues
+        .where((tab) => !settings.isTabVisible(tab))
+        .map((tab) => tab.label)
+        .toList(growable: false);
+
+    if (hiddenTabs.isEmpty) {
+      return 'All visible';
+    }
+
+    return '${hiddenTabs.join(', ')} hidden';
   }
 
   Future<void> _openGitHub(BuildContext context) {
