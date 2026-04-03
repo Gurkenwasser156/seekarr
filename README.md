@@ -21,6 +21,7 @@ The application is under active development and contributions are welcome.
 - **Music**: View and manage your Lidarr music library
 - **Search**: Search across all sections with always-visible search bars
 - **Activity**: Monitor download queues, history, and wanted items across all services
+- **Customization**: Choose appearance theme (Light, Dark, System) and configure which services to display in the navigation bar
 - **Multiplatform**: Currently working and tested for Android, iOS and MacOS
 - **Material Design 3**: Modern design with Seerr-inspired color palette
 

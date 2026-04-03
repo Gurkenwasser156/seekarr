@@ -7,7 +7,6 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 /// Settings screen for configuring service URLs and API keys.
 ///
@@ -71,7 +70,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     HapticFeedback.mediumImpact();
 
     if (_formKey.currentState!.validate()) {
-      final newSettings = SettingsModel(
+      final currentSettings = ref.read(currentSettingsProvider);
+      final newSettings = currentSettings.copyWith(
         jellyseerrUrl: _jellyseerrUrlController.text.trim(),
         jellyseerrApiKey: _jellyseerrApiKeyController.text.trim(),
         radarrUrl: _radarrUrlController.text.trim(),

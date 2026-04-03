@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seekarr/features/settings/data/settings_service.dart';
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -36,6 +38,18 @@ final currentSettingsProvider = Provider<SettingsModel>((ref) {
 
 final regionProvider = Provider<String>((ref) {
   return ref.watch(currentSettingsProvider).region;
+});
+
+final themeModeProvider = Provider<ThemeMode>((ref) {
+  return ref.watch(currentSettingsProvider).resolvedThemeMode;
+});
+
+final visibleNavTabsProvider = Provider<List<NavTab>>((ref) {
+  final settings = ref.watch(currentSettingsProvider);
+
+  return NavTab.values
+      .where((tab) => settings.isTabVisible(tab))
+      .toList(growable: false);
 });
 
 class SettingsNotifier extends Notifier<SettingsModel> {

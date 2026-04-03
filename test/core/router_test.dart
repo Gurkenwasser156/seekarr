@@ -16,13 +16,17 @@ import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
+import 'package:seekarr/features/music/presentation/music_screen.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+import 'package:seekarr/features/settings/presentation/settings_appearance_screen.dart';
+import 'package:seekarr/features/settings/presentation/settings_services_screen.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
 
 void main() {
@@ -165,6 +169,37 @@ void main() {
 
       expect(screen.service, ServiceKey.jellyseerr);
       expect(find.text('Jellyseerr Settings'), findsOneWidget);
+    });
+
+    testWidgets('supports appearance and services settings subroutes', (
+      tester,
+    ) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      router.go('/settings/appearance');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SettingsAppearanceScreen), findsOneWidget);
+
+      router.go('/settings/services');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SettingsServicesScreen), findsOneWidget);
+    });
+
+    testWidgets('hidden tabs remain directly routable', (tester) async {
+      final container = await _pumpRouter(
+        tester,
+        settings: const SettingsModel(hiddenTabs: {NavTab.music}),
+      );
+      final router = container.read(routerProvider);
+
+      router.go('/music');
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.toString(), '/music');
+      expect(find.byType(MusicScreen), findsOneWidget);
     });
   });
 }

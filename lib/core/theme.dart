@@ -109,7 +109,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.outfit(
+        titleTextStyle: GoogleFonts.inter(
           color: colorScheme.onSurface,
           fontSize: 22,
           fontWeight: FontWeight.w600,
@@ -123,13 +123,13 @@ class AppTheme {
         indicatorColor: colorScheme.primaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.outfit(
+            return GoogleFonts.inter(
               color: colorScheme.primary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             );
           }
-          return GoogleFonts.outfit(
+          return GoogleFonts.inter(
             color: colorScheme.onSurfaceVariant,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -153,7 +153,7 @@ class AppTheme {
       // Chip
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surfaceContainerHighest,
-        labelStyle: GoogleFonts.outfit(
+        labelStyle: GoogleFonts.inter(
           color: colorScheme.onSurfaceVariant,
           fontSize: 12,
         ),
@@ -166,7 +166,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          textStyle: GoogleFonts.outfit(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -179,7 +179,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: GoogleFonts.outfit(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -193,7 +193,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: GoogleFonts.outfit(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -248,7 +248,7 @@ class AppTheme {
       // SnackBar
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colorScheme.inverseSurface,
-        contentTextStyle: GoogleFonts.outfit(
+        contentTextStyle: GoogleFonts.inter(
           color: colorScheme.onInverseSurface,
         ),
         behavior: SnackBarBehavior.floating,
@@ -266,11 +266,11 @@ class AppTheme {
         labelColor: colorScheme.primary,
         unselectedLabelColor: colorScheme.onSurfaceVariant,
         indicatorColor: colorScheme.primary,
-        labelStyle: GoogleFonts.outfit(
+        labelStyle: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.outfit(
+        unselectedLabelStyle: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -372,74 +372,74 @@ class AppTheme {
   // === TEXT THEME ===
 
   static TextTheme _buildTextTheme(TextTheme base) {
-    return GoogleFonts.outfitTextTheme(base).copyWith(
+    return GoogleFonts.interTextTheme(base).copyWith(
       // Display
-      displayLarge: GoogleFonts.outfit(
+      displayLarge: GoogleFonts.inter(
         fontSize: 57,
         fontWeight: FontWeight.w400,
         letterSpacing: -0.25,
       ),
-      displayMedium: GoogleFonts.outfit(
+      displayMedium: GoogleFonts.inter(
         fontSize: 45,
         fontWeight: FontWeight.w400,
       ),
-      displaySmall: GoogleFonts.outfit(
+      displaySmall: GoogleFonts.inter(
         fontSize: 36,
         fontWeight: FontWeight.w400,
       ),
       // Headline
-      headlineLarge: GoogleFonts.outfit(
+      headlineLarge: GoogleFonts.inter(
         fontSize: 32,
         fontWeight: FontWeight.w600,
       ),
-      headlineMedium: GoogleFonts.outfit(
+      headlineMedium: GoogleFonts.inter(
         fontSize: 28,
         fontWeight: FontWeight.w600,
       ),
-      headlineSmall: GoogleFonts.outfit(
+      headlineSmall: GoogleFonts.inter(
         fontSize: 24,
         fontWeight: FontWeight.w600,
       ),
       // Title
-      titleLarge: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w600),
-      titleMedium: GoogleFonts.outfit(
+      titleLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w600),
+      titleMedium: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.15,
       ),
-      titleSmall: GoogleFonts.outfit(
+      titleSmall: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.1,
       ),
       // Body
-      bodyLarge: GoogleFonts.outfit(
+      bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.5,
       ),
-      bodyMedium: GoogleFonts.outfit(
+      bodyMedium: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.25,
       ),
-      bodySmall: GoogleFonts.outfit(
+      bodySmall: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.4,
       ),
       // Label
-      labelLarge: GoogleFonts.outfit(
+      labelLarge: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
-      labelMedium: GoogleFonts.outfit(
+      labelMedium: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
       ),
-      labelSmall: GoogleFonts.outfit(
+      labelSmall: GoogleFonts.inter(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,

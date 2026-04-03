@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
@@ -72,6 +74,48 @@ void main() {
         expect(updated.urlFor(key), 'https://test');
       }
     });
+  });
+
+  group('SettingsModel.themeMode', () {
+    test('defaults to system appearance and resolves to ThemeMode.system', () {
+      const settings = SettingsModel();
+
+      expect(settings.themeMode, AppThemeMode.system);
+      expect(settings.resolvedThemeMode, ThemeMode.system);
+    });
+
+    test('resolves light and dark appearance modes', () {
+      const lightSettings = SettingsModel(themeMode: AppThemeMode.light);
+      const darkSettings = SettingsModel(themeMode: AppThemeMode.dark);
+
+      expect(lightSettings.resolvedThemeMode, ThemeMode.light);
+      expect(darkSettings.resolvedThemeMode, ThemeMode.dark);
+    });
+  });
+
+  group('SettingsModel.hiddenTabs', () {
+    test('copyWith sanitizes non-hideable tabs', () {
+      const settings = SettingsModel();
+
+      final updated = settings.copyWith(
+        hiddenTabs: {NavTab.discover, NavTab.movies, NavTab.settings},
+      );
+
+      expect(updated.hiddenTabs, unorderedEquals([NavTab.movies]));
+    });
+
+    test(
+      'discover and settings stay visible even if present in hiddenTabs',
+      () {
+        const settings = SettingsModel(
+          hiddenTabs: {NavTab.discover, NavTab.music, NavTab.settings},
+        );
+
+        expect(settings.isTabVisible(NavTab.discover), isTrue);
+        expect(settings.isTabVisible(NavTab.settings), isTrue);
+        expect(settings.isTabVisible(NavTab.music), isFalse);
+      },
+    );
   });
 
   group('ServiceKey.routeParam', () {

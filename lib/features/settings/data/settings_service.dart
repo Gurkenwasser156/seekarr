@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 abstract interface class SecureSettingsStore {
@@ -40,6 +41,8 @@ class SettingsService {
   static const _kSonarrUrl = 'sonarr_url';
   static const _kLidarrUrl = 'lidarr_url';
   static const _kRegion = 'region';
+  static const _kThemeMode = 'theme_mode';
+  static const _kHiddenTabs = 'hidden_tabs';
 
   static const _kLegacyJellyseerrApiKey = 'jellyseerr_api_key';
   static const _kLegacyRadarrApiKey = 'radarr_api_key';
@@ -51,20 +54,20 @@ class SettingsService {
   static const _kSecureSonarrApiKey = 'secure_sonarr_api_key';
   static const _kSecureLidarrApiKey = 'secure_lidarr_api_key';
 
+  static const Map<String, String> _legacyApiKeyMigrations = {
+    _kLegacyJellyseerrApiKey: _kSecureJellyseerrApiKey,
+    _kLegacyRadarrApiKey: _kSecureRadarrApiKey,
+    _kLegacySonarrApiKey: _kSecureSonarrApiKey,
+    _kLegacyLidarrApiKey: _kSecureLidarrApiKey,
+  };
+
   final SharedPreferences _prefs;
   final SecureSettingsStore _secureStore;
 
   SettingsService(this._prefs, this._secureStore);
 
   Future<void> migrateFromPlaintext() async {
-    final migrations = {
-      _kLegacyJellyseerrApiKey: _kSecureJellyseerrApiKey,
-      _kLegacyRadarrApiKey: _kSecureRadarrApiKey,
-      _kLegacySonarrApiKey: _kSecureSonarrApiKey,
-      _kLegacyLidarrApiKey: _kSecureLidarrApiKey,
-    };
-
-    for (final entry in migrations.entries) {
+    for (final entry in _legacyApiKeyMigrations.entries) {
       final plaintextValue = _prefs.getString(entry.key);
       if (plaintextValue == null) {
         continue;
@@ -83,38 +86,79 @@ class SettingsService {
   }
 
   Future<SettingsModel> loadSettings() async {
-    final storedRegion = _prefs.getString(_kRegion);
-    final normalizedRegion = SettingsModel.normalizeRegion(
-      storedRegion ?? PlatformDispatcher.instance.locale.countryCode,
-    );
-
     return SettingsModel(
-      jellyseerrUrl: _prefs.getString(_kJellyseerrUrl) ?? '',
-      jellyseerrApiKey:
-          await _secureStore.read(key: _kSecureJellyseerrApiKey) ?? '',
-      radarrUrl: _prefs.getString(_kRadarrUrl) ?? '',
-      radarrApiKey: await _secureStore.read(key: _kSecureRadarrApiKey) ?? '',
-      sonarrUrl: _prefs.getString(_kSonarrUrl) ?? '',
-      sonarrApiKey: await _secureStore.read(key: _kSecureSonarrApiKey) ?? '',
-      lidarrUrl: _prefs.getString(_kLidarrUrl) ?? '',
-      lidarrApiKey: await _secureStore.read(key: _kSecureLidarrApiKey) ?? '',
-      region: normalizedRegion,
+      jellyseerrUrl: _loadString(_kJellyseerrUrl),
+      jellyseerrApiKey: await _loadApiKey(_kSecureJellyseerrApiKey),
+      radarrUrl: _loadString(_kRadarrUrl),
+      radarrApiKey: await _loadApiKey(_kSecureRadarrApiKey),
+      sonarrUrl: _loadString(_kSonarrUrl),
+      sonarrApiKey: await _loadApiKey(_kSecureSonarrApiKey),
+      lidarrUrl: _loadString(_kLidarrUrl),
+      lidarrApiKey: await _loadApiKey(_kSecureLidarrApiKey),
+      region: _loadRegion(),
+      themeMode: AppThemeMode.fromName(_prefs.getString(_kThemeMode)),
+      hiddenTabs: _loadHiddenTabs(),
     );
   }
 
   Future<void> saveSettings(SettingsModel settings) async {
     final normalizedRegion = SettingsModel.normalizeRegion(settings.region);
+    final hiddenTabs = SettingsModel.sanitizeHiddenTabs(settings.hiddenTabs);
 
     await _prefs.setString(_kJellyseerrUrl, settings.jellyseerrUrl);
     await _prefs.setString(_kRadarrUrl, settings.radarrUrl);
     await _prefs.setString(_kSonarrUrl, settings.sonarrUrl);
     await _prefs.setString(_kLidarrUrl, settings.lidarrUrl);
     await _prefs.setString(_kRegion, normalizedRegion);
+    await _prefs.setString(_kThemeMode, settings.themeMode.name);
+    await _prefs.setStringList(
+      _kHiddenTabs,
+      hiddenTabs.map((tab) => tab.name).toList(growable: false),
+    );
 
     await _saveApiKey(_kSecureJellyseerrApiKey, settings.jellyseerrApiKey);
     await _saveApiKey(_kSecureRadarrApiKey, settings.radarrApiKey);
     await _saveApiKey(_kSecureSonarrApiKey, settings.sonarrApiKey);
     await _saveApiKey(_kSecureLidarrApiKey, settings.lidarrApiKey);
+  }
+
+  Set<NavTab> _loadHiddenTabs() {
+    final storedNames =
+        _prefs.getStringList(_kHiddenTabs) ?? _loadLegacyHiddenTabs();
+
+    return SettingsModel.sanitizeHiddenTabs(
+      storedNames
+          .map((name) => NavTab.fromName(name.trim()))
+          .whereType<NavTab>(),
+    );
+  }
+
+  List<String> _loadLegacyHiddenTabs() {
+    final legacyHiddenTabs = _prefs.getString(_kHiddenTabs);
+    if (legacyHiddenTabs == null || legacyHiddenTabs.trim().isEmpty) {
+      return const [];
+    }
+
+    return legacyHiddenTabs
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _loadString(String key) {
+    return _prefs.getString(key) ?? '';
+  }
+
+  String _loadRegion() {
+    return SettingsModel.normalizeRegion(
+      _prefs.getString(_kRegion) ??
+          PlatformDispatcher.instance.locale.countryCode,
+    );
+  }
+
+  Future<String> _loadApiKey(String key) async {
+    return await _secureStore.read(key: key) ?? '';
   }
 
   Future<void> _saveApiKey(String key, String value) async {
