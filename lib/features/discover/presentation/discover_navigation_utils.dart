@@ -76,7 +76,7 @@ Future<bool> _openMovieInService({
       return false;
     }
 
-    SnackBarHelper.info(context, 'Error: $error');
+    SnackBarHelper.error(context, 'Error: $error');
     return false;
   }
 }
@@ -126,7 +126,7 @@ Future<bool> _openSeriesInService({
       return false;
     }
 
-    SnackBarHelper.info(context, 'Error: $error');
+    SnackBarHelper.error(context, 'Error: $error');
     return false;
   }
 }

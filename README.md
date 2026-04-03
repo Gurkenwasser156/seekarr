@@ -18,7 +18,13 @@ Supported services are: Seerr, Radarr, Sonarr, and Lidarr.
 - **TV Series**: View and manage your Sonarr TV series library
 - **Music**: View and manage your Lidarr music library
 - **Search**: Search across all sections with always-visible search bars
-- **Activity**: Monitor download queues, history, and wanted items across all services
+- **Activity**: Comprehensive task monitoring
+  - **Activity Tab**: Segmented sticky navigation for Queue, History, and Blocklist with full pagination fetching.
+  - **Wanted Tab**: Segmented sticky navigation for Missing and Cutoff Unmet with status text and pagination.
+  - **Queue Management**: Queue status normalization based on structured fields, with manual import placeholder actions.
+  - **History Cleanup**: Clean presentation showing date-only, size in GB, without noisy metadata.
+  - **Smart Search**: Wanted auto + interactive search actions using shared existing modules.
+  - **Hierarchical Sonarr**: Sonarr wanted presentation is structured by Series > Season > Episode, including per-episode search actions.
 - **Multiplatform**: Currently working and tested for Android, iOS and MacOS
 - **Material Design 3**: Modern design with Seerr-inspired color palette
 
@@ -39,8 +45,8 @@ lib/
 │   ├── music/         # Lidarr integration
 │   ├── settings/      # App configuration
 │   ├── shell/         # Navigation shell
-│   └── activity/      # Queue/History/Wanted views
-│       └── presentation/widgets/  # ActivityTabHelpers mixin
+│   └── activity/      # Redesigned top-level Activity and Wanted views
+│       └── presentation/widgets/  # Decomposed widgets, shared search helpers, and simplified segment enums
 └── main.dart
 ```
 
@@ -61,7 +67,7 @@ Configure your service URLs, API keys, and app preferences in the Settings scree
 - Lidarr URL + API Key
 
 ## Testing
-
+  
 Run unit tests:
 ```bash
 flutter test
@@ -71,6 +77,8 @@ Run static analysis:
 ```bash
 flutter analyze
 ```
+
+*Note for Contributors:* When working on the Activity and Wanted modules, adhere to the established architecture: use structured fields for queue status normalization, reuse the central shared helpers for search actions and activity widgets, and ensure paginated data fetching. Keep widget files decomposed and use simplified segment enums.
 
 ## Technologies
 

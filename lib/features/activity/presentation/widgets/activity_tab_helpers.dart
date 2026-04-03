@@ -1,134 +1,222 @@
 import 'package:flutter/material.dart';
 
-/// Mixin providing shared UI helpers for activity tab states.
-///
-/// Includes common methods for building section headers and async list widgets
-/// used across both ActivityTab and WantedTab.
-mixin ActivityTabHelpers {
-  /// Builds a styled section header as a Sliver.
-  Widget buildSectionHeaderSliver(BuildContext context, String title) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-  }
+import 'package:seekarr/core/api/base_arr_service.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
+import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
+import 'package:seekarr/features/activity/presentation/activity_screen.dart';
+import 'package:seekarr/features/activity/presentation/widgets/activity_formatters.dart';
+import 'package:seekarr/features/movies/data/radarr_service.dart';
+import 'package:seekarr/features/music/data/lidarr_service.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
 
-  /// Builds a sliver list for async data with loading and error states.
-  Widget buildAsyncSliverList(
+int? extractWantedItemId(ServiceType serviceType, Map<String, dynamic> item) {
+  switch (serviceType) {
+    case ServiceType.movies:
+      return intOrNull(item['id'] ?? item['movieId']);
+    case ServiceType.series:
+      return intOrNull(item['id']);
+    case ServiceType.music:
+      return intOrNull(item['id'] ?? item['albumId']);
+    case ServiceType.discover:
+      return null;
+  }
+}
+
+bool canSearchWantedItem(ServiceType serviceType, Map<String, dynamic> item) {
+  return extractWantedItemId(serviceType, item) != null;
+}
+
+Future<void> runWantedAutoSearch(
+  BuildContext context,
+  ArrActivityMixin service,
+  ServiceType serviceType,
+  Map<String, dynamic> item,
+) async {
+  final itemId = extractWantedItemId(serviceType, item);
+  if (itemId == null) return;
+
+  try {
+    switch (serviceType) {
+      case ServiceType.movies:
+        await (service as RadarrService).searchMovie(itemId);
+        break;
+      case ServiceType.series:
+        await (service as SonarrService).searchEpisodes([itemId]);
+        break;
+      case ServiceType.music:
+        await (service as LidarrService).searchAlbums([itemId]);
+        break;
+      case ServiceType.discover:
+        return;
+    }
+
+    if (!context.mounted) return;
+    SnackBarHelper.success(context, 'Search started');
+  } catch (error) {
+    if (!context.mounted) return;
+    SnackBarHelper.error(context, 'Search failed: $error');
+  }
+}
+
+Future<void> showWantedInteractiveSearch(
+  BuildContext context,
+  ArrActivityMixin service,
+  ServiceType serviceType,
+  Map<String, dynamic> item, {
+  String? title,
+}) async {
+  final itemId = extractWantedItemId(serviceType, item);
+  if (itemId == null) return;
+
+  final sheetTitle =
+      title ??
+      'Releases for ${stringOrNull(item['title']) ?? _fallbackLabel(serviceType)}';
+
+  switch (serviceType) {
+    case ServiceType.movies:
+      final radarrService = service as RadarrService;
+      await InteractiveSearchSheet.showAsync(
+        context: context,
+        title: sheetTitle,
+        fetchReleases: (token) =>
+            radarrService.getReleases(itemId, cancelToken: token),
+        onGrabRelease: (guid, indexerId) async {
+          await radarrService.grabRelease(guid: guid, indexerId: indexerId);
+        },
+      );
+      break;
+    case ServiceType.series:
+      final sonarrService = service as SonarrService;
+      await InteractiveSearchSheet.showAsync(
+        context: context,
+        title: sheetTitle,
+        fetchReleases: (token) =>
+            sonarrService.getReleases(episodeId: itemId, cancelToken: token),
+        onGrabRelease: (guid, indexerId) async {
+          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
+        },
+      );
+      break;
+    case ServiceType.music:
+      final lidarrService = service as LidarrService;
+      await InteractiveSearchSheet.showAsync(
+        context: context,
+        title: sheetTitle,
+        fetchReleases: (token) =>
+            lidarrService.getReleases(albumId: itemId, cancelToken: token),
+        onGrabRelease: (guid, indexerId) async {
+          await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
+        },
+      );
+      break;
+    case ServiceType.discover:
+      return;
+  }
+}
+
+String _fallbackLabel(ServiceType serviceType) {
+  switch (serviceType) {
+    case ServiceType.movies:
+      return 'Movie';
+    case ServiceType.series:
+      return 'Episode';
+    case ServiceType.music:
+      return 'Album';
+    case ServiceType.discover:
+      return 'Item';
+  }
+}
+
+/// Mixin providing shared async sliver builders for activity tabs.
+mixin ActivityTabHelpers {
+  Widget buildAsyncContentSliver(
     Future<List<dynamic>> future,
-    Widget Function(dynamic) itemBuilder,
+    Widget Function(dynamic item) itemBuilder,
   ) {
     return FutureBuilder<List<dynamic>>(
       future: future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          );
-        }
+        final stateSliver = _buildAsyncStateSliver(context, snapshot);
+        if (stateSliver != null) return stateSliver;
+
         final items = snapshot.data ?? [];
-        if (items.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'No items found.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
-        }
-        return SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            if (index.isOdd) return const Divider();
-            return itemBuilder(items[index ~/ 2]);
-          }, childCount: (items.length * 2) - 1),
+
+        return SliverList.separated(
+          itemCount: items.length,
+          itemBuilder: (context, index) => itemBuilder(items[index]),
+          separatorBuilder: (context, index) => const Divider(height: 1),
         );
       },
     );
   }
 
-  /// Builds a sliver list with grouping support.
-  ///
-  /// Since grouping often results in non-linear lists (like expansions),
-  /// this implementation wraps the grouped widget in a SliverToBoxAdapter for now.
-  /// For true sliver performance with grouping, the grouping logic needs to flatten
-  /// the structure into a list of sliver-compatible items, but that requires
-  /// significantly more logic change.
-  Widget buildAsyncSliverListWithGrouping(
+  Widget buildAsyncGroupedContentSliver(
     Future<List<dynamic>> future,
-    Widget Function(dynamic) itemBuilder, {
-    Widget Function(List<dynamic>)? groupingBuilder,
-  }) {
+    Widget Function(List<dynamic> items) groupBuilder,
+  ) {
     return FutureBuilder<List<dynamic>>(
       future: future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          );
-        }
+        final stateSliver = _buildAsyncStateSliver(context, snapshot);
+        if (stateSliver != null) return stateSliver;
+
         final items = snapshot.data ?? [];
-        if (items.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'No items found.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
-        }
 
-        if (groupingBuilder != null) {
-          // Grouping builds a single Column usually, so wrap in SliverToBoxAdapter
-          return SliverToBoxAdapter(child: groupingBuilder(items));
-        }
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            if (index.isOdd) return const Divider();
-            return itemBuilder(items[index ~/ 2]);
-          }, childCount: (items.length * 2) - 1),
-        );
+        return SliverToBoxAdapter(child: groupBuilder(items));
       },
+    );
+  }
+
+  Widget? _buildAsyncStateSliver(
+    BuildContext context,
+    AsyncSnapshot<List<dynamic>> snapshot,
+  ) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (snapshot.hasError) {
+      return _buildMessageSliver(
+        context,
+        'Error: ${snapshot.error}',
+        color: Theme.of(context).colorScheme.error,
+        textAlign: TextAlign.center,
+      );
+    }
+
+    final items = snapshot.data ?? const [];
+    if (items.isEmpty) {
+      return _buildMessageSliver(
+        context,
+        'Nothing here',
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      );
+    }
+
+    return null;
+  }
+
+  Widget _buildMessageSliver(
+    BuildContext context,
+    String message, {
+    required Color color,
+    TextAlign? textAlign,
+  }) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            message,
+            style: TextStyle(color: color),
+            textAlign: textAlign,
+          ),
+        ),
+      ),
     );
   }
 }
