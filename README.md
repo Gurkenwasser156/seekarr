@@ -58,6 +58,20 @@ Run unit tests:
 flutter test
 ```
 
+## Platform-specific install
+### Android
+Find .apk file in Releases
+
+### MacOS
+Find .dmg file in Releases
+
+### iOS
+As of now, no distribution is available for direct installation on iOS.
+Please compile and install with the following commands:
+```
+flutter run --release
+```
+
 ## Configuration
 
 Seekarr does not ship with any server credentials or default service configuration.
