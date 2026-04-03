@@ -10,7 +10,14 @@ class ArrServiceConfig {
   /// Sort key for wanted endpoints (e.g., 'airDateUtc' for Radarr/Sonarr, 'releaseDate' for Lidarr)
   final String sortKey;
 
-  const ArrServiceConfig({required this.apiVersion, required this.sortKey});
+  /// Extra query parameters required for cutoff endpoints.
+  final Map<String, dynamic> cutoffParams;
+
+  const ArrServiceConfig({
+    required this.apiVersion,
+    required this.sortKey,
+    this.cutoffParams = const {},
+  });
 
   static const radarr = ArrServiceConfig(
     apiVersion: 'v3',
@@ -19,6 +26,7 @@ class ArrServiceConfig {
   static const sonarr = ArrServiceConfig(
     apiVersion: 'v3',
     sortKey: 'airDateUtc',
+    cutoffParams: {'includeEpisodeFile': true},
   );
   static const lidarr = ArrServiceConfig(
     apiVersion: 'v1',
@@ -132,6 +140,7 @@ mixin ArrActivityMixin {
           'sortKey': config.sortKey,
           'sortDirection': 'descending',
           'includeSeries': true, // Include series data in response
+          ...config.cutoffParams,
         },
       );
       return response.data['records'] as List<dynamic>;
@@ -150,6 +159,7 @@ mixin ArrActivityMixin {
           'sortKey': config.sortKey,
           'sortDirection': 'descending',
           'includeSeries': true,
+          ...config.cutoffParams,
         },
       );
     } catch (_) {

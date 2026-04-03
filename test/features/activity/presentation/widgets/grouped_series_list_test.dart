@@ -141,5 +141,38 @@ void main() {
 
       expect(find.byType(ExpansionTile), findsNothing);
     });
+
+    testWidgets('cutoff episodes show episode file size in subtitle', (
+      tester,
+    ) async {
+      final items = [
+        {
+          'series': {'title': 'Show'},
+          'seasonNumber': 2,
+          'episodeNumber': 3,
+          'title': 'Big Episode',
+          'airDateUtc': '2026-04-01T01:48:00Z',
+          'episodeFile': {'size': 5307309140},
+        },
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(
+                items: items,
+                service: service,
+                isCutoff: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('4.94 GB'), findsOneWidget);
+    });
   });
 }
