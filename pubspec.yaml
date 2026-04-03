@@ -1,5 +1,9 @@
 name: seekarr
-description: "A new Flutter project."
+description: A Flutter app for managing self-hosted Jellyseerr, Radarr, Sonarr, and Lidarr services.
+homepage: https://github.com/matthw-labs/seekarr
+repository: https://github.com/matthw-labs/seekarr
+issue_tracker: https://github.com/matthw-labs/seekarr/issues
+
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
