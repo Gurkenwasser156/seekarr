@@ -96,6 +96,15 @@ mixin ArrActivityMixin {
     return _fetchAllPages('history');
   }
 
+  Map<String, dynamic> _wantedParams({bool includeCutoffParams = false}) {
+    return {
+      'sortKey': config.sortKey,
+      'sortDirection': 'descending',
+      'includeSeries': true,
+      if (includeCutoffParams) ...config.cutoffParams,
+    };
+  }
+
   /// Fetches the blocklist.
   Future<List<dynamic>> getBlocklist() async {
     final response = await client.get('/api/${config.apiVersion}/blocklist');
@@ -106,27 +115,14 @@ mixin ArrActivityMixin {
   Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async {
     final response = await client.get(
       '/api/${config.apiVersion}/wanted/missing',
-      queryParameters: {
-        'page': page,
-        'pageSize': pageSize,
-        'sortKey': config.sortKey,
-        'sortDirection': 'descending',
-        'includeSeries': true, // Include series data in response
-      },
+      queryParameters: {'page': page, 'pageSize': pageSize, ..._wantedParams()},
     );
     return response.data['records'] as List<dynamic>;
   }
 
   /// Fetches all missing items across all pages.
   Future<List<dynamic>> getAllMissing() async {
-    return _fetchAllPages(
-      'wanted/missing',
-      extraParams: {
-        'sortKey': config.sortKey,
-        'sortDirection': 'descending',
-        'includeSeries': true,
-      },
-    );
+    return _fetchAllPages('wanted/missing', extraParams: _wantedParams());
   }
 
   /// Fetches items with cutoff unmet.
@@ -137,10 +133,7 @@ mixin ArrActivityMixin {
         queryParameters: {
           'page': page,
           'pageSize': pageSize,
-          'sortKey': config.sortKey,
-          'sortDirection': 'descending',
-          'includeSeries': true, // Include series data in response
-          ...config.cutoffParams,
+          ..._wantedParams(includeCutoffParams: true),
         },
       );
       return response.data['records'] as List<dynamic>;
@@ -155,12 +148,7 @@ mixin ArrActivityMixin {
     try {
       return await _fetchAllPages(
         'wanted/cutoff',
-        extraParams: {
-          'sortKey': config.sortKey,
-          'sortDirection': 'descending',
-          'includeSeries': true,
-          ...config.cutoffParams,
-        },
+        extraParams: _wantedParams(includeCutoffParams: true),
       );
     } catch (_) {
       return [];

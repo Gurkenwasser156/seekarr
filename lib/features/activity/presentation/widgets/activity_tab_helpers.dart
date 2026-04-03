@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import 'package:seekarr/core/api/base_arr_service.dart';
@@ -8,6 +9,8 @@ import 'package:seekarr/features/activity/presentation/widgets/activity_formatte
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
+
+typedef ReleaseFetcher = Future<List<dynamic>> Function(CancelToken token);
 
 int? extractWantedItemId(ServiceType serviceType, Map<String, dynamic> item) {
   switch (serviceType) {
@@ -20,10 +23,6 @@ int? extractWantedItemId(ServiceType serviceType, Map<String, dynamic> item) {
     case ServiceType.discover:
       return null;
   }
-}
-
-bool canSearchWantedItem(ServiceType serviceType, Map<String, dynamic> item) {
-  return extractWantedItemId(serviceType, item) != null;
 }
 
 Future<void> runWantedAutoSearch(
@@ -72,59 +71,39 @@ Future<void> showWantedInteractiveSearch(
       title ??
       'Releases for ${stringOrNull(item['title']) ?? _fallbackLabel(serviceType)}';
 
-  switch (serviceType) {
-    case ServiceType.movies:
-      final radarrService = service as RadarrService;
-      await InteractiveSearchSheet.showAsync(
-        context: context,
-        title: sheetTitle,
-        fetchReleases: (token) =>
-            radarrService.getReleases(itemId, cancelToken: token),
-        onGrabRelease: (guid, indexerId) async {
-          await radarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-      break;
-    case ServiceType.series:
-      final sonarrService = service as SonarrService;
-      await InteractiveSearchSheet.showAsync(
-        context: context,
-        title: sheetTitle,
-        fetchReleases: (token) =>
-            sonarrService.getReleases(episodeId: itemId, cancelToken: token),
-        onGrabRelease: (guid, indexerId) async {
-          await sonarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-      break;
-    case ServiceType.music:
-      final lidarrService = service as LidarrService;
-      await InteractiveSearchSheet.showAsync(
-        context: context,
-        title: sheetTitle,
-        fetchReleases: (token) =>
-            lidarrService.getReleases(albumId: itemId, cancelToken: token),
-        onGrabRelease: (guid, indexerId) async {
-          await lidarrService.grabRelease(guid: guid, indexerId: indexerId);
-        },
-      );
-      break;
-    case ServiceType.discover:
-      return;
-  }
+  final ReleaseFetcher? fetchReleases = switch (serviceType) {
+    ServiceType.movies => (token) => (service as RadarrService).getReleases(
+      itemId,
+      cancelToken: token,
+    ),
+    ServiceType.series => (token) => (service as SonarrService).getReleases(
+      episodeId: itemId,
+      cancelToken: token,
+    ),
+    ServiceType.music => (token) => (service as LidarrService).getReleases(
+      albumId: itemId,
+      cancelToken: token,
+    ),
+    ServiceType.discover => null,
+  };
+  if (fetchReleases == null) return;
+
+  await InteractiveSearchSheet.showAsync(
+    context: context,
+    title: sheetTitle,
+    fetchReleases: fetchReleases,
+    onGrabRelease: (guid, indexerId) =>
+        service.grabReleaseByGuid(guid: guid, indexerId: indexerId),
+  );
 }
 
 String _fallbackLabel(ServiceType serviceType) {
-  switch (serviceType) {
-    case ServiceType.movies:
-      return 'Movie';
-    case ServiceType.series:
-      return 'Episode';
-    case ServiceType.music:
-      return 'Album';
-    case ServiceType.discover:
-      return 'Item';
-  }
+  return switch (serviceType) {
+    ServiceType.movies => 'Movie',
+    ServiceType.series => 'Episode',
+    ServiceType.music => 'Album',
+    ServiceType.discover => 'Item',
+  };
 }
 
 /// Mixin providing shared async sliver builders for activity tabs.
@@ -133,19 +112,26 @@ mixin ActivityTabHelpers {
     Future<List<dynamic>> future,
     Widget Function(dynamic item) itemBuilder,
   ) {
+    return _buildAsyncSliver(future, (items) {
+      return SliverList.separated(
+        itemCount: items.length,
+        itemBuilder: (context, index) => itemBuilder(items[index]),
+        separatorBuilder: (context, index) => const Divider(height: 1),
+      );
+    });
+  }
+
+  Widget _buildAsyncSliver(
+    Future<List<dynamic>> future,
+    Widget Function(List<dynamic> items) contentBuilder,
+  ) {
     return FutureBuilder<List<dynamic>>(
       future: future,
       builder: (context, snapshot) {
         final stateSliver = _buildAsyncStateSliver(context, snapshot);
         if (stateSliver != null) return stateSliver;
 
-        final items = snapshot.data ?? [];
-
-        return SliverList.separated(
-          itemCount: items.length,
-          itemBuilder: (context, index) => itemBuilder(items[index]),
-          separatorBuilder: (context, index) => const Divider(height: 1),
-        );
+        return contentBuilder(snapshot.data ?? const []);
       },
     );
   }
@@ -154,16 +140,9 @@ mixin ActivityTabHelpers {
     Future<List<dynamic>> future,
     Widget Function(List<dynamic> items) groupBuilder,
   ) {
-    return FutureBuilder<List<dynamic>>(
-      future: future,
-      builder: (context, snapshot) {
-        final stateSliver = _buildAsyncStateSliver(context, snapshot);
-        if (stateSliver != null) return stateSliver;
-
-        final items = snapshot.data ?? [];
-
-        return SliverToBoxAdapter(child: groupBuilder(items));
-      },
+    return _buildAsyncSliver(
+      future,
+      (items) => SliverToBoxAdapter(child: groupBuilder(items)),
     );
   }
 

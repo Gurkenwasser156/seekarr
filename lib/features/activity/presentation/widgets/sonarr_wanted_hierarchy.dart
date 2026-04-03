@@ -23,27 +23,7 @@ class SonarrWantedHierarchy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final records = items.whereType<Map<String, dynamic>>().toList(
-      growable: false,
-    );
-    final grouped = <String, Map<int, List<Map<String, dynamic>>>>{};
-
-    for (final item in records) {
-      final seriesTitle =
-          stringOrNull(
-            asActivityMap(item['series'])?['title'] ?? item['seriesTitle'],
-          ) ??
-          'Unknown Series';
-      final seasonNumber = intOrNull(item['seasonNumber']) ?? 0;
-
-      final seasonMap = grouped.putIfAbsent(
-        seriesTitle,
-        () => <int, List<Map<String, dynamic>>>{},
-      );
-      seasonMap
-          .putIfAbsent(seasonNumber, () => <Map<String, dynamic>>[])
-          .add(item);
-    }
+    final grouped = _groupEpisodesBySeriesAndSeason(items);
 
     final sortedSeries = grouped.keys.toList()..sort();
 
@@ -76,6 +56,27 @@ class SonarrWantedHierarchy extends StatelessWidget {
       ),
     );
   }
+}
+
+Map<String, Map<int, List<Map<String, dynamic>>>>
+_groupEpisodesBySeriesAndSeason(List<dynamic> items) {
+  final grouped = <String, Map<int, List<Map<String, dynamic>>>>{};
+
+  for (final item in items.whereType<Map<String, dynamic>>()) {
+    final seriesTitle =
+        stringOrNull(
+          asActivityMap(item['series'])?['title'] ?? item['seriesTitle'],
+        ) ??
+        'Unknown Series';
+    final seasonNumber = intOrNull(item['seasonNumber']) ?? 0;
+
+    grouped
+        .putIfAbsent(seriesTitle, () => <int, List<Map<String, dynamic>>>{})
+        .putIfAbsent(seasonNumber, () => <Map<String, dynamic>>[])
+        .add(item);
+  }
+
+  return grouped;
 }
 
 class _SeriesExpansionTile extends StatelessWidget {
@@ -228,7 +229,7 @@ class _EpisodeListTile extends StatelessWidget {
     final subtitle = joinActivityParts([
       formatRelativeActivityDate(stringOrNull(episode['airDateUtc'])),
       if (!isMonitored) 'Unmonitored',
-      if (isCutoff) _cutoffSizeText(episode),
+      if (isCutoff) formatCutoffSize(episode, ServiceType.series),
     ]);
 
     return ListTile(
@@ -273,11 +274,4 @@ class _EpisodeListTile extends StatelessWidget {
           DetailSheets.showWantedDetail(context, episode, ServiceType.series),
     );
   }
-}
-
-String? _cutoffSizeText(Map<String, dynamic> episode) {
-  final size =
-      asActivityMap(episode['episodeFile'])?['size'] ?? episode['size'];
-  final formatted = formatSizeInGb(size);
-  return formatted == '—' ? null : formatted;
 }
