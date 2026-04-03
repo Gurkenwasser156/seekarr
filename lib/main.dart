@@ -29,13 +29,13 @@ void main() async {
         secureSettingsStoreProvider.overrideWithValue(secureSettingsStore),
         initialSettingsProvider.overrideWithValue(initialSettings),
       ],
-      child: const CheckerrApp(),
+      child: const SeekarrApp(),
     ),
   );
 }
 
-class CheckerrApp extends ConsumerWidget {
-  const CheckerrApp({super.key});
+class SeekarrApp extends ConsumerWidget {
+  const SeekarrApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
