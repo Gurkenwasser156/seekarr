@@ -30,6 +30,8 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
   Key _refreshKey = UniqueKey();
   Future<Map<int, String>>? _movieQualityProfilesFuture;
 
+  bool get _isCutoffSelected => _selectedSegment == WantedSegment.cutoffUnmet;
+
   void _refresh({WantedSegment? nextSegment}) {
     setState(() {
       if (nextSegment != null) {
@@ -58,13 +60,12 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
         (items) => SonarrWantedHierarchy(
           items: items,
           service: service as SonarrService,
-          isCutoff: _selectedSegment == WantedSegment.cutoffUnmet,
+          isCutoff: _isCutoffSelected,
         ),
       );
     }
 
-    if (widget.serviceType == ServiceType.movies &&
-        _selectedSegment == WantedSegment.cutoffUnmet) {
+    if (widget.serviceType == ServiceType.movies && _isCutoffSelected) {
       final radarrService = service as RadarrService;
       _movieQualityProfilesFuture ??= _loadMovieQualityProfiles(radarrService);
 
@@ -92,13 +93,14 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
   }) {
     return buildAsyncContentSliver(future, (item) {
       final wantedItem = item as Map<String, dynamic>;
-      final canSearch = canSearchWantedItem(widget.serviceType, wantedItem);
+      final canSearch =
+          extractWantedItemId(widget.serviceType, wantedItem) != null;
       final profileId = intOrNull(wantedItem['qualityProfileId']);
 
       return WantedItemTile(
         item: wantedItem,
         serviceType: widget.serviceType,
-        isCutoff: _selectedSegment == WantedSegment.cutoffUnmet,
+        isCutoff: _isCutoffSelected,
         qualityProfileName: profileId == null
             ? null
             : qualityProfiles[profileId],
