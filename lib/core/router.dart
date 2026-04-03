@@ -16,8 +16,10 @@ import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_see_all_screen.dart';
+import 'package:seekarr/features/settings/presentation/settings_appearance_screen.dart';
 import 'package:seekarr/features/settings/presentation/settings_home_screen.dart';
 import 'package:seekarr/features/settings/presentation/settings_region_screen.dart';
+import 'package:seekarr/features/settings/presentation/settings_services_screen.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
@@ -67,6 +69,10 @@ Page<void> _libraryDetailPage<T>(
     key: state.pageKey,
     child: buildChild(id, heroTag, item),
   );
+}
+
+Page<void> _settingsSubpage(GoRouterState state, Widget child) {
+  return RouteUtils.cupertinoPage(key: state.pageKey, child: child);
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -179,11 +185,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SettingsHomeScreen(),
             routes: [
               GoRoute(
+                path: 'appearance',
+                pageBuilder: (context, state) =>
+                    _settingsSubpage(state, const SettingsAppearanceScreen()),
+              ),
+              GoRoute(
+                path: 'services',
+                pageBuilder: (context, state) =>
+                    _settingsSubpage(state, const SettingsServicesScreen()),
+              ),
+              GoRoute(
                 path: 'region',
-                pageBuilder: (context, state) => RouteUtils.cupertinoPage(
-                  key: state.pageKey,
-                  child: const SettingsRegionScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    _settingsSubpage(state, const SettingsRegionScreen()),
               ),
               GoRoute(
                 path: 'service/:service',
@@ -193,9 +207,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                     (s) => s.routeParam == serviceParam,
                     orElse: () => ServiceKey.jellyseerr,
                   );
-                  return RouteUtils.cupertinoPage(
-                    key: state.pageKey,
-                    child: ServiceSettingsScreen(service: service),
+                  return _settingsSubpage(
+                    state,
+                    ServiceSettingsScreen(service: service),
                   );
                 },
               ),
