@@ -230,6 +230,34 @@ void main() {
       expect(find.text('Artist Name'), findsOneWidget);
     });
 
+    testWidgets('cutoff movie shows quality chip and size highlight', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: WantedItemTile(
+              item: {
+                'title': 'Long Movie Title',
+                'status': 'released',
+                'qualityProfileId': 7,
+                'sizeOnDisk': 8003897815,
+                'airDateUtc': '2026-04-03T12:34:56Z',
+              },
+              serviceType: ServiceType.movies,
+              isCutoff: true,
+              qualityProfileName: 'HD-1080p',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('HD-1080p'), findsOneWidget);
+      expect(find.text('7.45 GB'), findsOneWidget);
+      expect(find.textContaining('Release 2026-04-03'), findsNothing);
+      expect(find.text('Released'), findsNothing);
+    });
+
     testWidgets('handles missing series data gracefully', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
