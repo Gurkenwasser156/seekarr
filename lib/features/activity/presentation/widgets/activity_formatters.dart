@@ -127,6 +127,31 @@ String formatSizeInGb(dynamic bytes) {
   return '${(value / bytesPerGb).toStringAsFixed(2)} GB';
 }
 
+String? formatCutoffSize(Map<String, dynamic> item, ServiceType serviceType) {
+  final size = switch (serviceType) {
+    ServiceType.movies =>
+      item['sizeOnDisk'] ??
+          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
+          asActivityMap(item['movieFile'])?['size'] ??
+          item['size'],
+    ServiceType.series =>
+      item['sizeOnDisk'] ??
+          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
+          asActivityMap(item['episodeFile'])?['size'] ??
+          item['size'],
+    ServiceType.music =>
+      item['sizeOnDisk'] ??
+          asActivityMap(item['albumFile'])?['size'] ??
+          asActivityMap(item['trackFile'])?['size'] ??
+          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
+          item['size'],
+    ServiceType.discover => null,
+  };
+
+  final formattedSize = formatSizeInGb(size);
+  return formattedSize == '—' ? null : formattedSize;
+}
+
 String humanizeCamelCase(String value) {
   if (value.trim().isEmpty) return value;
 
@@ -174,30 +199,23 @@ String humanizeEventType(String value) {
     item['trackedDownloadStatus'],
   )?.toLowerCase();
 
-  ({String label, MediaStatus badge})? resolved;
-
-  switch (trackedState) {
-    case 'downloading':
-      resolved = (label: 'Downloading', badge: MediaStatus.downloading);
-    case 'importpending':
-    case 'importblocked':
-      resolved = (label: 'Import Pending', badge: MediaStatus.queued);
-    case 'importing':
-      resolved = (label: 'Importing', badge: MediaStatus.downloading);
-    case 'failedpending':
-      resolved = (label: 'Failed', badge: MediaStatus.missing);
-  }
-
-  resolved ??= switch (status) {
-    'completed' => (label: 'Completed', badge: MediaStatus.available),
-    'delay' || 'queued' => (label: 'Queued', badge: MediaStatus.queued),
+  final resolved = switch (trackedState) {
     'downloading' => (label: 'Downloading', badge: MediaStatus.downloading),
-    'paused' => (label: 'Paused', badge: MediaStatus.queued),
-    final String value when value.isNotEmpty => (
-      label: humanizeCamelCase(value),
-      badge: MediaStatus.unknown,
-    ),
-    _ => (label: 'Unknown', badge: MediaStatus.unknown),
+    'importpending' ||
+    'importblocked' => (label: 'Import Pending', badge: MediaStatus.queued),
+    'importing' => (label: 'Importing', badge: MediaStatus.downloading),
+    'failedpending' => (label: 'Failed', badge: MediaStatus.missing),
+    _ => switch (status) {
+      'completed' => (label: 'Completed', badge: MediaStatus.available),
+      'delay' || 'queued' => (label: 'Queued', badge: MediaStatus.queued),
+      'downloading' => (label: 'Downloading', badge: MediaStatus.downloading),
+      'paused' => (label: 'Paused', badge: MediaStatus.queued),
+      final String value when value.isNotEmpty => (
+        label: humanizeCamelCase(value),
+        badge: MediaStatus.unknown,
+      ),
+      _ => (label: 'Unknown', badge: MediaStatus.unknown),
+    },
   };
 
   if (trackedStatus == 'warning') {
@@ -220,28 +238,24 @@ String? wantedStatusText(Map<String, dynamic> item, ServiceType serviceType) {
       if (normalizedStatus == 'announced') {
         return 'Movie not available yet';
       }
-      return normalizedStatus == null
-          ? null
-          : humanizeCamelCase(normalizedStatus);
+      break;
     case ServiceType.series:
       if (!hasFile) {
         return 'Episode missing from disk';
       }
-      return normalizedStatus == null
-          ? null
-          : humanizeCamelCase(normalizedStatus);
+      break;
     case ServiceType.music:
       final statistics = asActivityMap(item['statistics']);
       final trackFileCount = intOrNull(statistics?['trackFileCount']) ?? 0;
       if (!hasFile || trackFileCount == 0) {
         return 'Album missing from disk';
       }
-      return normalizedStatus == null
-          ? null
-          : humanizeCamelCase(normalizedStatus);
+      break;
     case ServiceType.discover:
       return null;
   }
+
+  return normalizedStatus == null ? null : humanizeCamelCase(normalizedStatus);
 }
 
 String formatActivityValue(dynamic value) {

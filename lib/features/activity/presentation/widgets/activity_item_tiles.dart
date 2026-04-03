@@ -270,7 +270,7 @@ class WantedItemTile extends StatelessWidget {
         ? null
         : _wantedSubtitle(item, serviceType);
     final statusText = isCutoff
-        ? _cutoffHighlightText(item, serviceType)
+        ? formatCutoffSize(item, serviceType)
         : wantedStatusText(item, serviceType);
     final chips = _buildWantedChips(
       item,
@@ -555,34 +555,6 @@ String? _historySizeLabel(Map<String, dynamic> item) {
     asActivityMap(item['data'])?['size'] ?? item['size'],
   );
   return size == '—' ? null : size;
-}
-
-String? _cutoffHighlightText(
-  Map<String, dynamic> item,
-  ServiceType serviceType,
-) {
-  final size = switch (serviceType) {
-    ServiceType.movies =>
-      item['sizeOnDisk'] ??
-          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
-          asActivityMap(item['movieFile'])?['size'] ??
-          item['size'],
-    ServiceType.series =>
-      item['sizeOnDisk'] ??
-          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
-          asActivityMap(item['episodeFile'])?['size'] ??
-          item['size'],
-    ServiceType.music =>
-      item['sizeOnDisk'] ??
-          asActivityMap(item['albumFile'])?['size'] ??
-          asActivityMap(item['trackFile'])?['size'] ??
-          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
-          item['size'],
-    ServiceType.discover => null,
-  };
-
-  final formattedSize = formatSizeInGb(size);
-  return formattedSize == '—' ? null : formattedSize;
 }
 
 String? _buildMediaContext(
