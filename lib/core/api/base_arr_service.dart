@@ -50,6 +50,44 @@ mixin ArrActivityMixin {
     return response.data['records'] as List<dynamic>;
   }
 
+  Future<List<dynamic>> _fetchAllPages(
+    String endpoint, {
+    Map<String, dynamic> extraParams = const {},
+    int pageSize = 250,
+    int maxPages = 50,
+  }) async {
+    final records = <dynamic>[];
+
+    for (var page = 1; page <= maxPages; page++) {
+      final response = await client.get(
+        '/api/${config.apiVersion}/$endpoint',
+        queryParameters: {'page': page, 'pageSize': pageSize, ...extraParams},
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final pageRecords = (data['records'] as List<dynamic>? ?? const []);
+      final totalRecords = switch (data['totalRecords']) {
+        final int value => value,
+        final num value => value.toInt(),
+        final String value => int.tryParse(value) ?? records.length,
+        _ => records.length + pageRecords.length,
+      };
+
+      records.addAll(pageRecords);
+
+      if (pageRecords.isEmpty || records.length >= totalRecords) {
+        break;
+      }
+    }
+
+    return records;
+  }
+
+  /// Fetches all history records across all pages.
+  Future<List<dynamic>> getAllHistory() async {
+    return _fetchAllPages('history');
+  }
+
   /// Fetches the blocklist.
   Future<List<dynamic>> getBlocklist() async {
     final response = await client.get('/api/${config.apiVersion}/blocklist');
@@ -71,6 +109,18 @@ mixin ArrActivityMixin {
     return response.data['records'] as List<dynamic>;
   }
 
+  /// Fetches all missing items across all pages.
+  Future<List<dynamic>> getAllMissing() async {
+    return _fetchAllPages(
+      'wanted/missing',
+      extraParams: {
+        'sortKey': config.sortKey,
+        'sortDirection': 'descending',
+        'includeSeries': true,
+      },
+    );
+  }
+
   /// Fetches items with cutoff unmet.
   Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async {
     try {
@@ -87,6 +137,22 @@ mixin ArrActivityMixin {
       return response.data['records'] as List<dynamic>;
     } catch (e) {
       // Cutoff endpoint may not be available on all *arr variants
+      return [];
+    }
+  }
+
+  /// Fetches all cutoff unmet items across all pages.
+  Future<List<dynamic>> getAllCutoff() async {
+    try {
+      return await _fetchAllPages(
+        'wanted/cutoff',
+        extraParams: {
+          'sortKey': config.sortKey,
+          'sortDirection': 'descending',
+          'includeSeries': true,
+        },
+      );
+    } catch (_) {
       return [];
     }
   }
