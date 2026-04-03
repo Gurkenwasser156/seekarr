@@ -249,6 +249,7 @@ class WantedItemTile extends StatelessWidget {
   final VoidCallback? onAutoSearch;
   final VoidCallback? onInteractiveSearch;
   final bool isCutoff;
+  final String? qualityProfileName;
 
   const WantedItemTile({
     super.key,
@@ -257,6 +258,7 @@ class WantedItemTile extends StatelessWidget {
     this.onAutoSearch,
     this.onInteractiveSearch,
     this.isCutoff = false,
+    this.qualityProfileName,
   });
 
   @override
@@ -264,13 +266,18 @@ class WantedItemTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final title = _wantedTitle(item, serviceType);
-    final subtitle = _wantedSubtitle(item, serviceType);
-    final statusText = wantedStatusText(item, serviceType);
+    final subtitle = isCutoff && serviceType == ServiceType.movies
+        ? null
+        : _wantedSubtitle(item, serviceType);
+    final statusText = isCutoff
+        ? _cutoffHighlightText(item, serviceType)
+        : wantedStatusText(item, serviceType);
     final chips = _buildWantedChips(
       item,
       serviceType,
       colorScheme,
       isCutoff: isCutoff,
+      qualityProfileName: qualityProfileName,
     );
     final canSearch = onAutoSearch != null && onInteractiveSearch != null;
 
@@ -281,9 +288,10 @@ class WantedItemTile extends StatelessWidget {
         children: [
           _TitleRow(
             title: title,
-            titleStyle: theme.textTheme.bodyLarge?.copyWith(
+            titleStyle: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
+            maxLines: isCutoff ? 1 : null,
             trailing: canSearch
                 ? MediaSearchPopupMenu(
                     onAutoSearch: onAutoSearch!,
@@ -384,15 +392,28 @@ class _TitleRow extends StatelessWidget {
   final String title;
   final TextStyle? titleStyle;
   final Widget? trailing;
+  final int? maxLines;
 
-  const _TitleRow({required this.title, this.titleStyle, this.trailing});
+  const _TitleRow({
+    required this.title,
+    this.titleStyle,
+    this.trailing,
+    this.maxLines,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(child: Text(title, style: titleStyle)),
+        Expanded(
+          child: Text(
+            title,
+            style: titleStyle,
+            maxLines: maxLines,
+            overflow: maxLines == null ? null : TextOverflow.ellipsis,
+          ),
+        ),
         if (trailing != null) ...[
           const SizedBox(width: AppSpacing.sm),
           trailing!,
@@ -449,13 +470,15 @@ List<Widget> _buildWantedChips(
   ServiceType serviceType,
   ColorScheme colorScheme, {
   bool isCutoff = false,
+  String? qualityProfileName,
 }) {
   final monitored = item['monitored'] == false
       ? TagChip(text: 'Unmonitored', color: colorScheme.error)
       : null;
   final quality = switch (serviceType) {
     ServiceType.movies =>
-      extractQualityName(item, fileKey: 'movieFile') ??
+      qualityProfileName ??
+          extractQualityName(item, fileKey: 'movieFile') ??
           extractQualityName(item),
     ServiceType.music =>
       extractQualityName(item, fileKey: 'albumFile') ??
@@ -469,13 +492,13 @@ List<Widget> _buildWantedChips(
     ServiceType.music => stringOrNull(item['releaseDate']),
     _ => stringOrNull(item['airDateUtc']),
   };
-  final sizeChip = isCutoff ? _buildCutoffSizeChip(item, serviceType) : null;
+  final showDateChip = !(isCutoff && serviceType == ServiceType.movies);
 
   return [
     if (monitored != null) monitored,
     if (quality != null) TagChip(text: quality),
-    if (date != null) TagChip(text: formatIsoDate(date), color: AppColors.info),
-    if (sizeChip != null) sizeChip,
+    if (showDateChip && date != null)
+      TagChip(text: formatIsoDate(date), color: AppColors.info),
   ];
 }
 
@@ -534,17 +557,24 @@ String? _historySizeLabel(Map<String, dynamic> item) {
   return size == '—' ? null : size;
 }
 
-TagChip? _buildCutoffSizeChip(
+String? _cutoffHighlightText(
   Map<String, dynamic> item,
   ServiceType serviceType,
 ) {
   final size = switch (serviceType) {
     ServiceType.movies =>
-      asActivityMap(item['movieFile'])?['size'] ?? item['size'],
+      item['sizeOnDisk'] ??
+          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
+          asActivityMap(item['movieFile'])?['size'] ??
+          item['size'],
     ServiceType.series =>
-      asActivityMap(item['episodeFile'])?['size'] ?? item['size'],
+      item['sizeOnDisk'] ??
+          asActivityMap(item['statistics'])?['sizeOnDisk'] ??
+          asActivityMap(item['episodeFile'])?['size'] ??
+          item['size'],
     ServiceType.music =>
-      asActivityMap(item['albumFile'])?['size'] ??
+      item['sizeOnDisk'] ??
+          asActivityMap(item['albumFile'])?['size'] ??
           asActivityMap(item['trackFile'])?['size'] ??
           asActivityMap(item['statistics'])?['sizeOnDisk'] ??
           item['size'],
@@ -552,9 +582,7 @@ TagChip? _buildCutoffSizeChip(
   };
 
   final formattedSize = formatSizeInGb(size);
-  if (formattedSize == '—') return null;
-
-  return TagChip(text: formattedSize, color: AppColors.info);
+  return formattedSize == '—' ? null : formattedSize;
 }
 
 String? _buildMediaContext(
