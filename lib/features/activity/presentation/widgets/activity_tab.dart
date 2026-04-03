@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/features/activity/presentation/activity_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_item_tiles.dart';
-import 'package:seekarr/features/activity/presentation/widgets/activity_sliver_section.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_tab_helpers.dart';
+import 'package:seekarr/features/activity/presentation/widgets/segment_selector.dart';
 
 class ActivityTab extends ConsumerStatefulWidget {
   final ServiceType serviceType;
@@ -23,12 +23,45 @@ class ActivityTab extends ConsumerStatefulWidget {
 
 class _ActivityTabState extends ConsumerState<ActivityTab>
     with ActivityTabHelpers {
+  ActivitySegment _selectedSegment = ActivitySegment.queue;
   Key _refreshKey = UniqueKey();
 
-  void _refresh() {
+  void _refresh({ActivitySegment? nextSegment}) {
     setState(() {
+      if (nextSegment != null) {
+        _selectedSegment = nextSegment;
+      }
       _refreshKey = UniqueKey();
     });
+  }
+
+  Widget _buildContentSliver(ArrActivityMixin service) {
+    switch (_selectedSegment) {
+      case ActivitySegment.queue:
+        return buildAsyncContentSliver(
+          service.getQueue(),
+          (item) => QueueItemTile(
+            item: item as Map<String, dynamic>,
+            serviceType: widget.serviceType,
+          ),
+        );
+      case ActivitySegment.history:
+        return buildAsyncContentSliver(
+          service.getAllHistory(),
+          (item) => HistoryItemTile(
+            item: item as Map<String, dynamic>,
+            serviceType: widget.serviceType,
+          ),
+        );
+      case ActivitySegment.blocklist:
+        return buildAsyncContentSliver(
+          service.getBlocklist(),
+          (item) => BlocklistItemTile(
+            item: item as Map<String, dynamic>,
+            serviceType: widget.serviceType,
+          ),
+        );
+    }
   }
 
   @override
@@ -36,40 +69,18 @@ class _ActivityTabState extends ConsumerState<ActivityTab>
     final service = resolveArrService(ref, widget.serviceType);
 
     return RefreshIndicator(
-      onRefresh: () async {
-        _refresh();
-      },
+      onRefresh: () async => _refresh(),
       child: CustomScrollView(
         key: _refreshKey,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          const SliverPadding(padding: EdgeInsets.only(top: AppSpacing.lg)),
-          ...buildActivitySliverSection(
-            helpers: this,
-            context: context,
-            title: 'Queue',
-            future: service.getQueue(),
-            itemBuilder: (item) =>
-                QueueItemTile(item: item as Map<String, dynamic>),
+          ActivitySegmentSelector<ActivitySegment>(
+            segments: ActivitySegment.values,
+            selected: _selectedSegment,
+            onChanged: (segment) => _refresh(nextSegment: segment),
+            labelBuilder: (segment) => segment.label,
           ),
-          ...buildActivitySliverSection(
-            helpers: this,
-            context: context,
-            title: 'History',
-            future: service.getHistory(),
-            itemBuilder: (item) =>
-                HistoryItemTile(item: item as Map<String, dynamic>),
-          ),
-          ...buildActivitySliverSection(
-            helpers: this,
-            context: context,
-            title: 'Blocklist',
-            future: service.getBlocklist(),
-            itemBuilder: (item) =>
-                BlocklistItemTile(item: item as Map<String, dynamic>),
-            isLast: true,
-          ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: AppSpacing.lg)),
+          _buildContentSliver(service),
         ],
       ),
     );

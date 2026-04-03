@@ -36,7 +36,7 @@ class TagChip extends StatelessWidget {
           ],
           Text(
             text,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: effectiveColor,
               fontWeight: FontWeight.w600,
             ),

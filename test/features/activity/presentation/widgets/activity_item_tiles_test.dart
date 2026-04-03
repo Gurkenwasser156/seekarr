@@ -1,91 +1,144 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_item_tiles.dart';
 
 void main() {
   group('QueueItemTile', () {
-    testWidgets('renders title and status', (tester) async {
+    testWidgets('renders title, inline status, and metadata', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: QueueItemTile(
-              item: {'title': 'Movie.2024', 'status': 'downloading'},
+              item: {
+                'title': 'Movie.2024',
+                'status': 'downloading',
+                'protocol': 'torrent',
+                'timeleft': '00:12:00',
+                'size': 100,
+                'sizeleft': 17,
+              },
+              serviceType: ServiceType.movies,
             ),
           ),
         ),
       );
 
-      expect(find.text('Movie.2024'), findsOneWidget);
-      expect(find.text('Status: downloading'), findsOneWidget);
-      expect(find.byIcon(Icons.download), findsOneWidget);
+      expect(find.text('Movie.2024'), findsWidgets);
+      expect(find.text('torrent'), findsOneWidget);
+      expect(find.text('Downloading (83%)'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.byType(InkWell), findsOneWidget);
     });
 
-    testWidgets('renders Unknown for missing fields', (tester) async {
+    testWidgets('renders fallback title for missing fields', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(body: QueueItemTile(item: {})),
+          home: Scaffold(
+            body: QueueItemTile(item: {}, serviceType: ServiceType.movies),
+          ),
         ),
       );
 
-      expect(find.text('Unknown'), findsOneWidget);
-      expect(find.text('Status: Unknown'), findsOneWidget);
+      expect(find.text('Unknown release'), findsOneWidget);
     });
   });
 
   group('HistoryItemTile', () {
-    testWidgets('renders sourceTitle and eventType', (tester) async {
+    testWidgets('renders sourceTitle and event type chip', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: HistoryItemTile(
-              item: {'sourceTitle': 'Release.Name', 'eventType': 'grabbed'},
+              item: {
+                'sourceTitle': 'Release.Name',
+                'eventType': 'grabbed',
+                'protocol': 'torrent',
+              },
+              serviceType: ServiceType.movies,
             ),
           ),
         ),
       );
 
       expect(find.text('Release.Name'), findsOneWidget);
-      expect(find.text('grabbed'), findsOneWidget);
-      expect(find.byIcon(Icons.history), findsOneWidget);
+      expect(find.text('Grabbed'), findsOneWidget);
+      expect(find.text('torrent'), findsNothing);
     });
 
-    testWidgets('renders Unknown for missing fields', (tester) async {
+    testWidgets('renders episode code for series history', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(body: HistoryItemTile(item: {})),
+          home: Scaffold(
+            body: HistoryItemTile(
+              item: {
+                'sourceTitle': 'Release.Name',
+                'eventType': 'downloadImported',
+                'episode': {'seasonNumber': 1, 'episodeNumber': 2},
+              },
+              serviceType: ServiceType.series,
+            ),
+          ),
         ),
       );
 
-      expect(find.text('Unknown'), findsOneWidget);
-      expect(find.text('unknown'), findsOneWidget);
+      expect(find.text('S01E02'), findsWidgets);
+      expect(find.text('Imported'), findsOneWidget);
+    });
+
+    testWidgets('renders date-only history metadata', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HistoryItemTile(
+              item: {
+                'sourceTitle': 'Release.Name',
+                'eventType': 'grabbed',
+                'date': '2026-04-03T12:34:56Z',
+              },
+              serviceType: ServiceType.movies,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('2026-04-03'), findsOneWidget);
+      expect(find.textContaining('12:34'), findsNothing);
     });
   });
 
   group('BlocklistItemTile', () {
-    testWidgets('renders sourceTitle and blocked subtitle', (tester) async {
+    testWidgets('renders sourceTitle and reason', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: BlocklistItemTile(item: {'sourceTitle': 'Bad.Release'}),
+            body: BlocklistItemTile(
+              item: {'sourceTitle': 'Bad.Release', 'message': 'Rejected'},
+              serviceType: ServiceType.movies,
+            ),
           ),
         ),
       );
 
       expect(find.text('Bad.Release'), findsOneWidget);
-      expect(find.text('Blocked'), findsOneWidget);
-      expect(find.byIcon(Icons.block), findsOneWidget);
+      expect(find.text('Rejected'), findsOneWidget);
+      expect(find.byIcon(Icons.block_rounded), findsOneWidget);
     });
 
-    testWidgets('renders Unknown when sourceTitle missing', (tester) async {
+    testWidgets('renders fallback title when sourceTitle missing', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(body: BlocklistItemTile(item: {})),
+          home: Scaffold(
+            body: BlocklistItemTile(item: {}, serviceType: ServiceType.movies),
+          ),
         ),
       );
 
-      expect(find.text('Unknown'), findsOneWidget);
+      expect(find.text('Unknown release'), findsOneWidget);
     });
   });
 
@@ -103,7 +156,38 @@ void main() {
       );
 
       expect(find.text('Cool Movie'), findsOneWidget);
-      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    });
+
+    testWidgets('renders search popup when callbacks provided', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WantedItemTile(
+              item: const {'title': 'Cool Movie'},
+              serviceType: ServiceType.movies,
+              onAutoSearch: () {},
+              onInteractiveSearch: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(MediaSearchPopupMenu), findsOneWidget);
+    });
+
+    testWidgets('hides search popup when callbacks missing', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: WantedItemTile(
+              item: {'title': 'Cool Movie'},
+              serviceType: ServiceType.movies,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(MediaSearchPopupMenu), findsNothing);
     });
 
     testWidgets('renders series format with subtitle', (tester) async {
@@ -123,7 +207,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('01 - Pilot'), findsOneWidget);
+      expect(find.text('S01E01 · Pilot'), findsOneWidget);
       expect(find.text('Breaking Bad'), findsOneWidget);
     });
 
@@ -155,8 +239,55 @@ void main() {
         ),
       );
 
+      expect(find.text('Unknown Episode'), findsOneWidget);
       expect(find.text('Unknown Series'), findsOneWidget);
-      expect(find.textContaining('Unknown Episode'), findsOneWidget);
+    });
+  });
+
+  group('Queue status normalization', () {
+    testWidgets('prefers trackedDownloadState over completed status', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: QueueItemTile(
+              item: {
+                'title': 'Queued Import',
+                'trackedDownloadState': 'importPending',
+                'status': 'completed',
+              },
+              serviceType: ServiceType.movies,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Import Pending'), findsOneWidget);
+      expect(find.text('Available'), findsNothing);
+    });
+
+    testWidgets('shows no inline progress when not downloading', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: QueueItemTile(
+              item: {
+                'title': 'Completed Item',
+                'status': 'completed',
+                'size': 100,
+                'sizeleft': 0,
+              },
+              serviceType: ServiceType.movies,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.textContaining('%'), findsNothing);
     });
   });
 }
