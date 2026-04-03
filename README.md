@@ -20,7 +20,13 @@ The application is under active development and contributions are welcome.
 - **TV Series**: View and manage your Sonarr TV series library
 - **Music**: View and manage your Lidarr music library
 - **Search**: Search across all sections with always-visible search bars
-- **Activity**: Monitor download queues, history, and wanted items across all services
+- **Activity**: Comprehensive task monitoring
+  - **Activity Tab**: Segmented sticky navigation for Queue, History, and Blocklist with full pagination fetching.
+  - **Wanted Tab**: Segmented sticky navigation for Missing and Cutoff Unmet with status text and pagination.
+  - **Queue Management**: Queue status normalization based on structured fields, with manual import placeholder actions.
+  - **History Cleanup**: Clean presentation showing date-only, size in GB, without noisy metadata.
+  - **Smart Search**: Wanted auto + interactive search actions using shared existing modules.
+  - **Hierarchical Sonarr**: Sonarr wanted presentation is structured by Series > Season > Episode, including per-episode search actions.
 - **Customization**: Choose appearance theme (Light, Dark, System) and configure which services to display in the navigation bar
 - **Multiplatform**: Currently working and tested for Android, iOS and MacOS
 - **Material Design 3**: Modern design with Seerr-inspired color palette
@@ -46,7 +52,7 @@ Before running Seekarr locally, make sure you have:
 3. Run `flutter run`
 
 ## Testing
-
+  
 Run unit tests:
 ```bash
 flutter test

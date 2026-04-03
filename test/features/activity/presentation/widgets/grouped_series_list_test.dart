@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/features/activity/presentation/widgets/grouped_series_list.dart';
+import 'package:seekarr/core/api/api_client.dart';
+import 'package:seekarr/features/activity/presentation/widgets/sonarr_wanted_hierarchy.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
 
 void main() {
-  group('GroupedSeriesList', () {
+  group('SonarrWantedHierarchy', () {
+    final service = SonarrService(
+      ApiClient(baseUrl: 'http://localhost', apiKey: 'test'),
+    );
+
     testWidgets('groups episodes by series title', (tester) async {
       final items = [
         {
@@ -30,7 +36,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: GroupedSeriesList(items: items)),
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(items: items, service: service),
+            ),
           ),
         ),
       );
@@ -41,7 +49,7 @@ void main() {
       expect(find.text('2 episodes'), findsOneWidget);
     });
 
-    testWidgets('sorts episodes by season then episode number', (tester) async {
+    testWidgets('renders season groups', (tester) async {
       final items = [
         {
           'series': {'title': 'Show'},
@@ -66,12 +74,16 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: GroupedSeriesList(items: items)),
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(items: items, service: service),
+            ),
           ),
         ),
       );
 
       expect(find.text('Show'), findsOneWidget);
+      expect(find.text('Season 1'), findsOneWidget);
+      expect(find.text('Season 2'), findsOneWidget);
       expect(find.text('3 episodes'), findsOneWidget);
     });
 
@@ -88,7 +100,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: GroupedSeriesList(items: items)),
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(items: items, service: service),
+            ),
           ),
         ),
       );
@@ -104,7 +118,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: GroupedSeriesList(items: items)),
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(items: items, service: service),
+            ),
           ),
         ),
       );
@@ -112,11 +128,13 @@ void main() {
       expect(find.text('Unknown Series'), findsOneWidget);
     });
 
-    testWidgets('renders empty column for empty items', (tester) async {
+    testWidgets('renders no expansion tiles for empty items', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: GroupedSeriesList(items: [])),
+            body: SingleChildScrollView(
+              child: SonarrWantedHierarchy(items: [], service: service),
+            ),
           ),
         ),
       );
