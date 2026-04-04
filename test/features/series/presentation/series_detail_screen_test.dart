@@ -1,0 +1,201 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:seekarr/core/api/api_client.dart';
+import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
+import 'package:seekarr/features/series/presentation/series_detail_provider.dart';
+import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
+import 'package:seekarr/features/series/presentation/widgets/series_seasons_list.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+void main() {
+  group('SeriesDetailScreen', () {
+    testWidgets('shows loading state when provider is loading', (tester) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) => Completer<SonarrSeries?>().future,
+        episodesBuilder: (ref, seriesId) =>
+            Completer<List<SonarrEpisode>>().future,
+      );
+      await tester.pump();
+
+      expect(find.byType(MediaDetailLoadingView), findsOneWidget);
+    });
+
+    testWidgets('shows error text for generic errors', (tester) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) =>
+            Future<SonarrSeries?>.error(Exception('Network error')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Error:'), findsOneWidget);
+      expect(find.textContaining('Network error'), findsOneWidget);
+    });
+
+    testWidgets('shows not configured placeholder for configuration errors', (
+      tester,
+    ) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) =>
+            Future<SonarrSeries?>.error(Exception('Sonarr not configured')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotConfiguredPlaceholder), findsOneWidget);
+    });
+
+    testWidgets('renders series detail content with seasons when loaded', (
+      tester,
+    ) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) async => _makeSeries(),
+      );
+      await tester.pumpAndSettle();
+      await _scrollUntilVisible(tester, find.text('Seasons'));
+
+      expect(find.text('Breaking Bad'), findsAtLeastNWidgets(1));
+      expect(find.text('A chemistry teacher turns to crime.'), findsOneWidget);
+      expect(find.text('Seasons'), findsOneWidget);
+      expect(find.byType(SeriesSeasonsList), findsOneWidget);
+      expect(find.byType(MediaInfoCard), findsOneWidget);
+    });
+
+    testWidgets('uses initialSeries while provider is still loading', (
+      tester,
+    ) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) => Completer<SonarrSeries?>().future,
+        initialSeries: _makeSeries(),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Breaking Bad'), findsAtLeastNWidgets(1));
+      expect(find.byType(MediaDetailLoadingView), findsNothing);
+    });
+
+    testWidgets('shows season tile with episode progress', (tester) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) async => _makeSeries(),
+      );
+      await tester.pumpAndSettle();
+      await _scrollUntilVisible(tester, find.text('Season 1'));
+
+      expect(find.text('Season 1'), findsOneWidget);
+      expect(find.textContaining('7 / 7'), findsOneWidget);
+    });
+  });
+}
+
+Future<void> _scrollUntilVisible(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(
+    finder,
+    300,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpSeriesDetail(
+  WidgetTester tester, {
+  required FutureOr<SonarrSeries?> Function(Ref ref, int seriesId)
+  detailBuilder,
+  FutureOr<List<SonarrEpisode>> Function(Ref ref, int seriesId)?
+  episodesBuilder,
+  SonarrSeries? initialSeries,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        currentSettingsProvider.overrideWith(
+          (ref) => const SettingsModel(
+            sonarrUrl: 'http://localhost:8989',
+            sonarrApiKey: 'key',
+          ),
+        ),
+        seriesDetailProvider.overrideWith(detailBuilder),
+        seriesEpisodesProvider.overrideWith(
+          episodesBuilder ?? (ref, seriesId) async => _makeEpisodes(),
+        ),
+        sonarrServiceProvider.overrideWith((ref) => _FakeSonarrService()),
+      ],
+      child: MaterialApp(
+        home: SeriesDetailScreen(
+          seriesId: 1,
+          heroTag: 'series-1',
+          initialSeries: initialSeries,
+        ),
+      ),
+    ),
+  );
+}
+
+SonarrSeries _makeSeries() {
+  return SonarrSeries(
+    id: 1,
+    title: 'Breaking Bad',
+    sortTitle: 'breaking bad',
+    status: 'ended',
+    overview: 'A chemistry teacher turns to crime.',
+    path: '/tv/Breaking Bad',
+    monitored: true,
+    year: 2008,
+    images: const [],
+    tvdbId: 81189,
+    runtime: 45,
+    network: 'AMC',
+    genres: const ['Drama', 'Crime'],
+    seasons: const [
+      {
+        'seasonNumber': 1,
+        'monitored': true,
+        'statistics': {
+          'episodeFileCount': 7,
+          'totalEpisodeCount': 7,
+          'episodeCount': 7,
+        },
+      },
+    ],
+    statistics: const {
+      'seasonCount': 1,
+      'episodeCount': 7,
+      'episodeFileCount': 7,
+    },
+    seriesType: 'standard',
+    certification: 'TV-MA',
+  );
+}
+
+List<SonarrEpisode> _makeEpisodes() {
+  return const [
+    SonarrEpisode(
+      id: 101,
+      seasonNumber: 1,
+      episodeNumber: 1,
+      title: 'Pilot',
+      hasFile: true,
+      monitored: true,
+    ),
+  ];
+}
+
+class _FakeSonarrService extends SonarrService {
+  _FakeSonarrService()
+    : super(ApiClient(baseUrl: 'http://localhost:8989', apiKey: 'key'));
+
+  @override
+  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
+}
