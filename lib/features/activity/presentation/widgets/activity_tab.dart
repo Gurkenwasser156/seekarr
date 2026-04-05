@@ -66,23 +66,16 @@ class _ActivityTabState extends ConsumerState<ActivityTab>
 
   @override
   Widget build(BuildContext context) {
-    final service = resolveArrService(ref, widget.serviceType);
+    final service = ref.read(resolvedArrServiceProvider(widget.serviceType));
 
-    return RefreshIndicator(
-      onRefresh: () async => _refresh(),
-      child: CustomScrollView(
-        key: _refreshKey,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          ActivitySegmentSelector<ActivitySegment>(
-            segments: ActivitySegment.values,
-            selected: _selectedSegment,
-            onChanged: (segment) => _refresh(nextSegment: segment),
-            labelBuilder: (segment) => segment.label,
-          ),
-          _buildContentSliver(service),
-        ],
-      ),
+    return buildRefreshableSegmentedView<ActivitySegment>(
+      refreshKey: _refreshKey,
+      onRefreshRequested: () => _refresh(),
+      segments: ActivitySegment.values,
+      selected: _selectedSegment,
+      onSegmentChanged: (segment) => _refresh(nextSegment: segment),
+      labelBuilder: (segment) => segment.label,
+      contentSliver: _buildContentSliver(service),
     );
   }
 }

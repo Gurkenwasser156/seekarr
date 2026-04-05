@@ -6,6 +6,7 @@ import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_detail_provider.dart';
 import 'package:seekarr/features/series/presentation/series_detail_view_model.dart';
@@ -54,10 +55,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       );
     }
 
-    ensureQualityProfiles(
-      profileId: series.qualityProfileId,
-      fetchProfiles: () => ref.read(sonarrServiceProvider).getQualityProfiles(),
-    );
+    _syncQualityProfiles(series);
 
     final viewModel = SeriesDetailViewModel.fromSeries(
       series,
@@ -71,93 +69,122 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       posterUrl: viewModel.posterUrl,
       posterHeaders: viewModel.posterHeaders,
       backdropUrl: viewModel.backdropUrl,
-      posterRow: (collapseFactor) => MediaDetailPosterRow(
+      posterRow: (collapseFactor) =>
+          _buildPosterRow(context, viewModel, collapseFactor),
+      contentSections: _buildContentSections(viewModel, infoGroups),
+      slivers: [_buildSeasonsSliver(context, viewModel, episodesAsync)],
+    );
+  }
+
+  void _syncQualityProfiles(SonarrSeries series) {
+    ensureQualityProfiles(
+      profileId: series.qualityProfileId,
+      fetchProfiles: () => ref.read(sonarrServiceProvider).getQualityProfiles(),
+    );
+  }
+
+  Widget _buildPosterRow(
+    BuildContext context,
+    SeriesDetailViewModel viewModel,
+    double collapseFactor,
+  ) {
+    return MediaDetailPosterRow(
+      collapseFactor: collapseFactor,
+      statusBadge: StatusBadge.fromMedia(
+        hasFile: viewModel.hasFiles,
+        status: viewModel.status,
+      ),
+      posterCard: MediaPosterCard(
+        heroTag: widget.heroTag,
+        imageUrl: viewModel.posterUrl,
+        imageHeaders: viewModel.posterHeaders,
+        fallbackIcon: Icons.tv_outlined,
+      ),
+      actions: LibraryDetailActions(
         collapseFactor: collapseFactor,
-        statusBadge: StatusBadge.fromMedia(
-          hasFile: viewModel.hasFiles,
-          status: viewModel.status,
+        isSearching: _isSearching,
+        isDeleting: _isDeleting,
+        currentProfileName: currentProfileName,
+        currentProfileId: currentProfileId,
+        qualityProfiles: qualityProfiles,
+        onInteractiveSearch: () =>
+            _showInteractiveSearch(context, title: viewModel.title),
+        onAutoSearch: () => _triggerSearch(context),
+        onProfileSelected: _updateProfile,
+        onDelete: () => _confirmDelete(context, title: viewModel.title),
+      ),
+    );
+  }
+
+  List<Widget> _buildContentSections(
+    SeriesDetailViewModel viewModel,
+    List<MediaInfoGroup> infoGroups,
+  ) {
+    return [
+      MediaDetailTitleSection(title: viewModel.title),
+      if (viewModel.metadataItems.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.sm),
+        MediaMetadataLine(items: viewModel.metadataItems),
+      ],
+      if (viewModel.ratings.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        SizedBox(
+          width: double.infinity,
+          child: RatingChipsRow(ratings: viewModel.ratings),
         ),
-        posterCard: MediaPosterCard(
-          heroTag: widget.heroTag,
-          imageUrl: viewModel.posterUrl,
-          imageHeaders: viewModel.posterHeaders,
-          fallbackIcon: Icons.tv_outlined,
+      ],
+      if (infoGroups.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        SizedBox(
+          width: double.infinity,
+          child: MediaInfoCard(groups: infoGroups),
         ),
-        actions: LibraryDetailActions(
-          collapseFactor: collapseFactor,
-          isSearching: _isSearching,
-          isDeleting: _isDeleting,
-          currentProfileName: currentProfileName,
-          currentProfileId: currentProfileId,
-          qualityProfiles: qualityProfiles,
-          onInteractiveSearch: () =>
-              _showInteractiveSearch(context, title: viewModel.title),
-          onAutoSearch: () => _triggerSearch(context),
-          onProfileSelected: _updateProfile,
-          onDelete: () => _confirmDelete(context, title: viewModel.title),
+      ],
+      if (viewModel.overview.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        MediaDetailOverviewSection(overview: viewModel.overview),
+      ],
+      if (viewModel.hasFiles && viewModel.path != null) ...[
+        const SizedBox(height: AppSpacing.xl),
+        FileInfoSection(path: viewModel.path),
+      ],
+    ];
+  }
+
+  Widget _buildSeasonsSliver(
+    BuildContext context,
+    SeriesDetailViewModel viewModel,
+    AsyncValue<List<SonarrEpisode>> episodesAsync,
+  ) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Seasons', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.lg),
+            SeriesSeasonsList(
+              seasons: viewModel.seasons,
+              episodesAsync: episodesAsync,
+              onSearchSeason: (seasonNumber) =>
+                  _searchSeason(context, seasonNumber),
+              onInteractiveSearchSeason: (seasonNumber) =>
+                  _interactiveSearchSeason(
+                    context,
+                    seasonNumber,
+                    title: viewModel.title,
+                  ),
+              onSearchEpisode: (episodeId) =>
+                  _searchEpisode(context, episodeId),
+              onInteractiveSearchEpisode: (episodeId) =>
+                  _interactiveSearchEpisode(context, episodeId),
+              searchingSeasons: _searchingSeasons,
+              searchingEpisodes: _searchingEpisodes,
+            ),
+          ],
         ),
       ),
-      contentSections: [
-        MediaDetailTitleSection(title: viewModel.title),
-        if (viewModel.metadataItems.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          MediaMetadataLine(items: viewModel.metadataItems),
-        ],
-        if (viewModel.ratings.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: RatingChipsRow(ratings: viewModel.ratings),
-          ),
-        ],
-        if (infoGroups.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: MediaInfoCard(groups: infoGroups),
-          ),
-        ],
-        if (viewModel.overview.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          MediaDetailOverviewSection(overview: viewModel.overview),
-        ],
-        if (viewModel.hasFiles && viewModel.path != null) ...[
-          const SizedBox(height: AppSpacing.xl),
-          FileInfoSection(path: viewModel.path),
-        ],
-      ],
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Seasons', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: AppSpacing.lg),
-                SeriesSeasonsList(
-                  seasons: viewModel.seasons,
-                  episodesAsync: episodesAsync,
-                  onSearchSeason: (seasonNumber) =>
-                      _searchSeason(context, seasonNumber),
-                  onInteractiveSearchSeason: (seasonNumber) =>
-                      _interactiveSearchSeason(
-                        context,
-                        seasonNumber,
-                        title: viewModel.title,
-                      ),
-                  onSearchEpisode: (episodeId) =>
-                      _searchEpisode(context, episodeId),
-                  onInteractiveSearchEpisode: (episodeId) =>
-                      _interactiveSearchEpisode(context, episodeId),
-                  searchingSeasons: _searchingSeasons,
-                  searchingEpisodes: _searchingEpisodes,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 

@@ -42,7 +42,7 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
     });
   }
 
-  Future<List<dynamic>> _futureForSegment(ArrActivityMixin service) {
+  Future<List<dynamic>> _loadItemsForSelectedSegment(ArrActivityMixin service) {
     switch (_selectedSegment) {
       case WantedSegment.missing:
         return service.getAllMissing();
@@ -52,7 +52,7 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
   }
 
   Widget _buildContentSliver(ArrActivityMixin service) {
-    final future = _futureForSegment(service);
+    final future = _loadItemsForSelectedSegment(service);
 
     if (widget.serviceType == ServiceType.series) {
       return buildAsyncGroupedContentSliver(
@@ -147,23 +147,16 @@ class _WantedTabState extends ConsumerState<WantedTab> with ActivityTabHelpers {
 
   @override
   Widget build(BuildContext context) {
-    final service = resolveArrService(ref, widget.serviceType);
+    final service = ref.read(resolvedArrServiceProvider(widget.serviceType));
 
-    return RefreshIndicator(
-      onRefresh: () async => _refresh(),
-      child: CustomScrollView(
-        key: _refreshKey,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          ActivitySegmentSelector<WantedSegment>(
-            segments: WantedSegment.values,
-            selected: _selectedSegment,
-            onChanged: (segment) => _refresh(nextSegment: segment),
-            labelBuilder: (segment) => segment.label,
-          ),
-          _buildContentSliver(service),
-        ],
-      ),
+    return buildRefreshableSegmentedView<WantedSegment>(
+      refreshKey: _refreshKey,
+      onRefreshRequested: () => _refresh(),
+      segments: WantedSegment.values,
+      selected: _selectedSegment,
+      onSegmentChanged: (segment) => _refresh(nextSegment: segment),
+      labelBuilder: (segment) => segment.label,
+      contentSliver: _buildContentSliver(service),
     );
   }
 }

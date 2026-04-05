@@ -17,32 +17,15 @@ class ShellScreen extends ConsumerWidget {
 
   const ShellScreen({super.key, required this.child});
 
-  static final Map<NavTab, FloatingNavDestination> _allDestinations = {
-    for (final tab in NavTab.values)
-      tab: FloatingNavDestination(
-        icon: tab.icon,
-        selectedIcon: tab.selectedIcon,
-        label: tab.label,
-      ),
-  };
-
-  static const Map<NavTab, NavigationSection> _refreshSectionsByTab = {
-    NavTab.discover: NavigationSection.discover,
-    NavTab.movies: NavigationSection.movies,
-    NavTab.series: NavigationSection.series,
-    NavTab.music: NavigationSection.music,
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visibleTabs = ref.watch(visibleNavTabsProvider);
-    final destinations = [
-      for (final tab in visibleTabs) _allDestinations[tab]!,
-    ];
+    final destinations = visibleTabs
+        .map(_destinationFor)
+        .toList(growable: false);
     final selectedIndex = _calculateSelectedIndex(context, visibleTabs);
 
     return Scaffold(
-      // Extend body behind the nav bar for true floating effect
       extendBody: true,
       body: child,
       bottomNavigationBar: FloatingBottomNavBar(
@@ -58,12 +41,15 @@ class ShellScreen extends ConsumerWidget {
     BuildContext context,
     List<NavTab> visibleTabs,
   ) {
-    final String location = GoRouterState.of(context).uri.path;
-    final selectedIndex = visibleTabs.indexWhere(
-      (tab) => location.startsWith(tab.routePath),
-    );
+    final location = GoRouterState.of(context).uri.path;
 
-    return selectedIndex >= 0 ? selectedIndex : 0;
+    for (var index = 0; index < visibleTabs.length; index++) {
+      if (location.startsWith(visibleTabs[index].routePath)) {
+        return index;
+      }
+    }
+
+    return 0;
   }
 
   void _onItemTapped(
@@ -73,20 +59,49 @@ class ShellScreen extends ConsumerWidget {
     int currentIndex,
     List<NavTab> visibleTabs,
   ) {
-    // Add light haptic feedback on tab change
     HapticFeedback.selectionClick();
 
     final tab = visibleTabs[index];
+    _refreshIfReselected(index, currentIndex, tab, ref);
+    context.go(tab.routePath);
+  }
 
-    // If tapping on the current tab, trigger a refresh
-    if (index == currentIndex) {
-      final refreshSection = _refreshSectionsByTab[tab];
-      if (refreshSection != null) {
-        ref.triggerNavigationRefresh(refreshSection);
-      }
+  FloatingNavDestination _destinationFor(NavTab tab) {
+    return FloatingNavDestination(
+      icon: tab.icon,
+      selectedIcon: tab.selectedIcon,
+      label: tab.label,
+    );
+  }
+
+  void _refreshIfReselected(
+    int index,
+    int currentIndex,
+    NavTab tab,
+    WidgetRef ref,
+  ) {
+    if (index != currentIndex) {
+      return;
     }
 
-    // Always navigate (even if same tab, to reset navigation stack)
-    context.go(tab.routePath);
+    final refreshSection = _refreshSectionFor(tab);
+    if (refreshSection != null) {
+      ref.triggerNavigationRefresh(refreshSection);
+    }
+  }
+
+  NavigationSection? _refreshSectionFor(NavTab tab) {
+    switch (tab) {
+      case NavTab.discover:
+        return NavigationSection.discover;
+      case NavTab.movies:
+        return NavigationSection.movies;
+      case NavTab.series:
+        return NavigationSection.series;
+      case NavTab.music:
+        return NavigationSection.music;
+      case NavTab.settings:
+        return null;
+    }
   }
 }

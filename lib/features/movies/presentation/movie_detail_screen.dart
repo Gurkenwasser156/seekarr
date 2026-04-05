@@ -53,10 +53,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       );
     }
 
-    ensureQualityProfiles(
-      profileId: movie.qualityProfileId,
-      fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
-    );
+    _syncQualityProfiles(movie);
 
     final viewModel = MovieDetailViewModel.fromMovie(
       movie,
@@ -70,62 +67,85 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       posterUrl: viewModel.posterUrl,
       posterHeaders: viewModel.posterHeaders,
       backdropUrl: viewModel.backdropUrl,
-      posterRow: (collapseFactor) => MediaDetailPosterRow(
-        collapseFactor: collapseFactor,
-        statusBadge: StatusBadge.fromMedia(
-          hasFile: viewModel.hasFile,
-          status: viewModel.status,
-        ),
-        posterCard: MediaPosterCard(
-          heroTag: widget.heroTag,
-          imageUrl: viewModel.posterUrl,
-          imageHeaders: viewModel.posterHeaders,
-          fallbackIcon: Icons.movie_outlined,
-        ),
-        actions: LibraryDetailActions(
-          collapseFactor: collapseFactor,
-          isSearching: _isSearching,
-          isDeleting: _isDeleting,
-          currentProfileName: currentProfileName,
-          currentProfileId: currentProfileId,
-          qualityProfiles: qualityProfiles,
-          onInteractiveSearch: () =>
-              _showInteractiveSearch(context, title: viewModel.title),
-          onAutoSearch: () => _triggerSearch(context),
-          onProfileSelected: _updateProfile,
-          onDelete: () => _confirmDelete(context, title: viewModel.title),
-        ),
-      ),
-      contentSections: [
-        MediaDetailTitleSection(title: viewModel.title),
-        if (viewModel.metadataItems.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          MediaMetadataLine(items: viewModel.metadataItems),
-        ],
-        if (viewModel.ratings.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: RatingChipsRow(ratings: viewModel.ratings),
-          ),
-        ],
-        if (infoGroups.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: MediaInfoCard(groups: infoGroups),
-          ),
-        ],
-        if (viewModel.overview.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xl),
-          MediaDetailOverviewSection(overview: viewModel.overview),
-        ],
-        if (viewModel.hasFile && viewModel.path != null) ...[
-          const SizedBox(height: AppSpacing.xl),
-          FileInfoSection(path: viewModel.path, filename: viewModel.filename),
-        ],
-      ],
+      posterRow: (collapseFactor) =>
+          _buildPosterRow(context, viewModel, collapseFactor),
+      contentSections: _buildContentSections(viewModel, infoGroups),
     );
+  }
+
+  void _syncQualityProfiles(RadarrMovie movie) {
+    ensureQualityProfiles(
+      profileId: movie.qualityProfileId,
+      fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
+    );
+  }
+
+  Widget _buildPosterRow(
+    BuildContext context,
+    MovieDetailViewModel viewModel,
+    double collapseFactor,
+  ) {
+    return MediaDetailPosterRow(
+      collapseFactor: collapseFactor,
+      statusBadge: StatusBadge.fromMedia(
+        hasFile: viewModel.hasFile,
+        status: viewModel.status,
+      ),
+      posterCard: MediaPosterCard(
+        heroTag: widget.heroTag,
+        imageUrl: viewModel.posterUrl,
+        imageHeaders: viewModel.posterHeaders,
+        fallbackIcon: Icons.movie_outlined,
+      ),
+      actions: LibraryDetailActions(
+        collapseFactor: collapseFactor,
+        isSearching: _isSearching,
+        isDeleting: _isDeleting,
+        currentProfileName: currentProfileName,
+        currentProfileId: currentProfileId,
+        qualityProfiles: qualityProfiles,
+        onInteractiveSearch: () =>
+            _showInteractiveSearch(context, title: viewModel.title),
+        onAutoSearch: () => _triggerSearch(context),
+        onProfileSelected: _updateProfile,
+        onDelete: () => _confirmDelete(context, title: viewModel.title),
+      ),
+    );
+  }
+
+  List<Widget> _buildContentSections(
+    MovieDetailViewModel viewModel,
+    List<MediaInfoGroup> infoGroups,
+  ) {
+    return [
+      MediaDetailTitleSection(title: viewModel.title),
+      if (viewModel.metadataItems.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.sm),
+        MediaMetadataLine(items: viewModel.metadataItems),
+      ],
+      if (viewModel.ratings.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        SizedBox(
+          width: double.infinity,
+          child: RatingChipsRow(ratings: viewModel.ratings),
+        ),
+      ],
+      if (infoGroups.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        SizedBox(
+          width: double.infinity,
+          child: MediaInfoCard(groups: infoGroups),
+        ),
+      ],
+      if (viewModel.overview.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        MediaDetailOverviewSection(overview: viewModel.overview),
+      ],
+      if (viewModel.hasFile && viewModel.path != null) ...[
+        const SizedBox(height: AppSpacing.xl),
+        FileInfoSection(path: viewModel.path, filename: viewModel.filename),
+      ],
+    ];
   }
 
   Future<void> _updateProfile(int profileId) async {

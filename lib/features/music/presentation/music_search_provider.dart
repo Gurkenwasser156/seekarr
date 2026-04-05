@@ -21,7 +21,7 @@ final musicSearchResultsProvider = FutureProvider<List<LidarrArtist>?>((
   try {
     final service = ref.read(lidarrServiceProvider);
     return await service.lookupArtists(query);
-  } catch (e) {
+  } catch (_) {
     return [];
   }
 });

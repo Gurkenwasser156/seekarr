@@ -21,7 +21,6 @@ class SeriesDetailViewModel {
   final List<RatingSource> ratings;
   final String? path;
   final int? qualityProfileId;
-  final int seriesId;
   final List<dynamic> seasons;
   final int? seasonCount;
   final int? episodeCount;
@@ -46,7 +45,6 @@ class SeriesDetailViewModel {
     required this.ratings,
     this.path,
     this.qualityProfileId,
-    required this.seriesId,
     required this.seasons,
     this.seasonCount,
     this.episodeCount,
@@ -77,27 +75,22 @@ class SeriesDetailViewModel {
 
   List<String> get metadataItems => [
     year,
-    episodeSummary ?? '',
+    if (episodeSummary != null) episodeSummary!,
     if (runtimeStr != null) runtimeStr!,
   ].where((item) => item.isNotEmpty).toList(growable: false);
 
   List<MediaInfoGroup> buildInfoGroups() {
-    final airDateFacts = <MediaFact>[
-      if (firstAired != null && firstAired!.isNotEmpty)
-        MediaFact('First Aired', formatIsoDate(firstAired!)),
-      if (lastAired != null && lastAired!.isNotEmpty)
-        MediaFact('Last Aired', formatIsoDate(lastAired!)),
-    ];
+    final airDateFacts = _buildAirDateFacts();
 
     return [
-      if (seriesType != null && seriesType!.isNotEmpty)
+      if (_hasText(seriesType))
         MediaInfoGroup(
           title: 'Series Type',
           child: Text(capitalizeFirst(seriesType!)),
         ),
-      if (certification != null && certification!.isNotEmpty)
+      if (_hasText(certification))
         MediaInfoGroup(title: 'Certification', child: Text(certification!)),
-      if (originalLanguage != null && originalLanguage!.isNotEmpty)
+      if (_hasText(originalLanguage))
         MediaInfoGroup(
           title: 'Original Language',
           child: Text(originalLanguage!),
@@ -118,10 +111,18 @@ class SeriesDetailViewModel {
                 .toList(growable: false),
           ),
         ),
-      if (network != null && network!.isNotEmpty)
+      if (_hasText(network))
         MediaInfoGroup(title: 'Network', child: Text(network!)),
     ];
   }
+
+  List<MediaFact> _buildAirDateFacts() => [
+    if (_hasText(firstAired))
+      MediaFact('First Aired', formatIsoDate(firstAired!)),
+    if (_hasText(lastAired)) MediaFact('Last Aired', formatIsoDate(lastAired!)),
+  ];
+
+  bool _hasText(String? value) => value != null && value.isNotEmpty;
 
   factory SeriesDetailViewModel.fromSeries(
     SonarrSeries series, {
@@ -158,7 +159,6 @@ class SeriesDetailViewModel {
       ratings: series.ratings,
       path: series.path,
       qualityProfileId: series.qualityProfileId,
-      seriesId: series.id,
       seasons: series.seasons,
       seasonCount: (stats?['seasonCount'] as num?)?.toInt(),
       episodeCount: (stats?['episodeCount'] as num?)?.toInt(),

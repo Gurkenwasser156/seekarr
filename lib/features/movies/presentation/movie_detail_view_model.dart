@@ -22,7 +22,6 @@ class MovieDetailViewModel {
   final String? path;
   final String? filename;
   final int? qualityProfileId;
-  final int movieId;
   final String? certification;
   final String? originalLanguage;
   final String? inCinemas;
@@ -45,7 +44,6 @@ class MovieDetailViewModel {
     this.path,
     this.filename,
     this.qualityProfileId,
-    required this.movieId,
     this.certification,
     this.originalLanguage,
     this.inCinemas,
@@ -59,19 +57,12 @@ class MovieDetailViewModel {
   ].where((item) => item.isNotEmpty).toList(growable: false);
 
   List<MediaInfoGroup> buildInfoGroups() {
-    final releaseFacts = <MediaFact>[
-      if (inCinemas != null && inCinemas!.isNotEmpty)
-        MediaFact('In Cinemas', formatIsoDate(inCinemas!)),
-      if (digitalRelease != null && digitalRelease!.isNotEmpty)
-        MediaFact('Digital', formatIsoDate(digitalRelease!)),
-      if (physicalRelease != null && physicalRelease!.isNotEmpty)
-        MediaFact('Physical', formatIsoDate(physicalRelease!)),
-    ];
+    final releaseFacts = _buildReleaseFacts();
 
     return [
-      if (certification != null && certification!.isNotEmpty)
+      if (_hasText(certification))
         MediaInfoGroup(title: 'Certification', child: Text(certification!)),
-      if (originalLanguage != null && originalLanguage!.isNotEmpty)
+      if (_hasText(originalLanguage))
         MediaInfoGroup(
           title: 'Original Language',
           child: Text(originalLanguage!),
@@ -92,10 +83,20 @@ class MovieDetailViewModel {
                 .toList(growable: false),
           ),
         ),
-      if (studio != null && studio!.isNotEmpty)
+      if (_hasText(studio))
         MediaInfoGroup(title: 'Studio', child: Text(studio!)),
     ];
   }
+
+  List<MediaFact> _buildReleaseFacts() => [
+    if (_hasText(inCinemas)) MediaFact('In Cinemas', formatIsoDate(inCinemas!)),
+    if (_hasText(digitalRelease))
+      MediaFact('Digital', formatIsoDate(digitalRelease!)),
+    if (_hasText(physicalRelease))
+      MediaFact('Physical', formatIsoDate(physicalRelease!)),
+  ];
+
+  bool _hasText(String? value) => value != null && value.isNotEmpty;
 
   factory MovieDetailViewModel.fromMovie(
     RadarrMovie movie, {
@@ -113,7 +114,7 @@ class MovieDetailViewModel {
       apiKey: apiKey,
       coverTypes: const ['fanart'],
     );
-    final path = movie.path;
+    final moviePath = movie.path;
 
     return MovieDetailViewModel(
       title: movie.title,
@@ -130,12 +131,11 @@ class MovieDetailViewModel {
       studio: movie.studio,
       genres: movie.genres,
       ratings: movie.ratings,
-      path: path,
-      filename: movie.hasFile && path != null
-          ? path.split(RegExp(r'[\\/]')).last
+      path: moviePath,
+      filename: movie.hasFile && moviePath != null
+          ? moviePath.split(RegExp(r'[\\/]')).last
           : null,
       qualityProfileId: movie.qualityProfileId,
-      movieId: movie.id,
       certification: movie.certification,
       originalLanguage: movie.originalLanguage?['name'] as String?,
       inCinemas: movie.inCinemas,

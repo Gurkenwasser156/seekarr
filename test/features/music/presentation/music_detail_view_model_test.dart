@@ -43,7 +43,6 @@ void main() {
         );
 
         expect(vm.title, 'Test Artist');
-        expect(vm.artistId, 1);
         expect(vm.albumCount, 5);
         expect(vm.trackCount, 50);
       });

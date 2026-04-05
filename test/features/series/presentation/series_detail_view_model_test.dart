@@ -54,7 +54,6 @@ void main() {
 
         expect(vm.title, 'Test Series');
         expect(vm.network, 'HBO');
-        expect(vm.seriesId, 1);
       });
 
       test('maps enrichment fields', () {

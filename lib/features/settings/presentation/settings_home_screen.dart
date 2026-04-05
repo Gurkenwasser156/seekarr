@@ -31,6 +31,13 @@ class SettingsHomeScreen extends ConsumerWidget {
     final bottomPadding = FloatingNavBarMetrics.getScrollViewBottomPadding(
       context,
     );
+    final content = [
+      ..._buildGeneralSection(context, settings),
+      const SizedBox(height: AppSpacing.lg),
+      ..._buildServicesSection(context, settings),
+      const SizedBox(height: AppSpacing.lg),
+      ..._buildAboutSection(context),
+    ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), elevation: 0),
@@ -43,83 +50,96 @@ class SettingsHomeScreen extends ConsumerWidget {
               AppSpacing.md,
               bottomPadding,
             ),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                const SectionHeader(title: 'General'),
-                const SizedBox(height: AppSpacing.sm),
-                SettingsCard(
-                  leading: const Icon(Icons.language_rounded),
-                  title: 'Region',
-                  subtitle: _formatRegionLabel(settings.region),
-                  onTap: () => context.push('/settings/region'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: SettingsCard(
-                    leading: const Icon(Icons.palette_rounded),
-                    title: 'Appearance',
-                    subtitle: settings.themeMode.label,
-                    onTap: () => context.push('/settings/appearance'),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: SettingsCard(
-                    leading: const Icon(Icons.apps_rounded),
-                    title: 'Services',
-                    subtitle: _formatServicesVisibilityLabel(settings),
-                    onTap: () => context.push('/settings/services'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Services Section
-                const SectionHeader(title: 'Services'),
-                const SizedBox(height: AppSpacing.sm),
-                ...ServiceKey.values.map(
-                  (service) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: SettingsCard(
-                      leading: Icon(service.icon),
-                      title: service.title,
-                      subtitle: _getServiceSubtitle(settings, service),
-                      onTap: () => context.push(
-                        '/settings/service/${service.routeParam}',
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // About Section
-                const SectionHeader(title: 'About'),
-                const SizedBox(height: AppSpacing.sm),
-                SettingsCard(
-                  leading: const Icon(Icons.share_rounded),
-                  title: 'Share App',
-                  onTap: () => SnackBarHelper.info(context, 'Coming soon!'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: SettingsCard(
-                    leading: const Icon(Icons.code_rounded),
-                    title: 'GitHub',
-                    onTap: () => _openGitHub(context),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: SettingsCard(
-                    leading: const Icon(Icons.feedback_rounded),
-                    title: 'Send Feedback',
-                    onTap: () => _sendFeedback(context),
-                  ),
-                ),
-              ]),
-            ),
+            sliver: SliverList(delegate: SliverChildListDelegate(content)),
           ),
         ],
       ),
+    );
+  }
+
+  List<Widget> _buildGeneralSection(
+    BuildContext context,
+    SettingsModel settings,
+  ) {
+    return [
+      const SectionHeader(title: 'General'),
+      const SizedBox(height: AppSpacing.sm),
+      SettingsCard(
+        leading: const Icon(Icons.language_rounded),
+        title: 'Region',
+        subtitle: _formatRegionLabel(settings.region),
+        onTap: () => context.push('/settings/region'),
+      ),
+      _sectionCard(
+        SettingsCard(
+          leading: const Icon(Icons.palette_rounded),
+          title: 'Appearance',
+          subtitle: settings.themeMode.label,
+          onTap: () => context.push('/settings/appearance'),
+        ),
+      ),
+      _sectionCard(
+        SettingsCard(
+          leading: const Icon(Icons.apps_rounded),
+          title: 'Services',
+          subtitle: _formatServicesVisibilityLabel(settings),
+          onTap: () => context.push('/settings/services'),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildServicesSection(
+    BuildContext context,
+    SettingsModel settings,
+  ) {
+    return [
+      const SectionHeader(title: 'Services'),
+      const SizedBox(height: AppSpacing.sm),
+      for (final service in ServiceKey.values)
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: SettingsCard(
+            leading: Icon(service.icon),
+            title: service.title,
+            subtitle: _getServiceSubtitle(settings, service),
+            onTap: () =>
+                context.push('/settings/service/${service.routeParam}'),
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _buildAboutSection(BuildContext context) {
+    return [
+      const SectionHeader(title: 'About'),
+      const SizedBox(height: AppSpacing.sm),
+      SettingsCard(
+        leading: const Icon(Icons.share_rounded),
+        title: 'Share App',
+        onTap: () => SnackBarHelper.info(context, 'Coming soon!'),
+      ),
+      _sectionCard(
+        SettingsCard(
+          leading: const Icon(Icons.code_rounded),
+          title: 'GitHub',
+          onTap: () => _openGitHub(context),
+        ),
+      ),
+      _sectionCard(
+        SettingsCard(
+          leading: const Icon(Icons.feedback_rounded),
+          title: 'Send Feedback',
+          onTap: () => _sendFeedback(context),
+        ),
+      ),
+    ];
+  }
+
+  Widget _sectionCard(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: child,
     );
   }
 

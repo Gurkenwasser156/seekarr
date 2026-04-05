@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:seekarr/core/utils/release_utils.dart';
+
 /// Widget displaying a single release item in the interactive search list.
 ///
 /// Shows release title, metadata (indexer, size, seeders, quality, age),
@@ -20,11 +22,11 @@ class ReleaseListItem extends StatelessWidget {
     final releaseTitle = release['title'] as String? ?? 'Unknown';
     final indexer = release['indexer'] as String? ?? 'Unknown';
     final sizeNum = release['size'] as num? ?? 0;
-    final sizeStr = _formatSize(sizeNum.toInt());
+    final sizeStr = formatReleaseSize(sizeNum.toInt());
     final seeders = (release['seeders'] as num?)?.toInt() ?? 0;
     final quality = release['quality']?['quality']?['name'] as String? ?? '';
     final ageNum = release['ageMinutes'] as num? ?? 0;
-    final ageStr = _formatAge(ageNum.toInt());
+    final ageStr = formatReleaseAge(ageNum.toInt());
 
     // Custom formats
     final customFormatScore =
@@ -236,21 +238,6 @@ class ReleaseListItem extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-  }
-
-  String _formatAge(int minutes) {
-    if (minutes < 60) return '${minutes}m';
-    if (minutes < 1440) return '${(minutes / 60).round()}h';
-    return '${(minutes / 1440).round()}d';
   }
 }
 

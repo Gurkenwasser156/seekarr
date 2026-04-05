@@ -19,59 +19,35 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
-  }) async {
-    try {
-      return await _dio.get(
-        path,
-        queryParameters: queryParameters,
-        cancelToken: cancelToken,
-      );
-    } catch (e) {
-      rethrow;
-    }
+  }) {
+    return _dio.get(
+      path,
+      queryParameters: queryParameters,
+      cancelToken: cancelToken,
+    );
   }
 
   Future<Response> post(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
-  }) async {
-    try {
-      return await _dio.post(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-      );
-    } catch (e) {
-      rethrow;
-    }
+  }) {
+    return _dio.post(path, data: data, queryParameters: queryParameters);
   }
 
   Future<Response> put(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
-  }) async {
-    try {
-      return await _dio.put(path, data: data, queryParameters: queryParameters);
-    } catch (e) {
-      rethrow;
-    }
+  }) {
+    return _dio.put(path, data: data, queryParameters: queryParameters);
   }
 
   Future<Response> delete(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
-  }) async {
-    try {
-      return await _dio.delete(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-      );
-    } catch (e) {
-      rethrow;
-    }
+  }) {
+    return _dio.delete(path, data: data, queryParameters: queryParameters);
   }
 }

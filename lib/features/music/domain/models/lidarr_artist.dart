@@ -39,6 +39,15 @@ class LidarrArtist {
     this.path,
   });
 
+  int get albumCount => (statistics?['albumCount'] as num?)?.toInt() ?? 0;
+
+  int get trackCount => (statistics?['trackCount'] as num?)?.toInt() ?? 0;
+
+  int get trackFileCount =>
+      (statistics?['trackFileCount'] as num?)?.toInt() ?? 0;
+
+  bool get hasFiles => trackFileCount > 0;
+
   factory LidarrArtist.fromJson(Map<String, dynamic> json) {
     final ratings = parseArrRatings(
       json['ratings'],

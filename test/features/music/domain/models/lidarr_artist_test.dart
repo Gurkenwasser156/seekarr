@@ -95,6 +95,27 @@ void main() {
         expect(artist.path, isNull);
       });
 
+      test('exposes typed statistics getters', () {
+        final artist = LidarrArtist.fromJson({
+          'id': 1,
+          'artistName': 'Test Artist',
+          'status': 'active',
+          'monitored': true,
+          'images': const [],
+          'genres': const [],
+          'statistics': {
+            'albumCount': 5,
+            'trackCount': 50,
+            'trackFileCount': 40,
+          },
+        });
+
+        expect(artist.albumCount, 5);
+        expect(artist.trackCount, 50);
+        expect(artist.trackFileCount, 40);
+        expect(artist.hasFiles, isTrue);
+      });
+
       test('parses single-source ratings', () {
         final artist = LidarrArtist.fromJson({
           'id': 1,

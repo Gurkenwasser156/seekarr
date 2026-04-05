@@ -73,23 +73,6 @@ void main() {
       expect(artists, isEmpty);
     });
 
-    test('getArtist returns raw map on success', () async {
-      client.getResponseData = {'id': 1, 'artistName': 'Test Artist'};
-
-      final artist = await service.getArtist(1);
-
-      expect(client.lastGetPath, '/api/v1/artist/1');
-      expect(artist, {'id': 1, 'artistName': 'Test Artist'});
-    });
-
-    test('getArtist returns null on error', () async {
-      client.getException = Exception('boom');
-
-      final artist = await service.getArtist(1);
-
-      expect(artist, isNull);
-    });
-
     test('getArtistById returns a typed artist on success', () async {
       client.getResponseData = _artistJson(id: 5, artistName: 'Band');
 

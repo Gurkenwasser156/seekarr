@@ -8,6 +8,8 @@ import 'package:seekarr/features/settings/data/settings_service.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/settings_region_screen.dart';
 
+import '../../../test_helpers/fake_secure_settings_store.dart';
+
 void main() {
   group('SettingsRegionScreen', () {
     testWidgets('renders the title, description, and all common regions', (
@@ -28,9 +30,16 @@ void main() {
 
     testWidgets('selects US by default', (tester) async {
       await _pumpRegionScreen(tester);
+      final semantics = tester.ensureSemantics();
 
-      final tile = tester.widget<RadioListTile<String>>(_regionTile('US'));
-      expect(tile.groupValue, 'US');
+      try {
+        expect(
+          tester.getSemantics(_regionTile('US')),
+          containsSemantics(hasCheckedState: true, isChecked: true),
+        );
+      } finally {
+        semantics.dispose();
+      }
     });
 
     testWidgets('normalizes configured regions to uppercase', (tester) async {
@@ -38,12 +47,19 @@ void main() {
         tester,
         settings: const SettingsModel(region: 'jp'),
       );
+      final semantics = tester.ensureSemantics();
 
-      await tester.scrollUntilVisible(find.text('Japan (JP)'), 300);
-      await tester.pumpAndSettle();
+      try {
+        await tester.scrollUntilVisible(find.text('Japan (JP)'), 300);
+        await tester.pumpAndSettle();
 
-      final tile = tester.widget<RadioListTile<String>>(_regionTile('JP'));
-      expect(tile.groupValue, 'JP');
+        expect(
+          tester.getSemantics(_regionTile('JP')),
+          containsSemantics(hasCheckedState: true, isChecked: true),
+        );
+      } finally {
+        semantics.dispose();
+      }
     });
 
     testWidgets('renders region labels in the expected format', (tester) async {
@@ -60,15 +76,22 @@ void main() {
 
     testWidgets('tapping a region updates settings state', (tester) async {
       final harness = await _pumpRegionScreen(tester);
+      final semantics = tester.ensureSemantics();
 
-      await tester.scrollUntilVisible(find.text('Japan (JP)'), 300);
-      await tester.tap(find.text('Japan (JP)'));
-      await tester.pumpAndSettle();
+      try {
+        await tester.scrollUntilVisible(find.text('Japan (JP)'), 300);
+        await tester.tap(find.text('Japan (JP)'));
+        await tester.pumpAndSettle();
 
-      expect(harness.container.read(settingsProvider).region, 'JP');
+        expect(harness.container.read(settingsProvider).region, 'JP');
 
-      final tile = tester.widget<RadioListTile<String>>(_regionTile('JP'));
-      expect(tile.groupValue, 'JP');
+        expect(
+          tester.getSemantics(_regionTile('JP')),
+          containsSemantics(hasCheckedState: true, isChecked: true),
+        );
+      } finally {
+        semantics.dispose();
+      }
     });
   });
 }
@@ -111,23 +134,4 @@ class _SettingsHarness {
   const _SettingsHarness(this.container);
 
   final ProviderContainer container;
-}
-
-class FakeSecureSettingsStore implements SecureSettingsStore {
-  final Map<String, String> _storage = {};
-
-  @override
-  Future<void> delete({required String key}) async {
-    _storage.remove(key);
-  }
-
-  @override
-  Future<String?> read({required String key}) async {
-    return _storage[key];
-  }
-
-  @override
-  Future<void> write({required String key, required String value}) async {
-    _storage[key] = value;
-  }
 }

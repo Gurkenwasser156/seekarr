@@ -47,30 +47,25 @@ class SonarrService with ArrActivityMixin {
 
   /// Triggers an automatic search for the given series ID (entire series).
   Future<void> searchSeries(int seriesId) async {
-    await client.post(
-      '/api/v3/command',
-      data: {'name': 'SeriesSearch', 'seriesId': seriesId},
-    );
+    await _postCommand({'name': 'SeriesSearch', 'seriesId': seriesId});
   }
 
   /// Triggers an automatic search for a specific season.
   Future<void> searchSeason(int seriesId, int seasonNumber) async {
-    await client.post(
-      '/api/v3/command',
-      data: {
-        'name': 'SeasonSearch',
-        'seriesId': seriesId,
-        'seasonNumber': seasonNumber,
-      },
-    );
+    await _postCommand({
+      'name': 'SeasonSearch',
+      'seriesId': seriesId,
+      'seasonNumber': seasonNumber,
+    });
   }
 
   /// Triggers an automatic search for specific episodes.
   Future<void> searchEpisodes(List<int> episodeIds) async {
-    await client.post(
-      '/api/v3/command',
-      data: {'name': 'EpisodeSearch', 'episodeIds': episodeIds},
-    );
+    await _postCommand({'name': 'EpisodeSearch', 'episodeIds': episodeIds});
+  }
+
+  Future<void> _postCommand(Map<String, dynamic> data) async {
+    await client.post('/api/v3/command', data: data);
   }
 
   /// Fetches all episodes for a series.
@@ -127,7 +122,7 @@ class SonarrService with ArrActivityMixin {
     try {
       final series = await getSeries();
       return series.where((s) => s.tvdbId == tvdbId).firstOrNull;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
