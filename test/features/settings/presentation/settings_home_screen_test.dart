@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/widgets/app_card.dart';
+import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/settings_home_screen.dart';
@@ -14,9 +15,9 @@ void main() {
       await _pumpSettingsHome(tester);
 
       expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('General'), findsOneWidget);
-      expect(find.text('Services'), findsOneWidget);
-      expect(find.text('About'), findsOneWidget);
+      expect(_sectionHeader('General'), findsOneWidget);
+      expect(_sectionHeader('Services'), findsOneWidget);
+      expect(_sectionHeader('About'), findsOneWidget);
     });
 
     testWidgets('formats the selected region label', (tester) async {
@@ -33,11 +34,28 @@ void main() {
     ) async {
       await _pumpSettingsHome(tester);
 
-      expect(find.text('Jellyseerr'), findsOneWidget);
-      expect(find.text('Radarr'), findsOneWidget);
-      expect(find.text('Sonarr'), findsOneWidget);
-      expect(find.text('Lidarr'), findsOneWidget);
-      expect(find.text('Not configured'), findsNWidgets(4));
+      await tester.scrollUntilVisible(
+        find.text('Lidarr', skipOffstage: false),
+        300,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        _settingsCard('Jellyseerr', subtitle: 'Not configured'),
+        findsOneWidget,
+      );
+      expect(
+        _settingsCard('Radarr', subtitle: 'Not configured'),
+        findsOneWidget,
+      );
+      expect(
+        _settingsCard('Sonarr', subtitle: 'Not configured'),
+        findsOneWidget,
+      );
+      expect(
+        _settingsCard('Lidarr', subtitle: 'Not configured'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('shows the extracted host for configured services', (
@@ -135,4 +153,21 @@ Future<void> _pumpSettingsHome(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Finder _sectionHeader(String title) {
+  return find.byWidgetPredicate(
+    (widget) => widget is SectionHeader && widget.title == title,
+    skipOffstage: false,
+  );
+}
+
+Finder _settingsCard(String title, {String? subtitle}) {
+  return find.byWidgetPredicate(
+    (widget) =>
+        widget is SettingsCard &&
+        widget.title == title &&
+        (subtitle == null || widget.subtitle == subtitle),
+    skipOffstage: false,
+  );
 }

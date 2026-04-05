@@ -36,16 +36,6 @@ class LidarrService with ArrActivityMixin {
     return fetchAllItems('artist', LidarrArtist.fromJson);
   }
 
-  /// Fetches a single artist by ID.
-  Future<Map<String, dynamic>?> getArtist(int artistId) async {
-    try {
-      final response = await client.get('/api/v1/artist/$artistId');
-      return response.data as Map<String, dynamic>;
-    } catch (e) {
-      return null;
-    }
-  }
-
   /// Fetches a single artist by ID, returning a typed model.
   Future<LidarrArtist?> getArtistById(int artistId) async {
     try {

@@ -10,6 +10,8 @@ import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
 
+import '../../../test_helpers/fake_secure_settings_store.dart';
+
 void main() {
   String? clipboardText;
 
@@ -54,11 +56,11 @@ void main() {
         ),
       );
 
-      final fields = tester
-          .widgetList<TextFormField>(find.byType(TextFormField))
-          .toList();
-      expect(fields[0].controller?.text, 'https://radarr.local');
-      expect(fields[1].controller?.text, 'radarr-key');
+      final urlField = tester.widget<TextField>(_fieldByLabel('Server URL'));
+      final apiKeyField = tester.widget<TextField>(_fieldByLabel('API Key'));
+
+      expect(urlField.controller?.text, 'https://radarr.local');
+      expect(apiKeyField.controller?.text, 'radarr-key');
     });
 
     testWidgets('renders the service icon in the header', (tester) async {
@@ -80,7 +82,7 @@ void main() {
       await _pumpServiceSettings(tester, service: ServiceKey.radarr);
 
       await tester.enterText(
-        find.byType(TextFormField).first,
+        _fieldByLabel('Server URL'),
         'https://radarr.local',
       );
       await tester.tap(find.text('Save'));
@@ -120,10 +122,10 @@ void main() {
       );
 
       await tester.enterText(
-        find.byType(TextFormField).first,
+        _fieldByLabel('Server URL'),
         'https://sonarr.local',
       );
-      await tester.enterText(find.byType(TextFormField).last, 'sonarr-key');
+      await tester.enterText(_fieldByLabel('API Key'), 'sonarr-key');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
@@ -136,6 +138,16 @@ void main() {
       expect(find.text('LauncherPage'), findsOneWidget);
       expect(find.text('Sonarr settings saved'), findsOneWidget);
     });
+  });
+}
+
+Finder _fieldByLabel(String labelText) {
+  return find.byWidgetPredicate((widget) {
+    if (widget is! TextField) {
+      return false;
+    }
+
+    return widget.decoration?.labelText == labelText;
   });
 }
 
@@ -211,23 +223,4 @@ class _SettingsHarness {
   const _SettingsHarness(this.container);
 
   final ProviderContainer container;
-}
-
-class FakeSecureSettingsStore implements SecureSettingsStore {
-  final Map<String, String> _storage = {};
-
-  @override
-  Future<void> delete({required String key}) async {
-    _storage.remove(key);
-  }
-
-  @override
-  Future<String?> read({required String key}) async {
-    return _storage[key];
-  }
-
-  @override
-  Future<void> write({required String key, required String value}) async {
-    _storage[key] = value;
-  }
 }

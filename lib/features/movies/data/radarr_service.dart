@@ -87,7 +87,7 @@ class RadarrService with ArrActivityMixin {
     try {
       final movies = await getMovies();
       return movies.where((m) => m.tmdbId == tmdbId).firstOrNull;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }

@@ -21,6 +21,8 @@ enum WantedSegment {
   const WantedSegment(this.label);
 }
 
+const _headerHeight = 56.0;
+
 class ActivitySegmentSelector<T extends Enum> extends StatelessWidget {
   final List<T> segments;
   final T selected;
@@ -64,10 +66,10 @@ class _ActivitySegmentHeaderDelegate<T extends Enum>
   });
 
   @override
-  double get minExtent => 56;
+  double get minExtent => _headerHeight;
 
   @override
-  double get maxExtent => 56;
+  double get maxExtent => _headerHeight;
 
   @override
   Widget build(
@@ -79,37 +81,30 @@ class _ActivitySegmentHeaderDelegate<T extends Enum>
 
     return Material(
       color: colorScheme.surface,
-      child: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xs,
-              ),
-              child: Align(
-                alignment: Alignment.center,
-                child: SegmentedButton<T>(
-                  showSelectedIcon: false,
-                  segments: segments
-                      .map(
-                        (segment) => ButtonSegment<T>(
-                          value: segment,
-                          label: Text(labelBuilder(segment)),
-                        ),
-                      )
-                      .toList(growable: false),
-                  selected: {selected},
-                  onSelectionChanged: (selection) {
-                    if (selection.isNotEmpty) {
-                      onChanged(selection.first);
-                    }
-                  },
-                ),
-              ),
-            ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.xs,
+        ),
+        child: Center(
+          child: SegmentedButton<T>(
+            showSelectedIcon: false,
+            segments: segments
+                .map(
+                  (segment) => ButtonSegment<T>(
+                    value: segment,
+                    label: Text(labelBuilder(segment)),
+                  ),
+                )
+                .toList(growable: false),
+            selected: {selected},
+            onSelectionChanged: (selection) {
+              if (selection.isNotEmpty) {
+                onChanged(selection.first);
+              }
+            },
           ),
-        ],
+        ),
       ),
     );
   }

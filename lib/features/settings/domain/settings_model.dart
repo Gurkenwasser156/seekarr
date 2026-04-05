@@ -41,6 +41,34 @@ class SettingsModel {
   final AppThemeMode themeMode;
   final Set<NavTab> hiddenTabs;
 
+  static final Map<ServiceKey, _ServiceSettingsAccess> _serviceSettingsAccess =
+      {
+        ServiceKey.jellyseerr: _ServiceSettingsAccess(
+          url: (settings) => settings.jellyseerrUrl,
+          apiKey: (settings) => settings.jellyseerrApiKey,
+          update: (settings, {url, apiKey}) =>
+              settings.copyWith(jellyseerrUrl: url, jellyseerrApiKey: apiKey),
+        ),
+        ServiceKey.radarr: _ServiceSettingsAccess(
+          url: (settings) => settings.radarrUrl,
+          apiKey: (settings) => settings.radarrApiKey,
+          update: (settings, {url, apiKey}) =>
+              settings.copyWith(radarrUrl: url, radarrApiKey: apiKey),
+        ),
+        ServiceKey.sonarr: _ServiceSettingsAccess(
+          url: (settings) => settings.sonarrUrl,
+          apiKey: (settings) => settings.sonarrApiKey,
+          update: (settings, {url, apiKey}) =>
+              settings.copyWith(sonarrUrl: url, sonarrApiKey: apiKey),
+        ),
+        ServiceKey.lidarr: _ServiceSettingsAccess(
+          url: (settings) => settings.lidarrUrl,
+          apiKey: (settings) => settings.lidarrApiKey,
+          update: (settings, {url, apiKey}) =>
+              settings.copyWith(lidarrUrl: url, lidarrApiKey: apiKey),
+        ),
+      };
+
   static String normalizeRegion(String? region) {
     final normalized = region?.trim().toUpperCase() ?? '';
     return normalized.isEmpty ? 'US' : normalized;
@@ -100,24 +128,18 @@ class SettingsModel {
     return !tab.canBeHidden || !hiddenTabs.contains(tab);
   }
 
+  _ServiceSettingsAccess _serviceAccessFor(ServiceKey service) {
+    return _serviceSettingsAccess[service]!;
+  }
+
   /// Returns the URL configured for [service].
   String urlFor(ServiceKey service) {
-    return switch (service) {
-      ServiceKey.jellyseerr => jellyseerrUrl,
-      ServiceKey.radarr => radarrUrl,
-      ServiceKey.sonarr => sonarrUrl,
-      ServiceKey.lidarr => lidarrUrl,
-    };
+    return _serviceAccessFor(service).url(this);
   }
 
   /// Returns the API key configured for [service].
   String apiKeyFor(ServiceKey service) {
-    return switch (service) {
-      ServiceKey.jellyseerr => jellyseerrApiKey,
-      ServiceKey.radarr => radarrApiKey,
-      ServiceKey.sonarr => sonarrApiKey,
-      ServiceKey.lidarr => lidarrApiKey,
-    };
+    return _serviceAccessFor(service).apiKey(this);
   }
 
   /// Returns a copy with the URL and/or API key updated for [service].
@@ -126,14 +148,23 @@ class SettingsModel {
     String? url,
     String? apiKey,
   }) {
-    return switch (service) {
-      ServiceKey.jellyseerr => copyWith(
-        jellyseerrUrl: url,
-        jellyseerrApiKey: apiKey,
-      ),
-      ServiceKey.radarr => copyWith(radarrUrl: url, radarrApiKey: apiKey),
-      ServiceKey.sonarr => copyWith(sonarrUrl: url, sonarrApiKey: apiKey),
-      ServiceKey.lidarr => copyWith(lidarrUrl: url, lidarrApiKey: apiKey),
-    };
+    return _serviceAccessFor(service).update(this, url: url, apiKey: apiKey);
   }
+}
+
+class _ServiceSettingsAccess {
+  final String Function(SettingsModel settings) url;
+  final String Function(SettingsModel settings) apiKey;
+  final SettingsModel Function(
+    SettingsModel settings, {
+    String? url,
+    String? apiKey,
+  })
+  update;
+
+  const _ServiceSettingsAccess({
+    required this.url,
+    required this.apiKey,
+    required this.update,
+  });
 }

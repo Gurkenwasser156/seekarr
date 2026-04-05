@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/shell/presentation/shell_screen.dart';
 
 void main() {
@@ -124,8 +126,11 @@ void main() {
 Future<_ShellHarness> _pumpShell(
   WidgetTester tester, {
   String initialLocation = '/discover',
+  SettingsModel settings = const SettingsModel(),
 }) async {
-  final container = ProviderContainer();
+  final container = ProviderContainer(
+    overrides: [currentSettingsProvider.overrideWith((ref) => settings)],
+  );
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [

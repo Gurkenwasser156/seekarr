@@ -71,74 +71,86 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.service.title} Settings'),
-        actions: [
-          TextButton.icon(
-            onPressed: _saveSettings,
-            icon: const Icon(Icons.check_rounded),
-            label: const Text('Save'),
-          ),
-        ],
+        actions: [_buildSaveAction()],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            // Service header
-            SectionHeader(
-              title: widget.service.title,
-              trailing: Icon(
-                widget.service.icon,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
+            _buildHeader(context),
             const SizedBox(height: AppSpacing.lg),
-
-            // Server URL
-            TextFormField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Server URL',
-                hintText: 'https://',
-                border: OutlineInputBorder(),
-                filled: true,
-              ),
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.next,
-              autocorrect: false,
-              validator: UrlUtils.validateServiceUrl,
-            ),
+            _buildUrlField(),
             const SizedBox(height: AppSpacing.lg),
-
-            // API Key
-            TextFormField(
-              controller: _apiKeyController,
-              decoration: InputDecoration(
-                labelText: 'API Key',
-                hintText: 'Enter your API key',
-                border: const OutlineInputBorder(),
-                filled: true,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.copy),
-                  onPressed: () => _copyApiKey(),
-                  tooltip: 'Copy API key',
-                ),
-              ),
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _saveSettings(),
-              obscureText: true,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'API Key is required';
-                }
-                return null;
-              },
-            ),
+            _buildApiKeyField(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSaveAction() {
+    return TextButton.icon(
+      onPressed: _saveSettings,
+      icon: const Icon(Icons.check_rounded),
+      label: const Text('Save'),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return SectionHeader(
+      title: widget.service.title,
+      trailing: Icon(
+        widget.service.icon,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+
+  Widget _buildUrlField() {
+    return TextFormField(
+      controller: _urlController,
+      decoration: const InputDecoration(
+        labelText: 'Server URL',
+        hintText: 'https://',
+        border: OutlineInputBorder(),
+        filled: true,
+      ),
+      keyboardType: TextInputType.url,
+      textInputAction: TextInputAction.next,
+      autocorrect: false,
+      validator: UrlUtils.validateServiceUrl,
+    );
+  }
+
+  Widget _buildApiKeyField() {
+    return TextFormField(
+      controller: _apiKeyController,
+      decoration: InputDecoration(
+        labelText: 'API Key',
+        hintText: 'Enter your API key',
+        border: const OutlineInputBorder(),
+        filled: true,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.copy),
+          onPressed: _copyApiKey,
+          tooltip: 'Copy API key',
+        ),
+      ),
+      keyboardType: TextInputType.visiblePassword,
+      textInputAction: TextInputAction.done,
+      onFieldSubmitted: (_) => _saveSettings(),
+      obscureText: true,
+      validator: _validateApiKey,
+    );
+  }
+
+  String? _validateApiKey(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'API Key is required';
+    }
+
+    return null;
   }
 
   void _copyApiKey() {

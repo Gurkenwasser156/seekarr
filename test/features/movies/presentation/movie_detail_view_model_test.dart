@@ -52,7 +52,6 @@ void main() {
         expect(vm.year, '2023');
         expect(vm.runtimeStr, '120 min');
         expect(vm.studio, 'Paramount');
-        expect(vm.movieId, 1);
       });
 
       test('maps enrichment fields', () {

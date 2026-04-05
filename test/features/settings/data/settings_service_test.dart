@@ -4,6 +4,8 @@ import 'package:seekarr/features/settings/data/settings_service.dart';
 import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
+import '../../../test_helpers/fake_secure_settings_store.dart';
+
 void main() {
   group('SettingsService', () {
     late SharedPreferences prefs;
@@ -141,23 +143,4 @@ void main() {
       expect(await secureStore.read(key: 'secure_radarr_api_key'), isNull);
     });
   });
-}
-
-class FakeSecureSettingsStore implements SecureSettingsStore {
-  final Map<String, String> _storage = {};
-
-  @override
-  Future<void> delete({required String key}) async {
-    _storage.remove(key);
-  }
-
-  @override
-  Future<String?> read({required String key}) async {
-    return _storage[key];
-  }
-
-  @override
-  Future<void> write({required String key, required String value}) async {
-    _storage[key] = value;
-  }
 }

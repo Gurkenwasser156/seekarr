@@ -21,7 +21,7 @@ final moviesSearchResultsProvider = FutureProvider<List<RadarrMovie>?>((
   try {
     final service = ref.read(radarrServiceProvider);
     return await service.lookupMovies(query);
-  } catch (e) {
+  } catch (_) {
     return [];
   }
 });

@@ -17,7 +17,6 @@ class MusicDetailViewModel {
   final List<String> genres;
   final List<RatingSource> ratings;
   final int? qualityProfileId;
-  final int artistId;
   final int albumCount;
   final int trackCount;
   final String? artistType;
@@ -35,7 +34,6 @@ class MusicDetailViewModel {
     required this.genres,
     required this.ratings,
     this.qualityProfileId,
-    required this.artistId,
     required this.albumCount,
     required this.trackCount,
     this.artistType,
@@ -44,18 +42,26 @@ class MusicDetailViewModel {
   });
 
   List<String> get metadataItems => [
-    if (albumCount > 0) '$albumCount ${albumCount == 1 ? 'Album' : 'Albums'}',
-    if (trackCount > 0) '$trackCount ${trackCount == 1 ? 'Track' : 'Tracks'}',
+    if (albumCountLabel != null) albumCountLabel!,
+    if (trackCountLabel != null) trackCountLabel!,
   ];
+
+  String? get albumCountLabel => albumCount > 0
+      ? '$albumCount ${albumCount == 1 ? 'Album' : 'Albums'}'
+      : null;
+
+  String? get trackCountLabel => trackCount > 0
+      ? '$trackCount ${trackCount == 1 ? 'Track' : 'Tracks'}'
+      : null;
 
   List<MediaInfoGroup> buildInfoGroups() {
     return [
-      if (artistType != null && artistType!.isNotEmpty)
+      if (_hasText(artistType))
         MediaInfoGroup(
           title: 'Artist Type',
           child: Text(capitalizeFirst(artistType!)),
         ),
-      if (disambiguation != null && disambiguation!.isNotEmpty)
+      if (_hasText(disambiguation))
         MediaInfoGroup(title: 'Disambiguation', child: Text(disambiguation!)),
       if (genres.isNotEmpty)
         MediaInfoGroup(
@@ -68,10 +74,12 @@ class MusicDetailViewModel {
                 .toList(growable: false),
           ),
         ),
-      if (path != null && path!.isNotEmpty)
+      if (_hasText(path))
         MediaInfoGroup(title: 'Library Path', child: Text(path!)),
     ];
   }
+
+  bool _hasText(String? value) => value != null && value.isNotEmpty;
 
   factory MusicDetailViewModel.fromArtist(
     LidarrArtist artist, {
@@ -90,8 +98,6 @@ class MusicDetailViewModel {
       apiKey: apiKey,
       coverTypes: const ['fanart'],
     );
-    final stats = artist.statistics;
-
     return MusicDetailViewModel(
       title: artist.artistName,
       overview: artist.overview?.trim().isNotEmpty == true
@@ -101,13 +107,12 @@ class MusicDetailViewModel {
       posterHeaders: posterSource.headers,
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: artist.status,
-      hasFiles: ((stats?['trackFileCount'] as num?)?.toInt() ?? 0) > 0,
+      hasFiles: artist.hasFiles,
       genres: artist.genres,
       ratings: artist.ratings,
       qualityProfileId: artist.qualityProfileId,
-      artistId: artist.id,
-      albumCount: (stats?['albumCount'] as num?)?.toInt() ?? 0,
-      trackCount: (stats?['trackCount'] as num?)?.toInt() ?? 0,
+      albumCount: artist.albumCount,
+      trackCount: artist.trackCount,
       artistType: artist.artistType,
       disambiguation: artist.disambiguation,
       path: artist.path,

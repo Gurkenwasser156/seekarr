@@ -32,7 +32,3 @@ final resolvedArrServiceProvider =
           );
       }
     });
-
-ArrActivityMixin resolveArrService(WidgetRef ref, ServiceType serviceType) {
-  return ref.read(resolvedArrServiceProvider(serviceType));
-}

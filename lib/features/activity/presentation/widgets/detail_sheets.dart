@@ -23,60 +23,11 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
-    final statusMessages = extractStatusMessages(item['statusMessages']);
-    final displayStatus = resolveQueueDisplayStatus(item);
-
     return _show(
       context: context,
       title: stringOrNull(item['title']) ?? 'Queue Item',
-      sections: [
-        _DetailSection(
-          title: 'Summary',
-          fields: _compactFields([
-            _detailField('Display Status', displayStatus.label),
-            _detailField('Status', item['status']),
-            _detailField('Tracked Status', item['trackedDownloadStatus']),
-            _detailField('Tracked State', item['trackedDownloadState']),
-            _detailField('Quality', extractQualityName(item)),
-          ]),
-        ),
-        _DetailSection(
-          title: 'Transfer',
-          fields: _compactFields([
-            _detailField('Protocol', item['protocol']),
-            _detailField('Download Client', item['downloadClient']),
-            _detailField('Indexer', item['indexer']),
-            _detailField('Size', formatActivityBytes(item['size'])),
-            _detailField('Remaining', formatActivityBytes(item['sizeleft'])),
-            _detailField(
-              'ETA',
-              formatActivityDuration(stringOrNull(item['timeleft'])),
-            ),
-            _detailField(
-              'Estimated Completion',
-              formatActivityDateTime(
-                stringOrNull(item['estimatedCompletionTime']),
-              ),
-            ),
-            _detailField('Output Path', item['outputPath']),
-          ]),
-        ),
-        if (statusMessages.isNotEmpty)
-          _DetailSection(title: 'Status Messages', messages: statusMessages),
-      ],
-      footer: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: FilledButton.icon(
-          onPressed: () => SnackBarHelper.info(context, 'Import coming soon'),
-          icon: const Icon(Icons.file_download_rounded),
-          label: const Text('Manual Import'),
-        ),
-      ),
+      sections: _buildQueueSections(item),
+      footer: _buildManualImportFooter(context),
     );
   }
 
@@ -84,39 +35,10 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
-    final dataFields = _mapEntriesToFields(
-      asActivityMap(item['data']),
-      excludedKeys: _historyExcludedKeys,
-    );
-
     return _show(
       context: context,
       title: stringOrNull(item['sourceTitle']) ?? 'History Item',
-      sections: [
-        _DetailSection(
-          title: 'Event',
-          fields: _compactFields([
-            _detailField(
-              'Event Type',
-              humanizeEventType(item['eventType']?.toString() ?? 'Unknown'),
-            ),
-            _detailField('Date', formatDateOnly(stringOrNull(item['date']))),
-            _detailField(
-              'Relative Time',
-              formatRelativeActivityDate(stringOrNull(item['date'])),
-            ),
-            _detailField(
-              'Size',
-              formatSizeInGb(
-                asActivityMap(item['data'])?['size'] ?? item['size'],
-              ),
-            ),
-            _detailField('Quality', extractQualityName(item)),
-          ]),
-        ),
-        if (dataFields.isNotEmpty)
-          _DetailSection(title: 'Additional Data', fields: dataFields),
-      ],
+      sections: _buildHistorySections(item),
     );
   }
 
@@ -124,31 +46,10 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
-    final statusMessages = extractStatusMessages(item['statusMessages']);
-
     return _show(
       context: context,
       title: stringOrNull(item['sourceTitle']) ?? 'Blocklist Item',
-      sections: [
-        _DetailSection(
-          title: 'Blocked Release',
-          fields: _compactFields([
-            _detailField(
-              'Date',
-              formatActivityDateTime(stringOrNull(item['date'])),
-            ),
-            _detailField(
-              'Relative Time',
-              formatRelativeActivityDate(stringOrNull(item['date'])),
-            ),
-            _detailField('Protocol', item['protocol']),
-            _detailField('Indexer', item['indexer']),
-            _detailField('Reason', item['message']),
-          ]),
-        ),
-        if (statusMessages.isNotEmpty)
-          _DetailSection(title: 'Status Messages', messages: statusMessages),
-      ],
+      sections: _buildBlocklistSections(item),
     );
   }
 
@@ -157,64 +58,10 @@ class DetailSheets {
     Map<String, dynamic> item,
     ServiceType serviceType,
   ) {
-    final fields = switch (serviceType) {
-      ServiceType.series => _compactFields([
-        _detailField('Series', asActivityMap(item['series'])?['title']),
-        _detailField('Status', wantedStatusText(item, serviceType)),
-        _detailField(
-          'Episode Code',
-          formatEpisodeCode(
-            intOrNull(item['seasonNumber']),
-            intOrNull(item['episodeNumber']),
-          ),
-        ),
-        _detailField('Episode Title', item['title']),
-        _detailField(
-          'Air Date',
-          formatActivityDateTime(stringOrNull(item['airDateUtc'])),
-        ),
-        _detailField('Monitored', item['monitored']),
-        _detailField(
-          'Current Quality',
-          extractQualityName(item, fileKey: 'episodeFile'),
-        ),
-      ]),
-      ServiceType.movies => _compactFields([
-        _detailField('Movie', item['title']),
-        _detailField('Status', wantedStatusText(item, serviceType)),
-        _detailField('Year', item['year']),
-        _detailField(
-          'Release Date',
-          formatActivityDateTime(
-            stringOrNull(
-              item['airDateUtc'] ?? item['digitalRelease'] ?? item['inCinemas'],
-            ),
-          ),
-        ),
-        _detailField('Monitored', item['monitored']),
-        _detailField(
-          'Current Quality',
-          extractQualityName(item, fileKey: 'movieFile'),
-        ),
-      ]),
-      ServiceType.music => _compactFields([
-        _detailField('Release', item['title']),
-        _detailField('Status', wantedStatusText(item, serviceType)),
-        _detailField('Artist', asActivityMap(item['artist'])?['artistName']),
-        _detailField('Album', asActivityMap(item['album'])?['title']),
-        _detailField(
-          'Release Date',
-          formatActivityDateTime(stringOrNull(item['releaseDate'])),
-        ),
-        _detailField('Monitored', item['monitored']),
-      ]),
-      ServiceType.discover => const <_DetailField>[],
-    };
-
     return _show(
       context: context,
       title: stringOrNull(item['title']) ?? 'Wanted Item',
-      sections: [_DetailSection(title: 'Wanted Item', fields: fields)],
+      sections: _buildWantedSections(item, serviceType),
     );
   }
 
@@ -315,6 +162,188 @@ class DetailSheets {
   }
 }
 
+List<_DetailSection> _buildQueueSections(Map<String, dynamic> item) {
+  final displayStatus = resolveQueueDisplayStatus(item);
+  final statusMessages = extractStatusMessages(item['statusMessages']);
+
+  return [
+    _DetailSection(
+      title: 'Summary',
+      fields: _compactFields([
+        _detailField('Display Status', displayStatus.label),
+        _detailField('Status', item['status']),
+        _detailField('Tracked Status', item['trackedDownloadStatus']),
+        _detailField('Tracked State', item['trackedDownloadState']),
+        _detailField('Quality', extractQualityName(item)),
+      ]),
+    ),
+    _DetailSection(
+      title: 'Transfer',
+      fields: _compactFields([
+        _detailField('Protocol', item['protocol']),
+        _detailField('Download Client', item['downloadClient']),
+        _detailField('Indexer', item['indexer']),
+        _detailField('Size', formatActivityBytes(item['size'])),
+        _detailField('Remaining', formatActivityBytes(item['sizeleft'])),
+        _detailField(
+          'ETA',
+          formatActivityDuration(stringOrNull(item['timeleft'])),
+        ),
+        _detailField(
+          'Estimated Completion',
+          formatActivityDateTime(stringOrNull(item['estimatedCompletionTime'])),
+        ),
+        _detailField('Output Path', item['outputPath']),
+      ]),
+    ),
+    if (statusMessages.isNotEmpty)
+      _DetailSection(title: 'Status Messages', messages: statusMessages),
+  ];
+}
+
+List<_DetailSection> _buildHistorySections(Map<String, dynamic> item) {
+  final dataFields = _mapEntriesToFields(
+    asActivityMap(item['data']),
+    excludedKeys: _historyExcludedKeys,
+  );
+
+  return [
+    _DetailSection(
+      title: 'Event',
+      fields: _compactFields([
+        _detailField(
+          'Event Type',
+          humanizeEventType(item['eventType']?.toString() ?? 'Unknown'),
+        ),
+        _detailField('Date', formatDateOnly(stringOrNull(item['date']))),
+        _detailField(
+          'Relative Time',
+          formatRelativeActivityDate(stringOrNull(item['date'])),
+        ),
+        _detailField(
+          'Size',
+          formatSizeInGb(asActivityMap(item['data'])?['size'] ?? item['size']),
+        ),
+        _detailField('Quality', extractQualityName(item)),
+      ]),
+    ),
+    if (dataFields.isNotEmpty)
+      _DetailSection(title: 'Additional Data', fields: dataFields),
+  ];
+}
+
+List<_DetailSection> _buildBlocklistSections(Map<String, dynamic> item) {
+  final statusMessages = extractStatusMessages(item['statusMessages']);
+
+  return [
+    _DetailSection(
+      title: 'Blocked Release',
+      fields: _compactFields([
+        _detailField(
+          'Date',
+          formatActivityDateTime(stringOrNull(item['date'])),
+        ),
+        _detailField(
+          'Relative Time',
+          formatRelativeActivityDate(stringOrNull(item['date'])),
+        ),
+        _detailField('Protocol', item['protocol']),
+        _detailField('Indexer', item['indexer']),
+        _detailField('Reason', item['message']),
+      ]),
+    ),
+    if (statusMessages.isNotEmpty)
+      _DetailSection(title: 'Status Messages', messages: statusMessages),
+  ];
+}
+
+List<_DetailSection> _buildWantedSections(
+  Map<String, dynamic> item,
+  ServiceType serviceType,
+) {
+  return [
+    _DetailSection(
+      title: 'Wanted Item',
+      fields: _buildWantedFields(item, serviceType),
+    ),
+  ];
+}
+
+List<_DetailField> _buildWantedFields(
+  Map<String, dynamic> item,
+  ServiceType serviceType,
+) {
+  return switch (serviceType) {
+    ServiceType.series => _compactFields([
+      _detailField('Series', asActivityMap(item['series'])?['title']),
+      _detailField('Status', wantedStatusText(item, serviceType)),
+      _detailField(
+        'Episode Code',
+        formatEpisodeCode(
+          intOrNull(item['seasonNumber']),
+          intOrNull(item['episodeNumber']),
+        ),
+      ),
+      _detailField('Episode Title', item['title']),
+      _detailField(
+        'Air Date',
+        formatActivityDateTime(stringOrNull(item['airDateUtc'])),
+      ),
+      _detailField('Monitored', item['monitored']),
+      _detailField(
+        'Current Quality',
+        extractQualityName(item, fileKey: 'episodeFile'),
+      ),
+    ]),
+    ServiceType.movies => _compactFields([
+      _detailField('Movie', item['title']),
+      _detailField('Status', wantedStatusText(item, serviceType)),
+      _detailField('Year', item['year']),
+      _detailField(
+        'Release Date',
+        formatActivityDateTime(
+          stringOrNull(
+            item['airDateUtc'] ?? item['digitalRelease'] ?? item['inCinemas'],
+          ),
+        ),
+      ),
+      _detailField('Monitored', item['monitored']),
+      _detailField(
+        'Current Quality',
+        extractQualityName(item, fileKey: 'movieFile'),
+      ),
+    ]),
+    ServiceType.music => _compactFields([
+      _detailField('Release', item['title']),
+      _detailField('Status', wantedStatusText(item, serviceType)),
+      _detailField('Artist', asActivityMap(item['artist'])?['artistName']),
+      _detailField('Album', asActivityMap(item['album'])?['title']),
+      _detailField(
+        'Release Date',
+        formatActivityDateTime(stringOrNull(item['releaseDate'])),
+      ),
+      _detailField('Monitored', item['monitored']),
+    ]),
+    ServiceType.discover => const <_DetailField>[],
+  };
+}
+
+Widget _buildManualImportFooter(BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      0,
+      AppSpacing.lg,
+      AppSpacing.lg,
+    ),
+    child: FilledButton.icon(
+      onPressed: () => SnackBarHelper.info(context, 'Import coming soon'),
+      icon: const Icon(Icons.file_download_rounded),
+      label: const Text('Manual Import'),
+    ),
+  );
+}
+
 class _SectionContent extends StatelessWidget {
   final _DetailSection section;
 
@@ -323,7 +352,6 @@ class _SectionContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,56 +372,76 @@ class _SectionContent extends StatelessWidget {
         ),
         if (section.fields.isNotEmpty || section.messages.isNotEmpty)
           const Divider(height: 1),
-        ...section.fields.map(
-          (field) => Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  field.label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(field.value, style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ),
+        ...section.fields.map((field) => _SectionFieldContent(field: field)),
         ...section.messages.map(
-          (message) => Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              0,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 18,
-                  color: colorScheme.error,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(message, style: theme.textTheme.bodyMedium),
-                ),
-              ],
-            ),
-          ),
+          (message) => _SectionMessageContent(message: message),
         ),
         const SizedBox(height: AppSpacing.lg),
       ],
+    );
+  }
+}
+
+class _SectionFieldContent extends StatelessWidget {
+  const _SectionFieldContent({required this.field});
+
+  final _DetailField field;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            field.label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(field.value, style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionMessageContent extends StatelessWidget {
+  const _SectionMessageContent({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 18, color: colorScheme.error),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Text(message, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
     );
   }
 }

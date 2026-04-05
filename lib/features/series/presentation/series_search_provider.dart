@@ -21,7 +21,7 @@ final seriesSearchResultsProvider = FutureProvider<List<SonarrSeries>?>((
   try {
     final service = ref.read(sonarrServiceProvider);
     return await service.lookupSeries(query);
-  } catch (e) {
+  } catch (_) {
     return [];
   }
 });

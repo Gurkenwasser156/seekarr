@@ -6,6 +6,7 @@ import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/interactive_search_sheet.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_formatters.dart';
+import 'package:seekarr/features/activity/presentation/widgets/segment_selector.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
@@ -108,6 +109,33 @@ String _fallbackLabel(ServiceType serviceType) {
 
 /// Mixin providing shared async sliver builders for activity tabs.
 mixin ActivityTabHelpers {
+  Widget buildRefreshableSegmentedView<T extends Enum>({
+    required Key refreshKey,
+    required VoidCallback onRefreshRequested,
+    required List<T> segments,
+    required T selected,
+    required ValueChanged<T> onSegmentChanged,
+    required String Function(T) labelBuilder,
+    required Widget contentSliver,
+  }) {
+    return RefreshIndicator(
+      onRefresh: () async => onRefreshRequested(),
+      child: CustomScrollView(
+        key: refreshKey,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          ActivitySegmentSelector<T>(
+            segments: segments,
+            selected: selected,
+            onChanged: onSegmentChanged,
+            labelBuilder: labelBuilder,
+          ),
+          contentSliver,
+        ],
+      ),
+    );
+  }
+
   Widget buildAsyncContentSliver(
     Future<List<dynamic>> future,
     Widget Function(dynamic item) itemBuilder,
