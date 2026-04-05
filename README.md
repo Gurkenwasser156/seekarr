@@ -32,7 +32,36 @@ The application is under active development and contributions are welcome.
 - **Material Design 3**: Modern design with Seerr-inspired color palette
 
 ## Screenshots
-WIP
+### Services
+<p align="center">
+  <img src="screenshots/discover.PNG" width="300" alt="Discover screen" />
+  <img src="screenshots/movies.PNG" width="300" alt="Movies screen" />
+  <img src="screenshots/series.PNG" width="300" alt="Series screen" />
+</p>
+
+### Media Details
+<p align="center">
+  <img src="screenshots/discover_details.PNG" width="300" alt="Discover details screen" />
+  <img src="screenshots/discover_details2.PNG" width="300" alt="Discover details screen 2" />
+  <img src="screenshots/movies_details.PNG" width="300" alt="Movies details screen" />
+</p>
+
+### Activity Management 
+<p align="center">
+  <img src="screenshots/series_activity.PNG" width="300" alt="activity screen" />
+  <img src="screenshots/series_wanted.PNG" width="300" alt="wanted screen" />
+</p>
+
+### Settings & Dark Mode
+<p align="center">
+  <img src="screenshots/settings_dark.PNG" width="300" alt="settings screen" />
+  <img src="screenshots/appearance_setting.PNG" width="300" alt="appearance screen" />
+  <img src="screenshots/service_settings_dark.PNG" width="300" alt="service settings dark screen" />
+  <img src="screenshots/discover_dark.PNG" width="300" alt="discover dark screen" />
+  <img src="screenshots/discover_details_dark.PNG" width="300" alt="discover details dark screen" />
+</p>
+
+
 
 ## Getting Started
 
