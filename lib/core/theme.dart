@@ -216,6 +216,14 @@ class AppTheme {
           borderRadius: AppRadius.borderRadiusMd,
           borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.borderRadiusMd,
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.borderRadiusMd,
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
+        ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 12,
