@@ -113,8 +113,6 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
       decoration: const InputDecoration(
         labelText: 'Server URL',
         hintText: 'https://',
-        border: OutlineInputBorder(),
-        filled: true,
       ),
       keyboardType: TextInputType.url,
       textInputAction: TextInputAction.next,
@@ -129,8 +127,6 @@ class _ServiceSettingsScreenState extends ConsumerState<ServiceSettingsScreen> {
       decoration: InputDecoration(
         labelText: 'API Key',
         hintText: 'Enter your API key',
-        border: const OutlineInputBorder(),
-        filled: true,
         suffixIcon: IconButton(
           icon: const Icon(Icons.copy),
           onPressed: _copyApiKey,

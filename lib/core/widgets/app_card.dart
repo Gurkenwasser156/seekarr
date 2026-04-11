@@ -117,31 +117,39 @@ class AppCard extends StatelessWidget {
         break;
     }
 
-    final decoration = BoxDecoration(
-      color: bgColor,
-      borderRadius: effectiveBorderRadius,
-      border: border,
-      boxShadow: shadows,
-    );
-
-    Widget cardContent = Container(
-      decoration: decoration,
-      padding: effectivePadding,
-      child: child,
-    );
-
     if (onTap != null) {
+      // Place background on Material so InkWell ripple paints on top.
+      final shape = RoundedRectangleBorder(
+        borderRadius: effectiveBorderRadius,
+        side: variant == AppCardVariant.outlined
+            ? BorderSide(color: colorScheme.outline)
+            : BorderSide.none,
+      );
+
       return Material(
-        color: Colors.transparent,
+        color: bgColor,
+        shape: shape,
+        elevation: shadows != null ? 1 : 0,
+        shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
         child: InkWell(
           onTap: onTap,
-          borderRadius: effectiveBorderRadius,
-          child: cardContent,
+          customBorder: shape,
+          child: Padding(padding: effectivePadding, child: child),
         ),
       );
     }
 
-    return cardContent;
+    // Non-tappable: plain Container.
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: effectiveBorderRadius,
+        border: border,
+        boxShadow: shadows,
+      ),
+      padding: effectivePadding,
+      child: child,
+    );
   }
 }
 
