@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
-import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 
 typedef ManageMediaArgs = ({
@@ -12,7 +12,7 @@ typedef ManageMediaArgs = ({
 });
 
 class ManageMediaState {
-  final List<JellyseerrRequest> requests;
+  final List<SeerrRequest> requests;
   final bool isLoading;
   final bool isDeleting;
   final String? error;
@@ -25,7 +25,7 @@ class ManageMediaState {
   });
 
   ManageMediaState copyWith({
-    List<JellyseerrRequest>? requests,
+    List<SeerrRequest>? requests,
     bool? isLoading,
     bool? isDeleting,
     String? error,
@@ -57,14 +57,12 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
       final requests = requestsData
           .map((request) {
             try {
-              return JellyseerrRequest.fromJson(
-                request as Map<String, dynamic>,
-              );
+              return SeerrRequest.fromJson(request as Map<String, dynamic>);
             } catch (_) {
               return null;
             }
           })
-          .whereType<JellyseerrRequest>()
+          .whereType<SeerrRequest>()
           .toList();
 
       return ManageMediaState(requests: requests, isLoading: false);
@@ -76,7 +74,7 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
     }
   }
 
-  int? get jellyseerrMediaId => arg.mediaInfo['id'] as int?;
+  int? get seerrMediaId => arg.mediaInfo['id'] as int?;
 
   int? get externalServiceId => arg.mediaInfo['externalServiceId'] as int?;
 
@@ -96,7 +94,7 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
 
   Future<String?> deleteRequest(int requestId) async {
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       await service.deleteRequest(requestId);
       state = state.copyWith(
         requests: state.requests
@@ -110,14 +108,14 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
   }
 
   Future<String?> removeFromService() async {
-    final mediaId = jellyseerrMediaId;
+    final mediaId = seerrMediaId;
     if (mediaId == null) {
       return 'No media ID';
     }
 
     state = state.copyWith(isDeleting: true);
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       await service.deleteMediaFile(mediaId);
       return null;
     } catch (error) {
@@ -128,14 +126,14 @@ class ManageMediaNotifier extends Notifier<ManageMediaState> {
   }
 
   Future<String?> clearAllData() async {
-    final mediaId = jellyseerrMediaId;
+    final mediaId = seerrMediaId;
     if (mediaId == null) {
       return 'No media ID';
     }
 
     state = state.copyWith(isDeleting: true);
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       await service.deleteMedia(mediaId);
       return null;
     } catch (error) {

@@ -1,5 +1,5 @@
 name: seekarr
-description: A Flutter app for managing self-hosted Jellyseerr, Radarr, Sonarr, and Lidarr services.
+description: A Flutter app for managing self-hosted Seerr, Radarr, Sonarr, and Lidarr services.
 homepage: https://github.com/matthw-labs/seekarr
 repository: https://github.com/matthw-labs/seekarr
 issue_tracker: https://github.com/matthw-labs/seekarr/issues

@@ -8,7 +8,7 @@ enum MediaStatus { available, missing, downloading, queued, unknown }
 
 /// A badge widget to display media status on poster cards.
 ///
-/// Uses Material Design 3 styling with semantic colors from the Jellyseerr palette.
+/// Uses Material Design 3 styling with semantic colors from the Seerr palette.
 class StatusBadge extends StatelessWidget {
   final MediaStatus status;
   final bool compact;

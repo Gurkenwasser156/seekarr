@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/router.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_screen.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
@@ -154,7 +154,7 @@ void main() {
       },
     );
 
-    testWidgets('unknown service settings routes fall back to jellyseerr', (
+    testWidgets('unknown service settings routes fall back to seerr', (
       tester,
     ) async {
       final container = await _pumpRouter(tester);
@@ -167,8 +167,8 @@ void main() {
         find.byType(ServiceSettingsScreen),
       );
 
-      expect(screen.service, ServiceKey.jellyseerr);
-      expect(find.text('Jellyseerr Settings'), findsOneWidget);
+      expect(screen.service, ServiceKey.seerr);
+      expect(find.text('Seerr Settings'), findsOneWidget);
     });
 
     testWidgets('supports appearance and services settings subroutes', (
@@ -207,7 +207,7 @@ void main() {
 Future<ProviderContainer> _pumpRouter(
   WidgetTester tester, {
   SettingsModel settings = const SettingsModel(),
-  FakeJellyseerrService? jellyseerrService,
+  FakeSeerrService? seerrService,
   FakeRadarrService? radarrService,
   FakeSonarrService? sonarrService,
   FakeLidarrService? lidarrService,
@@ -215,8 +215,8 @@ Future<ProviderContainer> _pumpRouter(
   final container = ProviderContainer(
     overrides: [
       currentSettingsProvider.overrideWith((ref) => settings),
-      jellyseerrServiceProvider.overrideWith(
-        (ref) => jellyseerrService ?? FakeJellyseerrService(),
+      seerrServiceProvider.overrideWith(
+        (ref) => seerrService ?? FakeSeerrService(),
       ),
       radarrServiceProvider.overrideWith(
         (ref) => radarrService ?? FakeRadarrService(),
@@ -242,15 +242,13 @@ Future<ProviderContainer> _pumpRouter(
   return container;
 }
 
-class FakeJellyseerrService extends JellyseerrService {
-  FakeJellyseerrService({
+class FakeSeerrService extends SeerrService {
+  FakeSeerrService({
     Map<String, dynamic>? movieDetails,
     Map<String, dynamic>? tvDetails,
   }) : _movieDetails = movieDetails ?? _buildDiscoverMovieDetails(),
        _tvDetails = tvDetails ?? _buildDiscoverTvDetails(),
-       super(
-         ApiClient(baseUrl: 'https://jellyseerr.example.com', apiKey: 'key'),
-       );
+       super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'key'));
 
   final Map<String, dynamic> _movieDetails;
   final Map<String, dynamic> _tvDetails;

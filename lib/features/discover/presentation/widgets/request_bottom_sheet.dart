@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/features/discover/presentation/request_form_provider.dart';
 
-/// Bottom sheet for selecting quality profile and submitting request to Jellyseerr.
+/// Bottom sheet for selecting quality profile and submitting request to Seerr.
 ///
 /// This widget is used from the DiscoverDetailScreen to allow users to select
 /// a server, quality profile, and root folder before submitting a media request.

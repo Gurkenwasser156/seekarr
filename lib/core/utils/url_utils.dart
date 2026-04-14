@@ -14,7 +14,7 @@ class UrlUtils {
     return '$cleanBaseUrl$cleanPath';
   }
 
-  /// Validates a service URL for *arr and Jellyseerr configuration.
+  /// Validates a service URL for *arr and Seerr configuration.
   static String? validateServiceUrl(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Server URL is required';

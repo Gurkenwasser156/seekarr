@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seekarr/core/app_radius.dart';
 
-/// Jellyseerr-inspired color palette for Seekarr
+/// Seerr-inspired color palette for Seekarr
 ///
-/// Colors extracted from Jellyseerr source code (Tailwind config)
+/// Colors extracted from Seerr source code (Tailwind config)
 /// Provides both dark and light theme variants while maintaining
 /// the signature indigo accent color.
 class AppColors {

@@ -74,8 +74,8 @@ void main() {
 
     test('saveSettings and loadSettings round-trip', () async {
       const settings = SettingsModel(
-        jellyseerrUrl: 'https://jelly.example.com',
-        jellyseerrApiKey: 'jelly-key',
+        seerrUrl: 'https://jelly.example.com',
+        seerrApiKey: 'jelly-key',
         radarrUrl: 'https://radarr.example.com',
         radarrApiKey: 'radarr-key',
         sonarrUrl: 'https://sonarr.example.com',
@@ -91,8 +91,8 @@ void main() {
 
       final loaded = await service.loadSettings();
 
-      expect(loaded.jellyseerrUrl, settings.jellyseerrUrl);
-      expect(loaded.jellyseerrApiKey, settings.jellyseerrApiKey);
+      expect(loaded.seerrUrl, settings.seerrUrl);
+      expect(loaded.seerrApiKey, settings.seerrApiKey);
       expect(loaded.radarrUrl, settings.radarrUrl);
       expect(loaded.radarrApiKey, settings.radarrApiKey);
       expect(loaded.sonarrUrl, settings.sonarrUrl);
@@ -107,8 +107,8 @@ void main() {
     test('loadSettings returns empty defaults on fresh storage', () async {
       final loaded = await service.loadSettings();
 
-      expect(loaded.jellyseerrUrl, isEmpty);
-      expect(loaded.jellyseerrApiKey, isEmpty);
+      expect(loaded.seerrUrl, isEmpty);
+      expect(loaded.seerrApiKey, isEmpty);
       expect(loaded.radarrUrl, isEmpty);
       expect(loaded.radarrApiKey, isEmpty);
       expect(loaded.sonarrUrl, isEmpty);

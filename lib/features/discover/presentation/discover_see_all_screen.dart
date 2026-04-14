@@ -53,7 +53,7 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
         break;
       case 'trending':
         // Trending implies all, but usually mixed or dependent on implementation.
-        // Jellyseerr trending endpoint returns mixed results.
+        // Seerr trending endpoint returns mixed results.
         future = ref.read(discoverTrendingPageProvider(pageKey).future);
         break;
       default:

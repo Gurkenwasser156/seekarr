@@ -29,8 +29,8 @@ enum AppThemeMode {
 }
 
 class SettingsModel {
-  final String jellyseerrUrl;
-  final String jellyseerrApiKey;
+  final String seerrUrl;
+  final String seerrApiKey;
   final String radarrUrl;
   final String radarrApiKey;
   final String sonarrUrl;
@@ -43,11 +43,11 @@ class SettingsModel {
 
   static final Map<ServiceKey, _ServiceSettingsAccess> _serviceSettingsAccess =
       {
-        ServiceKey.jellyseerr: _ServiceSettingsAccess(
-          url: (settings) => settings.jellyseerrUrl,
-          apiKey: (settings) => settings.jellyseerrApiKey,
+        ServiceKey.seerr: _ServiceSettingsAccess(
+          url: (settings) => settings.seerrUrl,
+          apiKey: (settings) => settings.seerrApiKey,
           update: (settings, {url, apiKey}) =>
-              settings.copyWith(jellyseerrUrl: url, jellyseerrApiKey: apiKey),
+              settings.copyWith(seerrUrl: url, seerrApiKey: apiKey),
         ),
         ServiceKey.radarr: _ServiceSettingsAccess(
           url: (settings) => settings.radarrUrl,
@@ -79,8 +79,8 @@ class SettingsModel {
   }
 
   const SettingsModel({
-    this.jellyseerrUrl = '',
-    this.jellyseerrApiKey = '',
+    this.seerrUrl = '',
+    this.seerrApiKey = '',
     this.radarrUrl = '',
     this.radarrApiKey = '',
     this.sonarrUrl = '',
@@ -93,8 +93,8 @@ class SettingsModel {
   });
 
   SettingsModel copyWith({
-    String? jellyseerrUrl,
-    String? jellyseerrApiKey,
+    String? seerrUrl,
+    String? seerrApiKey,
     String? radarrUrl,
     String? radarrApiKey,
     String? sonarrUrl,
@@ -106,8 +106,8 @@ class SettingsModel {
     Set<NavTab>? hiddenTabs,
   }) {
     return SettingsModel(
-      jellyseerrUrl: jellyseerrUrl ?? this.jellyseerrUrl,
-      jellyseerrApiKey: jellyseerrApiKey ?? this.jellyseerrApiKey,
+      seerrUrl: seerrUrl ?? this.seerrUrl,
+      seerrApiKey: seerrApiKey ?? this.seerrApiKey,
       radarrUrl: radarrUrl ?? this.radarrUrl,
       radarrApiKey: radarrApiKey ?? this.radarrApiKey,
       sonarrUrl: sonarrUrl ?? this.sonarrUrl,

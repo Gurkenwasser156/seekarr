@@ -1,29 +1,26 @@
 import 'dart:isolate';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final jellyseerrServiceProvider = Provider<JellyseerrService>((ref) {
+final seerrServiceProvider = Provider<SeerrService>((ref) {
   final settings = ref.watch(currentSettingsProvider);
-  if (settings.jellyseerrUrl.isEmpty || settings.jellyseerrApiKey.isEmpty) {
-    throw Exception('Jellyseerr not configured');
+  if (settings.seerrUrl.isEmpty || settings.seerrApiKey.isEmpty) {
+    throw Exception('Seerr not configured');
   }
-  return JellyseerrService(
-    ApiClient(
-      baseUrl: settings.jellyseerrUrl,
-      apiKey: settings.jellyseerrApiKey,
-    ),
+  return SeerrService(
+    ApiClient(baseUrl: settings.seerrUrl, apiKey: settings.seerrApiKey),
   );
 });
 
-class JellyseerrService {
+class SeerrService {
   final ApiClient _client;
 
-  JellyseerrService(this._client);
+  SeerrService(this._client);
 
-  Future<List<JellyseerrRequest>> getRequests() async {
+  Future<List<SeerrRequest>> getRequests() async {
     try {
       final response = await _client.get(
         '/api/v1/request',
@@ -38,12 +35,12 @@ class JellyseerrService {
       final requests = results
           .map((e) {
             try {
-              return JellyseerrRequest.fromJson(e);
+              return SeerrRequest.fromJson(e);
             } catch (e) {
               return null;
             }
           })
-          .whereType<JellyseerrRequest>()
+          .whereType<SeerrRequest>()
           .toList();
 
       // Hydrate missing titles
@@ -183,7 +180,7 @@ class JellyseerrService {
     }
   }
 
-  /// Gets available Radarr servers from Jellyseerr.
+  /// Gets available Radarr servers from Seerr.
   Future<List<Map<String, dynamic>>> getRadarrServers() async {
     try {
       final response = await _client.get('/api/v1/service/radarr');
@@ -194,7 +191,7 @@ class JellyseerrService {
     }
   }
 
-  /// Gets available Sonarr servers from Jellyseerr.
+  /// Gets available Sonarr servers from Seerr.
   Future<List<Map<String, dynamic>>> getSonarrServers() async {
     try {
       final response = await _client.get('/api/v1/service/sonarr');
@@ -251,16 +248,16 @@ class JellyseerrService {
     await _client.post('/api/v1/request', data: body);
   }
 
-  /// Deletes a media item from Jellyseerr tracking.
+  /// Deletes a media item from Seerr tracking.
   /// This removes the media record but does NOT delete files from Radarr/Sonarr.
-  /// [mediaId] is the Jellyseerr internal media ID (not TMDB ID).
+  /// [mediaId] is the Seerr internal media ID (not TMDB ID).
   Future<void> deleteMedia(int mediaId) async {
     await _client.delete('/api/v1/media/$mediaId');
   }
 
-  /// Deletes the media files from Radarr/Sonarr via Jellyseerr.
+  /// Deletes the media files from Radarr/Sonarr via Seerr.
   /// This removes the actual files from the media server.
-  /// [mediaId] is the Jellyseerr internal media ID (not TMDB ID).
+  /// [mediaId] is the Seerr internal media ID (not TMDB ID).
   Future<void> deleteMediaFile(int mediaId) async {
     await _client.delete('/api/v1/media/$mediaId/file');
   }

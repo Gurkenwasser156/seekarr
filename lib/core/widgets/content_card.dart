@@ -6,7 +6,7 @@ import 'package:seekarr/core/app_spacing.dart';
 /// A card widget for displaying media content with cached images.
 ///
 /// Designed to work seamlessly with Hero transitions and follows
-/// Material Design 3 styling guidelines with Jellyseerr-inspired colors.
+/// Material Design 3 styling guidelines with Seerr-inspired colors.
 class ContentCard extends StatelessWidget {
   /// URL of the image to display
   final String? imageUrl;

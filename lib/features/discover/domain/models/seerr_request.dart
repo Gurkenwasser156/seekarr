@@ -77,7 +77,7 @@ enum MediaAvailability {
   }
 }
 
-class JellyseerrRequest {
+class SeerrRequest {
   final int id;
   final RequestStatus status;
   final RequestMedia? media;
@@ -91,7 +91,7 @@ class JellyseerrRequest {
   final bool canRemove;
   final RequestedBy? requestedBy;
 
-  const JellyseerrRequest({
+  const SeerrRequest({
     required this.id,
     required this.status,
     this.media,
@@ -106,8 +106,8 @@ class JellyseerrRequest {
     this.requestedBy,
   });
 
-  factory JellyseerrRequest.fromJson(Map<String, dynamic> json) {
-    return JellyseerrRequest(
+  factory SeerrRequest.fromJson(Map<String, dynamic> json) {
+    return SeerrRequest(
       id: json['id'] ?? 0,
       status: RequestStatus.fromCode(json['status']),
       media: json['media'] != null
@@ -130,8 +130,8 @@ class JellyseerrRequest {
   }
 
   // Allow enriching with new media (e.g. with title)
-  JellyseerrRequest copyWith({RequestMedia? media}) {
-    return JellyseerrRequest(
+  SeerrRequest copyWith({RequestMedia? media}) {
+    return SeerrRequest(
       id: id,
       status: status,
       media: media ?? this.media,
@@ -155,7 +155,7 @@ class JellyseerrRequest {
 }
 
 class RequestMedia {
-  final int? id; // Jellyseerr internal media ID
+  final int? id; // Seerr internal media ID
   final String? title;
   final String? year;
   final int? tmdbId;

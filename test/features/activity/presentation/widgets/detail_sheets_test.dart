@@ -77,7 +77,8 @@ void main() {
         expect(find.text('Imported'), findsOneWidget);
         expect(find.text('Download Id'), findsOneWidget);
         expect(find.text('abc123'), findsOneWidget);
-        expect(find.textContaining('2026-04-03'), findsOneWidget);
+        expect(find.text('Date'), findsOneWidget);
+        expect(find.textContaining('2026-04-03'), findsWidgets);
         expect(find.text('Protocol'), findsNothing);
         expect(find.text('Movie Match Type'), findsNothing);
       },

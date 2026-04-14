@@ -5,7 +5,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
-import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 
 class DiscoverSeasonsList extends StatelessWidget {
   final List<TvSeason> seasons;

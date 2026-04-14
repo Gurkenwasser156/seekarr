@@ -19,7 +19,7 @@ class DiscoverDetailViewModel {
   final String overview;
   final String posterUrl;
   final String? backdropUrl;
-  final String jellyseerrStatus;
+  final String seerrStatus;
   final bool isAvailable;
   final bool isPartiallyAvailable;
   final int? statusCode;
@@ -55,7 +55,7 @@ class DiscoverDetailViewModel {
     required this.overview,
     required this.posterUrl,
     required this.backdropUrl,
-    required this.jellyseerrStatus,
+    required this.seerrStatus,
     required this.isAvailable,
     required this.isPartiallyAvailable,
     required this.statusCode,
@@ -243,7 +243,7 @@ class DiscoverDetailViewModel {
           ? initialPosterUrl
           : ImageUtils.buildTmdbPosterUrl(posterPath, size: 'w500'),
       backdropUrl: ImageUtils.buildTmdbPosterUrl(backdropPath, size: 'w1280'),
-      jellyseerrStatus: mapJellyseerrStatus(statusCode),
+      seerrStatus: mapSeerrStatus(statusCode),
       isAvailable: statusCode == 5,
       isPartiallyAvailable: statusCode == 4,
       statusCode: statusCode,
@@ -288,7 +288,7 @@ class DiscoverDetailViewModel {
     );
   }
 
-  static String mapJellyseerrStatus(int? status) {
+  static String mapSeerrStatus(int? status) {
     if (status == null) return 'Available to Request';
 
     switch (status) {

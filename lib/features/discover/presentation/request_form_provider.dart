@@ -1,26 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 
 const Object _noSelectionUpdate = Object();
 
 typedef RequestFormArgs = ({int mediaId, String mediaType});
 
-class JellyseerrServer {
+class SeerrServer {
   final int id;
   final String name;
   final int? activeProfileId;
   final String? activeDirectory;
 
-  const JellyseerrServer({
+  const SeerrServer({
     required this.id,
     required this.name,
     this.activeProfileId,
     this.activeDirectory,
   });
 
-  factory JellyseerrServer.fromJson(Map<String, dynamic> json) {
-    return JellyseerrServer(
+  factory SeerrServer.fromJson(Map<String, dynamic> json) {
+    return SeerrServer(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? 'Server',
       activeProfileId: json['activeProfileId'] as int?,
@@ -54,7 +54,7 @@ class RootFolderOption {
 }
 
 class RequestFormState {
-  final List<JellyseerrServer> servers;
+  final List<SeerrServer> servers;
   final List<QualityProfileOption> profiles;
   final List<RootFolderOption> rootFolders;
   final int? selectedServerId;
@@ -80,7 +80,7 @@ class RequestFormState {
       selectedProfileId != null && !isSubmitting && !isLoading && error == null;
 
   RequestFormState copyWith({
-    List<JellyseerrServer>? servers,
+    List<SeerrServer>? servers,
     List<QualityProfileOption>? profiles,
     List<RootFolderOption>? rootFolders,
     Object? selectedServerId = _noSelectionUpdate,
@@ -129,17 +129,17 @@ class RequestFormNotifier extends Notifier<RequestFormState> {
 
   Future<void> _loadServers() async {
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       final serverMaps = arg.mediaType == 'movie'
           ? await service.getRadarrServers()
           : await service.getSonarrServers();
-      final servers = serverMaps.map(JellyseerrServer.fromJson).toList();
+      final servers = serverMaps.map(SeerrServer.fromJson).toList();
 
       if (servers.isEmpty) {
         state = state.copyWith(
           isLoading: false,
           error:
-              'No ${arg.mediaType == 'movie' ? 'Radarr' : 'Sonarr'} servers configured in Jellyseerr',
+              'No ${arg.mediaType == 'movie' ? 'Radarr' : 'Sonarr'} servers configured in Seerr',
           clearError: false,
         );
         return;
@@ -163,7 +163,7 @@ class RequestFormNotifier extends Notifier<RequestFormState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       final data = arg.mediaType == 'movie'
           ? await service.getRadarrProfiles(serverId)
           : await service.getSonarrProfiles(serverId);
@@ -181,7 +181,7 @@ class RequestFormNotifier extends Notifier<RequestFormState> {
 
       final selectedServer = state.servers.firstWhere(
         (server) => server.id == serverId,
-        orElse: () => const JellyseerrServer(id: 0, name: 'Server'),
+        orElse: () => const SeerrServer(id: 0, name: 'Server'),
       );
 
       final activeProfileId = selectedServer.activeProfileId;
@@ -239,7 +239,7 @@ class RequestFormNotifier extends Notifier<RequestFormState> {
 
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
-      final service = ref.read(jellyseerrServiceProvider);
+      final service = ref.read(seerrServiceProvider);
       await service.createRequest(
         mediaType: arg.mediaType,
         mediaId: arg.mediaId,

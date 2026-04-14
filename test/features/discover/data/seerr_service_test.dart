@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('JellyseerrService', () {
+  group('SeerrService', () {
     group('createRequest body format', () {
       test('movie request body contains correct fields', () {
         // Test the body creation logic for movies
@@ -254,7 +254,7 @@ String _buildMediaFileDeleteUrl(int mediaId) {
   return '/api/v1/media/$mediaId/file';
 }
 
-/// Helper to simulate search result filtering (mirrors JellyseerrService.search logic)
+/// Helper to simulate search result filtering (mirrors SeerrService.search logic)
 List<Map<String, dynamic>> _filterSearchResults(
   List<Map<String, dynamic>> results,
 ) {

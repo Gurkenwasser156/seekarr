@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sheet.dart';
 
 void main() {
@@ -13,7 +13,7 @@ void main() {
     testWidgets('shows loading indicator while form is initializing', (
       tester,
     ) async {
-      await _pumpSheetDirect(tester, service: DelayedFakeJellyseerrService());
+      await _pumpSheetDirect(tester, service: DelayedFakeSeerrService());
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -23,12 +23,12 @@ void main() {
     testWidgets('shows error when no servers are configured', (tester) async {
       await _pumpSheetDirect(
         tester,
-        service: FakeJellyseerrService(radarrServers: const []),
+        service: FakeSeerrService(radarrServers: const []),
       );
       await tester.pumpAndSettle();
 
       expect(
-        find.text('No Radarr servers configured in Jellyseerr'),
+        find.text('No Radarr servers configured in Seerr'),
         findsOneWidget,
       );
       expect(find.text('Submit Request'), findsNothing);
@@ -100,7 +100,7 @@ void main() {
     testWidgets('shows a snackbar when submit fails', (tester) async {
       await _pumpSheetDirect(
         tester,
-        service: FakeJellyseerrService(
+        service: FakeSeerrService(
           radarrServers: const [
             {'id': 1, 'name': 'Main'},
           ],
@@ -137,8 +137,8 @@ void main() {
   });
 }
 
-FakeJellyseerrService _movieService({bool multipleServers = false}) {
-  return FakeJellyseerrService(
+FakeSeerrService _movieService({bool multipleServers = false}) {
+  return FakeSeerrService(
     radarrServers: multipleServers
         ? const [
             {'id': 1, 'name': 'Main'},
@@ -168,8 +168,8 @@ FakeJellyseerrService _movieService({bool multipleServers = false}) {
   );
 }
 
-FakeJellyseerrService _tvService() {
-  return FakeJellyseerrService(
+FakeSeerrService _tvService() {
+  return FakeSeerrService(
     sonarrServers: const [
       {'id': 9, 'name': 'TV Main'},
     ],
@@ -188,14 +188,14 @@ FakeJellyseerrService _tvService() {
 
 Future<void> _pumpSheetDirect(
   WidgetTester tester, {
-  required JellyseerrService service,
+  required SeerrService service,
   int mediaId = 123,
   String mediaType = 'movie',
   VoidCallback? onRequestComplete,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [jellyseerrServiceProvider.overrideWith((ref) => service)],
+      overrides: [seerrServiceProvider.overrideWith((ref) => service)],
       child: MaterialApp(
         home: Scaffold(
           body: SizedBox(
@@ -214,14 +214,14 @@ Future<void> _pumpSheetDirect(
 
 Future<void> _pumpSheetOnRoute(
   WidgetTester tester, {
-  required JellyseerrService service,
+  required SeerrService service,
   int mediaId = 123,
   String mediaType = 'movie',
   VoidCallback? onRequestComplete,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [jellyseerrServiceProvider.overrideWith((ref) => service)],
+      overrides: [seerrServiceProvider.overrideWith((ref) => service)],
       child: MaterialApp(
         home: _RequestSheetRouteLauncher(
           mediaId: mediaId,
@@ -291,14 +291,14 @@ class _RequestSheetRouteLauncherState
   }
 }
 
-class DelayedFakeJellyseerrService extends FakeJellyseerrService {
+class DelayedFakeSeerrService extends FakeSeerrService {
   @override
   Future<List<Map<String, dynamic>>> getRadarrServers() {
     return Completer<List<Map<String, dynamic>>>().future;
   }
 }
 
-class FakeJellyseerrService extends JellyseerrService {
+class FakeSeerrService extends SeerrService {
   final List<Map<String, dynamic>> radarrServers;
   final List<Map<String, dynamic>> sonarrServers;
   final Map<int, Map<String, dynamic>> radarrProfilesByServer;
@@ -307,13 +307,13 @@ class FakeJellyseerrService extends JellyseerrService {
 
   Map<String, Object?>? lastCreateRequestCall;
 
-  FakeJellyseerrService({
+  FakeSeerrService({
     this.radarrServers = const <Map<String, dynamic>>[],
     this.sonarrServers = const <Map<String, dynamic>>[],
     this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
     this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
     this.throwOnCreateRequest = false,
-  }) : super(ApiClient(baseUrl: 'https://jellyseerr.example.com', apiKey: 'k'));
+  }) : super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'k'));
 
   @override
   Future<List<Map<String, dynamic>>> getRadarrServers() async {
