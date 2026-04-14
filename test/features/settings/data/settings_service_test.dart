@@ -27,10 +27,7 @@ void main() {
 
       await service.migrateFromPlaintext();
 
-      expect(
-        await secureStore.read(key: 'secure_jellyseerr_api_key'),
-        'jelly-key',
-      );
+      expect(await secureStore.read(key: 'secure_seerr_api_key'), 'jelly-key');
       expect(
         await secureStore.read(key: 'secure_radarr_api_key'),
         'radarr-key',
