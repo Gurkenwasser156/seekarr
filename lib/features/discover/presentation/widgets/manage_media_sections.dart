@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
-import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 
 class RequestsSection extends StatelessWidget {
-  final List<JellyseerrRequest> requests;
+  final List<SeerrRequest> requests;
   final void Function(int) onDeleteRequest;
 
   const RequestsSection({
@@ -57,7 +57,7 @@ class RequestsSection extends StatelessWidget {
 }
 
 class _RequestCard extends StatelessWidget {
-  final JellyseerrRequest request;
+  final SeerrRequest request;
   final VoidCallback onDelete;
 
   const _RequestCard({required this.request, required this.onDelete});

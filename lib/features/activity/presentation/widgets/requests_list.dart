@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 
 class RequestsList extends ConsumerWidget {
@@ -124,7 +124,7 @@ class RequestsList extends ConsumerWidget {
 
                               if (confirmed == true) {
                                 await ref
-                                    .read(jellyseerrServiceProvider)
+                                    .read(seerrServiceProvider)
                                     .deleteRequest(request.id);
                                 ref.invalidate(requestsProvider);
                               }

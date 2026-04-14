@@ -2,13 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/request_form_provider.dart';
 
 void main() {
-  group('JellyseerrServer.fromJson', () {
+  group('SeerrServer.fromJson', () {
     test('parses all fields', () {
-      final server = JellyseerrServer.fromJson({
+      final server = SeerrServer.fromJson({
         'id': 1,
         'name': 'Main',
         'activeProfileId': 5,
@@ -22,7 +22,7 @@ void main() {
     });
 
     test('uses safe defaults for missing fields', () {
-      final server = JellyseerrServer.fromJson({});
+      final server = SeerrServer.fromJson({});
 
       expect(server.id, 0);
       expect(server.name, 'Server');
@@ -102,7 +102,7 @@ void main() {
 
     test('copyWith preserves unchanged fields', () {
       const state = RequestFormState(
-        servers: [JellyseerrServer(id: 1, name: 'Main')],
+        servers: [SeerrServer(id: 1, name: 'Main')],
         selectedProfileId: 2,
         isLoading: false,
         error: 'boom',
@@ -140,9 +140,9 @@ void main() {
   });
 
   group('requestFormProvider', () {
-    ProviderContainer createContainer(FakeJellyseerrService service) {
+    ProviderContainer createContainer(FakeSeerrService service) {
       final container = ProviderContainer(
-        overrides: [jellyseerrServiceProvider.overrideWith((ref) => service)],
+        overrides: [seerrServiceProvider.overrideWith((ref) => service)],
       );
       addTearDown(container.dispose);
       return container;
@@ -162,7 +162,7 @@ void main() {
     }
 
     test('loads movie servers and active defaults', () async {
-      final service = FakeJellyseerrService(
+      final service = FakeSeerrService(
         radarrServers: [
           {
             'id': 3,
@@ -202,7 +202,7 @@ void main() {
     });
 
     test('reports empty server configuration', () async {
-      final service = FakeJellyseerrService(radarrServers: const []);
+      final service = FakeSeerrService(radarrServers: const []);
       final container = createContainer(service);
       const args = (mediaId: 123, mediaType: 'movie');
       keepAlive(container, args);
@@ -211,11 +211,11 @@ void main() {
       final state = container.read(requestFormProvider(args));
 
       expect(state.isLoading, isFalse);
-      expect(state.error, 'No Radarr servers configured in Jellyseerr');
+      expect(state.error, 'No Radarr servers configured in Seerr');
     });
 
     test('selectServer loads sonarr profiles for chosen server', () async {
-      final service = FakeJellyseerrService(
+      final service = FakeSeerrService(
         sonarrServers: [
           {'id': 1, 'name': 'A'},
           {'id': 2, 'name': 'B', 'activeDirectory': '/tv-b'},
@@ -257,7 +257,7 @@ void main() {
     });
 
     test('submitRequest calls service with selected values', () async {
-      final service = FakeJellyseerrService(
+      final service = FakeSeerrService(
         radarrServers: [
           {'id': 9, 'name': 'Main'},
         ],
@@ -298,7 +298,7 @@ void main() {
     });
 
     test('submitRequest fails when no profile is selected', () async {
-      final container = createContainer(FakeJellyseerrService());
+      final container = createContainer(FakeSeerrService());
       const args = (mediaId: 111, mediaType: 'movie');
 
       final error = await container
@@ -316,7 +316,7 @@ Future<void> _flushProviderTasks() async {
   }
 }
 
-class FakeJellyseerrService extends JellyseerrService {
+class FakeSeerrService extends SeerrService {
   final List<Map<String, dynamic>> radarrServers;
   final List<Map<String, dynamic>> sonarrServers;
   final Map<int, Map<String, dynamic>> radarrProfilesByServer;
@@ -329,13 +329,13 @@ class FakeJellyseerrService extends JellyseerrService {
   final List<int> sonarrProfilesCallCount = <int>[];
   Map<String, Object?>? lastCreateRequestCall;
 
-  FakeJellyseerrService({
+  FakeSeerrService({
     this.radarrServers = const <Map<String, dynamic>>[],
     this.sonarrServers = const <Map<String, dynamic>>[],
     this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
     this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
     this.throwOnCreateRequest = false,
-  }) : super(ApiClient(baseUrl: 'https://jellyseerr.example.com', apiKey: 'k'));
+  }) : super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'k'));
 
   @override
   Future<List<Map<String, dynamic>>> getRadarrServers() async {

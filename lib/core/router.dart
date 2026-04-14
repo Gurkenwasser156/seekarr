@@ -203,9 +203,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'service/:service',
                 pageBuilder: (context, state) {
                   final serviceParam = state.pathParameters['service'];
+                  // Accept 'jellyseerr' as a legacy alias for 'seerr'.
+                  final normalizedParam = serviceParam == 'jellyseerr'
+                      ? 'seerr'
+                      : serviceParam;
                   final service = ServiceKey.values.firstWhere(
-                    (s) => s.routeParam == serviceParam,
-                    orElse: () => ServiceKey.jellyseerr,
+                    (s) => s.routeParam == normalizedParam,
+                    orElse: () => ServiceKey.seerr,
                   );
                   return _settingsSubpage(
                     state,

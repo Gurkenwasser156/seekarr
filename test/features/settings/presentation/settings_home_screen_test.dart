@@ -41,7 +41,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        _settingsCard('Jellyseerr', subtitle: 'Not configured'),
+        _settingsCard('Seerr', subtitle: 'Not configured'),
         findsOneWidget,
       );
       expect(

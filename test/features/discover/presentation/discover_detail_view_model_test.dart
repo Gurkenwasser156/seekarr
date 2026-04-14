@@ -52,7 +52,7 @@ void main() {
       expect(viewModel.title, 'Test Movie');
       expect(viewModel.overview, 'A movie overview.');
       expect(viewModel.posterUrl, 'https://image.tmdb.org/t/p/w500/poster.jpg');
-      expect(viewModel.jellyseerrStatus, 'Partially Available');
+      expect(viewModel.seerrStatus, 'Partially Available');
       expect(viewModel.isAvailable, isFalse);
       expect(viewModel.isPartiallyAvailable, isTrue);
       expect(viewModel.genres, 'Action, Drama');
@@ -105,7 +105,7 @@ void main() {
 
       expect(viewModel.title, 'Test Show');
       expect(viewModel.posterUrl, 'https://cdn.example.com/poster.jpg');
-      expect(viewModel.jellyseerrStatus, 'Pending');
+      expect(viewModel.seerrStatus, 'Pending');
       expect(viewModel.year, '2021');
       expect(viewModel.numberOfSeasons, 3);
       expect(viewModel.networks, 'HBO, Max');
@@ -123,7 +123,7 @@ void main() {
       expect(viewModel.title, 'Unknown');
       expect(viewModel.overview, isEmpty);
       expect(viewModel.posterUrl, isEmpty);
-      expect(viewModel.jellyseerrStatus, 'Available to Request');
+      expect(viewModel.seerrStatus, 'Available to Request');
       expect(viewModel.isAvailable, isFalse);
       expect(viewModel.genres, isEmpty);
       expect(viewModel.genresList, isEmpty);
@@ -144,21 +144,18 @@ void main() {
       expect(viewModel.servicePath, isNull);
     });
 
-    test('maps jellyseerr status codes consistently', () {
+    test('maps seerr status codes consistently', () {
       expect(
-        DiscoverDetailViewModel.mapJellyseerrStatus(null),
+        DiscoverDetailViewModel.mapSeerrStatus(null),
         'Available to Request',
       );
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(1), 'Unknown');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(2), 'Pending');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(3), 'Processing');
-      expect(
-        DiscoverDetailViewModel.mapJellyseerrStatus(4),
-        'Partially Available',
-      );
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(5), 'Available');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(6), 'Deleted');
-      expect(DiscoverDetailViewModel.mapJellyseerrStatus(99), 'Unknown');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(1), 'Unknown');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(2), 'Pending');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(3), 'Processing');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(4), 'Partially Available');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(5), 'Available');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(6), 'Deleted');
+      expect(DiscoverDetailViewModel.mapSeerrStatus(99), 'Unknown');
     });
 
     test('parses runtime from string episode runtimes without crashing', () {

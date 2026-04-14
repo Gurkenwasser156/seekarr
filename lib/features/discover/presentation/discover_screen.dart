@@ -249,7 +249,7 @@ class _DiscoverSection extends ConsumerWidget {
           height: 160,
           child: AsyncValueWidget<List<MediaPreview>>(
             value: asyncValue,
-            serviceName: 'Jellyseerr',
+            serviceName: 'Seerr',
             data: (items) {
               if (items.isEmpty) {
                 return Center(

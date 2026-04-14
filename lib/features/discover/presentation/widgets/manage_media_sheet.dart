@@ -7,7 +7,7 @@ import 'package:seekarr/features/discover/presentation/discover_navigation_utils
 import 'package:seekarr/features/discover/presentation/manage_media_provider.dart';
 import 'package:seekarr/features/discover/presentation/widgets/manage_media_sections.dart';
 
-/// Bottom sheet for managing media requests and files via Jellyseerr.
+/// Bottom sheet for managing media requests and files via Seerr.
 ///
 /// Shows:
 /// - Requests section: list of requests with delete option
@@ -189,7 +189,7 @@ class ManageMediaSheet extends ConsumerWidget {
     ManageMediaArgs args,
   ) async {
     final notifier = ref.read(manageMediaProvider(args).notifier);
-    if (notifier.jellyseerrMediaId == null) {
+    if (notifier.seerrMediaId == null) {
       return;
     }
 
@@ -256,7 +256,7 @@ class ManageMediaSheet extends ConsumerWidget {
     ManageMediaArgs args,
   ) async {
     final notifier = ref.read(manageMediaProvider(args).notifier);
-    if (notifier.jellyseerrMediaId == null) {
+    if (notifier.seerrMediaId == null) {
       return;
     }
 

@@ -9,30 +9,29 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 void main() {
   group('ManageMediaSheet', () {
-    testWidgets(
-      'remove action is a silent no-op when jellyseerr id is missing',
-      (tester) async {
-        var onDataChangedCount = 0;
+    testWidgets('remove action is a silent no-op when seerr id is missing', (
+      tester,
+    ) async {
+      var onDataChangedCount = 0;
 
-        await _pumpSheet(
-          tester,
-          onDataChanged: () => onDataChangedCount += 1,
-          settings: const SettingsModel(
-            radarrUrl: 'https://radarr.example.com',
-            radarrApiKey: 'key',
-          ),
-        );
+      await _pumpSheet(
+        tester,
+        onDataChanged: () => onDataChangedCount += 1,
+        settings: const SettingsModel(
+          radarrUrl: 'https://radarr.example.com',
+          radarrApiKey: 'key',
+        ),
+      );
 
-        await tester.tap(find.text('Remove from Radarr'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove from Radarr'));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(AlertDialog), findsNothing);
-        expect(find.text('Remove from Radarr'), findsOneWidget);
-        expect(onDataChangedCount, 0);
-      },
-    );
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Remove from Radarr'), findsOneWidget);
+      expect(onDataChangedCount, 0);
+    });
 
-    testWidgets('clear data is a silent no-op when jellyseerr id is missing', (
+    testWidgets('clear data is a silent no-op when seerr id is missing', (
       tester,
     ) async {
       var onDataChangedCount = 0;

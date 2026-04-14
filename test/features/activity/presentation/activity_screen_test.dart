@@ -6,7 +6,7 @@ import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_tab.dart';
 import 'package:seekarr/features/activity/presentation/widgets/wanted_tab.dart';
-import 'package:seekarr/features/discover/domain/models/jellyseerr_request.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 
@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          requestsProvider.overrideWith((ref) async => <JellyseerrRequest>[]),
+          requestsProvider.overrideWith((ref) async => <SeerrRequest>[]),
         ],
         child: const MaterialApp(
           home: ActivityScreen(serviceType: ServiceType.discover),

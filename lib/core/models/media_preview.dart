@@ -23,10 +23,10 @@ class MediaPreview {
   }) {
     // Handle both 'title' (movies) and 'name' (tv)
     final title = json['title'] ?? json['name'] ?? 'Unknown';
-    // Handle both 'release_date' and 'first_air_date' (TMDB/Jellyseerr usually use snake_case or camelCase depending on endpoint,
+    // Handle both 'release_date' and 'first_air_date' (TMDB/Seerr usually use snake_case or camelCase depending on endpoint,
     // but the previous code used camelCase accessors like json['releaseDate'] suggesting the API client might not be normalizing it,
     // OR the previous code was guessing.
-    // Jellyseerr API v1 usually returns mixed. Let's handle both camel and snake for safety.)
+    // Seerr API v1 usually returns mixed. Let's handle both camel and snake for safety.)
     final releaseDate =
         json['releaseDate'] ??
         json['release_date'] ??

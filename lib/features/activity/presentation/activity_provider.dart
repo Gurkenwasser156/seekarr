@@ -8,7 +8,7 @@ import 'package:seekarr/features/series/data/sonarr_service.dart';
 
 /// Resolves a [ServiceType] to the corresponding *arr service.
 ///
-/// Discover uses Jellyseerr rather than an *arr service, so it is not
+/// Discover uses Seerr rather than an *arr service, so it is not
 /// supported by this provider.
 final resolvedArrServiceProvider =
     Provider.family<ArrActivityMixin, ServiceType>((ref, serviceType) {

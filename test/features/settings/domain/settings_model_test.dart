@@ -8,17 +8,14 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 void main() {
   group('SettingsModel.urlFor', () {
     const settings = SettingsModel(
-      jellyseerrUrl: 'https://jelly.example.com',
+      seerrUrl: 'https://jelly.example.com',
       radarrUrl: 'https://radarr.example.com',
       sonarrUrl: 'https://sonarr.example.com',
       lidarrUrl: 'https://lidarr.example.com',
     );
 
     test('returns correct URL for each ServiceKey', () {
-      expect(
-        settings.urlFor(ServiceKey.jellyseerr),
-        'https://jelly.example.com',
-      );
+      expect(settings.urlFor(ServiceKey.seerr), 'https://jelly.example.com');
       expect(settings.urlFor(ServiceKey.radarr), 'https://radarr.example.com');
       expect(settings.urlFor(ServiceKey.sonarr), 'https://sonarr.example.com');
       expect(settings.urlFor(ServiceKey.lidarr), 'https://lidarr.example.com');
@@ -27,14 +24,14 @@ void main() {
 
   group('SettingsModel.apiKeyFor', () {
     const settings = SettingsModel(
-      jellyseerrApiKey: 'jkey',
+      seerrApiKey: 'jkey',
       radarrApiKey: 'rkey',
       sonarrApiKey: 'skey',
       lidarrApiKey: 'lkey',
     );
 
     test('returns correct API key for each ServiceKey', () {
-      expect(settings.apiKeyFor(ServiceKey.jellyseerr), 'jkey');
+      expect(settings.apiKeyFor(ServiceKey.seerr), 'jkey');
       expect(settings.apiKeyFor(ServiceKey.radarr), 'rkey');
       expect(settings.apiKeyFor(ServiceKey.sonarr), 'skey');
       expect(settings.apiKeyFor(ServiceKey.lidarr), 'lkey');
@@ -53,7 +50,7 @@ void main() {
 
       expect(updated.radarrUrl, 'https://new.radarr');
       expect(updated.radarrApiKey, 'new-key');
-      expect(updated.jellyseerrUrl, '');
+      expect(updated.seerrUrl, '');
       expect(updated.sonarrUrl, '');
       expect(updated.lidarrUrl, '');
     });

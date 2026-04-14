@@ -42,10 +42,13 @@ class SettingsService {
   static const _kHiddenTabs = 'hidden_tabs';
 
   static const Map<ServiceKey, _ServiceStorageKeys> _serviceStorageKeys = {
-    ServiceKey.jellyseerr: _ServiceStorageKeys(
-      url: 'jellyseerr_url',
-      legacyApiKey: 'jellyseerr_api_key',
-      secureApiKey: 'secure_jellyseerr_api_key',
+    ServiceKey.seerr: _ServiceStorageKeys(
+      url: 'seerr_url',
+      legacyApiKey: 'seerr_api_key',
+      secureApiKey: 'secure_seerr_api_key',
+      legacyUrl: 'jellyseerr_url',
+      legacyPlaintextApiKey: 'jellyseerr_api_key',
+      legacySecureApiKey: 'secure_jellyseerr_api_key',
     ),
     ServiceKey.radarr: _ServiceStorageKeys(
       url: 'radarr_url',
@@ -71,6 +74,29 @@ class SettingsService {
 
   Future<void> migrateFromPlaintext() async {
     for (final storageKeys in _serviceStorageKeys.values) {
+      // Migrate legacy plaintext API keys from before the Seerr rename.
+      if (storageKeys.legacyPlaintextApiKey != null) {
+        final legacyPlaintext = _prefs.getString(
+          storageKeys.legacyPlaintextApiKey!,
+        );
+        if (legacyPlaintext != null) {
+          final normalized = legacyPlaintext.trim();
+          if (normalized.isNotEmpty) {
+            final existing = await _secureStore.read(
+              key: storageKeys.secureApiKey,
+            );
+            if (existing == null || existing.isEmpty) {
+              await _secureStore.write(
+                key: storageKeys.secureApiKey,
+                value: normalized,
+              );
+            }
+          }
+          await _prefs.remove(storageKeys.legacyPlaintextApiKey!);
+        }
+      }
+
+      // Migrate current plaintext API keys to secure storage.
       final plaintextValue = _prefs.getString(storageKeys.legacyApiKey);
       if (plaintextValue == null) {
         continue;
@@ -97,8 +123,8 @@ class SettingsService {
     final serviceSettings = await _loadServiceSettings();
 
     return SettingsModel(
-      jellyseerrUrl: serviceSettings[ServiceKey.jellyseerr]!.$1,
-      jellyseerrApiKey: serviceSettings[ServiceKey.jellyseerr]!.$2,
+      seerrUrl: serviceSettings[ServiceKey.seerr]!.$1,
+      seerrApiKey: serviceSettings[ServiceKey.seerr]!.$2,
       radarrUrl: serviceSettings[ServiceKey.radarr]!.$1,
       radarrApiKey: serviceSettings[ServiceKey.radarr]!.$2,
       sonarrUrl: serviceSettings[ServiceKey.sonarr]!.$1,
@@ -131,10 +157,20 @@ class SettingsService {
 
     for (final service in ServiceKey.values) {
       final storageKeys = _serviceStorageKeys[service]!;
-      settingsByService[service] = (
-        _loadString(storageKeys.url),
-        await _loadApiKey(storageKeys.secureApiKey),
-      );
+
+      // Load URL, falling back to legacy key if the new key is empty.
+      var url = _loadString(storageKeys.url);
+      if (url.isEmpty && storageKeys.legacyUrl != null) {
+        url = _loadString(storageKeys.legacyUrl!);
+      }
+
+      // Load API key, falling back to legacy secure key.
+      var apiKey = await _loadApiKey(storageKeys.secureApiKey);
+      if (apiKey.isEmpty && storageKeys.legacySecureApiKey != null) {
+        apiKey = await _loadApiKey(storageKeys.legacySecureApiKey!);
+      }
+
+      settingsByService[service] = (url, apiKey);
     }
 
     return settingsByService;
@@ -144,6 +180,11 @@ class SettingsService {
     for (final service in ServiceKey.values) {
       final storageKeys = _serviceStorageKeys[service]!;
       await _prefs.setString(storageKeys.url, settings.urlFor(service));
+
+      // Remove legacy URL key after writing to the new key.
+      if (storageKeys.legacyUrl != null) {
+        await _prefs.remove(storageKeys.legacyUrl!);
+      }
     }
   }
 
@@ -151,6 +192,11 @@ class SettingsService {
     for (final service in ServiceKey.values) {
       final storageKeys = _serviceStorageKeys[service]!;
       await _saveApiKey(storageKeys.secureApiKey, settings.apiKeyFor(service));
+
+      // Remove legacy secure API key after writing to the new key.
+      if (storageKeys.legacySecureApiKey != null) {
+        await _secureStore.delete(key: storageKeys.legacySecureApiKey!);
+      }
     }
   }
 
@@ -210,9 +256,21 @@ class _ServiceStorageKeys {
   final String legacyApiKey;
   final String secureApiKey;
 
+  /// Legacy URL key for backward compatibility (Jellyseerr → Seerr rename).
+  final String? legacyUrl;
+
+  /// Legacy plaintext API key from before the rename.
+  final String? legacyPlaintextApiKey;
+
+  /// Legacy secure API key from before the rename.
+  final String? legacySecureApiKey;
+
   const _ServiceStorageKeys({
     required this.url,
     required this.legacyApiKey,
     required this.secureApiKey,
+    this.legacyUrl,
+    this.legacyPlaintextApiKey,
+    this.legacySecureApiKey,
   });
 }

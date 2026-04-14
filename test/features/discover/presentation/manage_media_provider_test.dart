@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
-import 'package:seekarr/features/discover/data/jellyseerr_service.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/manage_media_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
@@ -46,7 +46,7 @@ void main() {
   group('manageMediaProvider', () {
     ProviderContainer createContainer({
       required ManageMediaArgs args,
-      FakeJellyseerrService? service,
+      FakeSeerrService? service,
       SettingsModel? settings,
     }) {
       final container = ProviderContainer(
@@ -54,7 +54,7 @@ void main() {
           if (settings != null)
             currentSettingsProvider.overrideWith((ref) => settings),
           if (service != null)
-            jellyseerrServiceProvider.overrideWith((ref) => service),
+            seerrServiceProvider.overrideWith((ref) => service),
         ],
       );
       addTearDown(container.dispose);
@@ -122,7 +122,7 @@ void main() {
       final container = createContainer(args: args);
       final notifier = container.read(manageMediaProvider(args).notifier);
 
-      expect(notifier.jellyseerrMediaId, 10);
+      expect(notifier.seerrMediaId, 10);
       expect(notifier.externalServiceId, 20);
       expect(notifier.hasExternalService, isTrue);
     });
@@ -132,7 +132,7 @@ void main() {
       final container = createContainer(args: args);
       final notifier = container.read(manageMediaProvider(args).notifier);
 
-      expect(notifier.jellyseerrMediaId, isNull);
+      expect(notifier.seerrMediaId, isNull);
       expect(notifier.externalServiceId, isNull);
       expect(notifier.hasExternalService, isFalse);
     });
@@ -261,7 +261,7 @@ void main() {
     );
 
     test('deleteRequest removes request from state', () async {
-      final service = FakeJellyseerrService();
+      final service = FakeSeerrService();
       final args = _buildArgs(
         mediaInfo: {
           'id': 11,
@@ -280,7 +280,7 @@ void main() {
     });
 
     test('deleteRequest returns error when service throws', () async {
-      final service = FakeJellyseerrService(throwOnDeleteRequest: true);
+      final service = FakeSeerrService(throwOnDeleteRequest: true);
       final args = _buildArgs(
         mediaInfo: {
           'id': 11,
@@ -307,7 +307,7 @@ void main() {
     });
 
     test('removeFromService calls deleteMediaFile and resets state', () async {
-      final service = FakeJellyseerrService();
+      final service = FakeSeerrService();
       final args = _buildArgs(mediaInfo: {'id': 44, 'requests': const []});
       final container = createContainer(args: args, service: service);
       final notifier = container.read(manageMediaProvider(args).notifier);
@@ -321,7 +321,7 @@ void main() {
     });
 
     test('removeFromService returns error when service throws', () async {
-      final service = FakeJellyseerrService(throwOnDeleteMediaFile: true);
+      final service = FakeSeerrService(throwOnDeleteMediaFile: true);
       final args = _buildArgs(mediaInfo: {'id': 44, 'requests': const []});
       final container = createContainer(args: args, service: service);
       final notifier = container.read(manageMediaProvider(args).notifier);
@@ -335,7 +335,7 @@ void main() {
     });
 
     test('clearAllData calls deleteMedia and resets state', () async {
-      final service = FakeJellyseerrService();
+      final service = FakeSeerrService();
       final args = _buildArgs(mediaInfo: {'id': 55, 'requests': const []});
       final container = createContainer(args: args, service: service);
       final notifier = container.read(manageMediaProvider(args).notifier);
@@ -349,7 +349,7 @@ void main() {
     });
 
     test('clearAllData returns error when service throws', () async {
-      final service = FakeJellyseerrService(throwOnDeleteMedia: true);
+      final service = FakeSeerrService(throwOnDeleteMedia: true);
       final args = _buildArgs(mediaInfo: {'id': 55, 'requests': const []});
       final container = createContainer(args: args, service: service);
       final notifier = container.read(manageMediaProvider(args).notifier);
@@ -396,7 +396,7 @@ Map<String, dynamic> _validRequestJson({required int id}) {
   };
 }
 
-class FakeJellyseerrService extends JellyseerrService {
+class FakeSeerrService extends SeerrService {
   final bool throwOnDeleteRequest;
   final bool throwOnDeleteMediaFile;
   final bool throwOnDeleteMedia;
@@ -405,11 +405,11 @@ class FakeJellyseerrService extends JellyseerrService {
   final List<int> deletedMediaFileIds = <int>[];
   final List<int> deletedMediaIds = <int>[];
 
-  FakeJellyseerrService({
+  FakeSeerrService({
     this.throwOnDeleteRequest = false,
     this.throwOnDeleteMediaFile = false,
     this.throwOnDeleteMedia = false,
-  }) : super(ApiClient(baseUrl: 'https://jellyseerr.example.com', apiKey: 'k'));
+  }) : super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'k'));
 
   @override
   Future<void> deleteRequest(int requestId) async {

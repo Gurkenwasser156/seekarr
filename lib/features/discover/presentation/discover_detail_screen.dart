@@ -101,7 +101,7 @@ class DiscoverDetailScreen extends ConsumerWidget {
           posterRow: (collapseFactor) => MediaDetailPosterRow(
             collapseFactor: collapseFactor,
             statusBadge: TagChip(
-              text: viewModel.jellyseerrStatus,
+              text: viewModel.seerrStatus,
               color: statusColor,
             ),
             posterCard: MediaPosterCard(
