@@ -19,12 +19,13 @@ class DiscoverVideosButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return FilledButton.icon(
       onPressed: videos.isEmpty
           ? null
           : () => _showVideosSheet(context, videos),
       icon: const Icon(Icons.play_circle_outline_rounded),
       label: const Text('Videos'),
+      style: HeaderActionRow.expandedButtonStyle(),
     );
   }
 }
@@ -37,7 +38,7 @@ class _DiscoverVideosIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return FilledButton(
       onPressed: videos.isEmpty
           ? null
           : () => _showVideosSheet(context, videos),

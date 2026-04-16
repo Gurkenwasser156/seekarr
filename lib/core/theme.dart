@@ -167,8 +167,8 @@ class AppTheme {
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
           textStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
           ),
           shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusMd),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

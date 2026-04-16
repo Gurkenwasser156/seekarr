@@ -56,6 +56,7 @@ class DiscoverActionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final gap = MediaDetailPosterRow.actionGap(collapseFactor);
     final showManageRow = hasManageableMedia || isInService;
 
@@ -64,13 +65,24 @@ class DiscoverActionButtons extends ConsumerWidget {
       children: [
         // Row 1: Request + Videos
         HeaderActionRow(
-          expanded: OutlinedButton.icon(
-            onPressed: () => _showRequestSheet(context, ref),
-            icon: const Icon(Icons.add_circle_outline),
-            label: const Text('Request'),
+          expanded: HeaderActionRow.glowWrap(
+            glowColor: colorScheme.primary,
+            child: FilledButton.icon(
+              onPressed: () => _showRequestSheet(context, ref),
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text(
+                'Request',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              style: HeaderActionRow.expandedButtonStyle(),
+            ),
           ),
           trailing: videos.isNotEmpty
-              ? DiscoverVideosButton.iconOnly(videos: videos)
+              ? HeaderActionRow.glowWrap(
+                  glowColor: colorScheme.primary,
+                  child: DiscoverVideosButton.iconOnly(videos: videos),
+                )
               : null,
         ),
 
@@ -78,36 +90,44 @@ class DiscoverActionButtons extends ConsumerWidget {
           SizedBox(height: gap),
           // Row 2: Manage + Open in Service
           HeaderActionRow(
-            expanded: hasManageableMedia
-                ? OutlinedButton.icon(
-                    onPressed: () => _showManageSheet(context, ref),
-                    icon: const Icon(Icons.settings),
-                    label: Text(
-                      _normalizedMediaType == 'movie'
-                          ? 'Manage Movie'
-                          : 'Manage Series',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
+            expanded: HeaderActionRow.glowWrap(
+              glowColor: colorScheme.primary,
+              child: hasManageableMedia
+                  ? FilledButton.icon(
+                      onPressed: () => _showManageSheet(context, ref),
+                      icon: const Icon(Icons.settings),
+                      label: Text(
+                        _normalizedMediaType == 'movie'
+                            ? 'Manage Movie'
+                            : 'Manage Series',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                      ),
+                      style: HeaderActionRow.expandedButtonStyle(),
+                    )
+                  : FilledButton.icon(
+                      onPressed: () => _openInService(context, ref),
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(
+                        _normalizedMediaType == 'movie'
+                            ? 'Open in Radarr'
+                            : 'Open in Sonarr',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                      ),
+                      style: HeaderActionRow.expandedButtonStyle(),
                     ),
-                  )
-                : OutlinedButton.icon(
-                    onPressed: () => _openInService(context, ref),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(
-                      _normalizedMediaType == 'movie'
-                          ? 'Open in Radarr'
-                          : 'Open in Sonarr',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                    ),
-                  ),
+            ),
             trailing: hasManageableMedia && isInService
-                ? OutlinedButton(
-                    onPressed: () => _openInService(context, ref),
-                    style: HeaderActionRow.iconOnlyButtonStyle(),
-                    child: const Icon(Icons.open_in_new),
+                ? HeaderActionRow.glowWrap(
+                    glowColor: colorScheme.primary,
+                    child: FilledButton(
+                      onPressed: () => _openInService(context, ref),
+                      style: HeaderActionRow.iconOnlyButtonStyle(),
+                      child: const Icon(Icons.open_in_new),
+                    ),
                   )
                 : null,
           ),
