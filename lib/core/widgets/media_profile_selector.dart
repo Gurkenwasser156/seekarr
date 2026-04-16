@@ -53,41 +53,28 @@ class MediaProfileSelector extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (_isSplit) {
-      return SizedBox(
-        height: HeaderActionRow.buttonHeight,
-        child: OutlinedButton(
-          onPressed: () => _showProfileSelector(context),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: colorScheme.primary,
-            backgroundColor: Colors.transparent,
-            side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            shape: RoundedRectangleBorder(
-              borderRadius: AppRadius.borderRadiusSm,
+      return FilledButton(
+        onPressed: () => _showProfileSelector(context),
+        style: HeaderActionRow.expandedButtonStyle(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.high_quality_rounded,
+              size: 18,
+              color: colorScheme.onPrimary,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.high_quality_rounded,
-                size: 18,
-                color: colorScheme.primary,
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                currentProfileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Flexible(
-                child: Text(
-                  currentProfileName,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              const Icon(Icons.expand_more, size: 20),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(Icons.expand_more, size: 20, color: colorScheme.onPrimary),
+          ],
         ),
       );
     }
