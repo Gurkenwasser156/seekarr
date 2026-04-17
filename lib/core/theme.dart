@@ -74,9 +74,7 @@ class SeekarrThemeColors extends ThemeExtension<SeekarrThemeColors> {
     required ColorScheme colorScheme,
   }) {
     return SeekarrThemeColors(
-      statusBadgeBackground: colorScheme.surface.withValues(
-        alpha: brightness == Brightness.dark ? 0.8 : 0.8,
-      ),
+      statusBadgeBackground: colorScheme.surface.withValues(alpha: 0.8),
       statusBadgeForeground: colorScheme.onSurface,
     );
   }

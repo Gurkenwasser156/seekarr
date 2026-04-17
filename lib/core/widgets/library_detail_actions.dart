@@ -65,13 +65,16 @@ class LibraryDetailActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    Widget primaryGlow({required Widget child}) =>
+        HeaderActionRow.glowWrap(glowColor: colorScheme.primary, child: child);
+    Widget errorGlow({required Widget child}) =>
+        HeaderActionRow.glowWrap(glowColor: colorScheme.error, child: child);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         HeaderActionRow(
-          expanded: HeaderActionRow.glowWrap(
-            glowColor: colorScheme.primary,
+          expanded: primaryGlow(
             child: FilledButton.icon(
               onPressed: isSearching ? null : onInteractiveSearch,
               icon: isSearching ? _kSpinner : const Icon(Icons.search),
@@ -83,8 +86,7 @@ class LibraryDetailActions extends StatelessWidget {
               style: HeaderActionRow.expandedButtonStyle(),
             ),
           ),
-          trailing: HeaderActionRow.glowWrap(
-            glowColor: colorScheme.primary,
+          trailing: primaryGlow(
             child: FilledButton(
               onPressed: isSearching ? null : onAutoSearch,
               style: HeaderActionRow.iconOnlyButtonStyle(),
@@ -95,8 +97,7 @@ class LibraryDetailActions extends StatelessWidget {
         if (currentProfileName != null) ...[
           SizedBox(height: MediaDetailPosterRow.actionGap(collapseFactor)),
           HeaderActionRow(
-            expanded: HeaderActionRow.glowWrap(
-              glowColor: colorScheme.primary,
+            expanded: primaryGlow(
               child: MediaProfileSelector.split(
                 currentProfileName: currentProfileName!,
                 currentProfileId: currentProfileId,
@@ -104,8 +105,7 @@ class LibraryDetailActions extends StatelessWidget {
                 onProfileSelected: onProfileSelected,
               ),
             ),
-            trailing: HeaderActionRow.glowWrap(
-              glowColor: colorScheme.error,
+            trailing: errorGlow(
               child: FilledButton(
                 onPressed: isDeleting ? null : onDelete,
                 style: HeaderActionRow.iconOnlyButtonStyle(

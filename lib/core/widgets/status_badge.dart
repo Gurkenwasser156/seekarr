@@ -30,12 +30,13 @@ class StatusBadge extends StatelessWidget {
     required String status,
     bool compact = false,
   }) {
+    final normalizedStatus = status.toLowerCase();
     MediaStatus mediaStatus;
     if (hasFile) {
       mediaStatus = MediaStatus.available;
-    } else if (status.toLowerCase() == 'downloading') {
+    } else if (normalizedStatus == 'downloading') {
       mediaStatus = MediaStatus.downloading;
-    } else if (status.toLowerCase() == 'queued') {
+    } else if (normalizedStatus == 'queued') {
       mediaStatus = MediaStatus.queued;
     } else {
       mediaStatus = MediaStatus.missing;
@@ -47,56 +48,69 @@ class StatusBadge extends StatelessWidget {
     required int? statusCode,
     bool compact = false,
   }) {
-    final status = switch (statusCode) {
-      5 => MediaStatus.available,
-      2 || 4 => MediaStatus.queued,
-      3 => MediaStatus.downloading,
-      6 => MediaStatus.missing,
-      _ => MediaStatus.unknown,
-    };
-
-    final config = switch (statusCode) {
-      null => const _StatusConfig(
-        icon: Icons.add_circle_rounded,
-        label: 'Available to Request',
-        tone: _StatusTone.primary,
+    final seerrStatus = switch (statusCode) {
+      null => (
+        status: MediaStatus.unknown,
+        config: const _StatusConfig(
+          icon: Icons.add_circle_rounded,
+          label: 'Available to Request',
+          tone: _StatusTone.primary,
+        ),
       ),
-      2 => const _StatusConfig(
-        icon: Icons.schedule_rounded,
-        label: 'Pending',
-        tone: _StatusTone.warning,
+      2 => (
+        status: MediaStatus.queued,
+        config: const _StatusConfig(
+          icon: Icons.schedule_rounded,
+          label: 'Pending',
+          tone: _StatusTone.warning,
+        ),
       ),
-      3 => const _StatusConfig(
-        icon: Icons.sync_rounded,
-        label: 'Processing',
-        tone: _StatusTone.info,
+      3 => (
+        status: MediaStatus.downloading,
+        config: const _StatusConfig(
+          icon: Icons.sync_rounded,
+          label: 'Processing',
+          tone: _StatusTone.info,
+        ),
       ),
-      4 => const _StatusConfig(
-        icon: Icons.change_circle_rounded,
-        label: 'Partially Available',
-        tone: _StatusTone.warning,
+      4 => (
+        status: MediaStatus.queued,
+        config: const _StatusConfig(
+          icon: Icons.change_circle_rounded,
+          label: 'Partially Available',
+          tone: _StatusTone.warning,
+        ),
       ),
-      5 => const _StatusConfig(
-        icon: Icons.check_circle_rounded,
-        label: 'Available',
-        tone: _StatusTone.success,
+      5 => (
+        status: MediaStatus.available,
+        config: const _StatusConfig(
+          icon: Icons.check_circle_rounded,
+          label: 'Available',
+          tone: _StatusTone.success,
+        ),
       ),
-      6 => const _StatusConfig(
-        icon: Icons.delete_rounded,
-        label: 'Deleted',
-        tone: _StatusTone.error,
+      6 => (
+        status: MediaStatus.missing,
+        config: const _StatusConfig(
+          icon: Icons.delete_rounded,
+          label: 'Deleted',
+          tone: _StatusTone.error,
+        ),
       ),
-      _ => const _StatusConfig(
-        icon: Icons.help_outline_rounded,
-        label: 'Unknown',
-        tone: _StatusTone.neutral,
+      _ => (
+        status: MediaStatus.unknown,
+        config: const _StatusConfig(
+          icon: Icons.help_outline_rounded,
+          label: 'Unknown',
+          tone: _StatusTone.neutral,
+        ),
       ),
     };
 
     return StatusBadge._custom(
-      status: status,
+      status: seerrStatus.status,
       compact: compact,
-      configOverride: config,
+      configOverride: seerrStatus.config,
     );
   }
 
@@ -110,7 +124,7 @@ class StatusBadge extends StatelessWidget {
           brightness: theme.brightness,
           colorScheme: colorScheme,
         );
-    final config = configOverride ?? _getConfig();
+    final config = configOverride ?? _defaultConfig();
     final accentColor = _resolveToneColor(colorScheme, config.tone);
     final backgroundColor = compact
         ? accentColor.withValues(alpha: 0.9)
@@ -155,40 +169,33 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  _StatusConfig _getConfig() {
-    switch (status) {
-      case MediaStatus.available:
-        return const _StatusConfig(
-          icon: Icons.check_circle_rounded,
-          label: 'Available',
-          tone: _StatusTone.success,
-        );
-      case MediaStatus.missing:
-        return const _StatusConfig(
-          icon: Icons.cancel_rounded,
-          label: 'Missing',
-          tone: _StatusTone.error,
-        );
-      case MediaStatus.downloading:
-        return const _StatusConfig(
-          icon: Icons.downloading_rounded,
-          label: 'Downloading',
-          tone: _StatusTone.info,
-        );
-      case MediaStatus.queued:
-        return const _StatusConfig(
-          icon: Icons.schedule_rounded,
-          label: 'Queued',
-          tone: _StatusTone.warning,
-        );
-      case MediaStatus.unknown:
-        return const _StatusConfig(
-          icon: Icons.help_outline_rounded,
-          label: 'Unknown',
-          tone: _StatusTone.neutral,
-        );
-    }
-  }
+  _StatusConfig _defaultConfig() => switch (status) {
+    MediaStatus.available => const _StatusConfig(
+      icon: Icons.check_circle_rounded,
+      label: 'Available',
+      tone: _StatusTone.success,
+    ),
+    MediaStatus.missing => const _StatusConfig(
+      icon: Icons.cancel_rounded,
+      label: 'Missing',
+      tone: _StatusTone.error,
+    ),
+    MediaStatus.downloading => const _StatusConfig(
+      icon: Icons.downloading_rounded,
+      label: 'Downloading',
+      tone: _StatusTone.info,
+    ),
+    MediaStatus.queued => const _StatusConfig(
+      icon: Icons.schedule_rounded,
+      label: 'Queued',
+      tone: _StatusTone.warning,
+    ),
+    MediaStatus.unknown => const _StatusConfig(
+      icon: Icons.help_outline_rounded,
+      label: 'Unknown',
+      tone: _StatusTone.neutral,
+    ),
+  };
 
   Color _resolveToneColor(ColorScheme colorScheme, _StatusTone tone) {
     return switch (tone) {

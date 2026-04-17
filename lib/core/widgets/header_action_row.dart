@@ -8,6 +8,10 @@ import 'package:seekarr/core/app_spacing.dart';
 /// Displays an [expanded] widget that fills remaining space, with an
 /// optional [trailing] widget (typically an icon-only button) on the right.
 class HeaderActionRow extends StatelessWidget {
+  static const _glowAlpha = 0.55;
+  static const _glowBlurRadius = 18.0;
+  static const _glowSpreadRadius = 2.0;
+
   /// The primary widget that fills available horizontal space.
   final Widget expanded;
 
@@ -24,6 +28,21 @@ class HeaderActionRow extends StatelessWidget {
     borderRadius: AppRadius.borderRadiusXl,
   );
 
+  static ButtonStyle _filledButtonStyle({
+    EdgeInsetsGeometry? padding,
+    Size? minimumSize,
+    Size? fixedSize,
+    Color? foregroundColor,
+    Color? backgroundColor,
+  }) => FilledButton.styleFrom(
+    padding: padding,
+    minimumSize: minimumSize,
+    fixedSize: fixedSize,
+    foregroundColor: foregroundColor,
+    backgroundColor: backgroundColor,
+    shape: _buttonShape,
+  );
+
   /// Creates a [ButtonStyle] for icon-only [FilledButton] trailing widgets.
   ///
   /// Produces a [buttonHeight]×[buttonHeight] square button. Pass
@@ -31,13 +50,12 @@ class HeaderActionRow extends StatelessWidget {
   static ButtonStyle iconOnlyButtonStyle({
     Color? foregroundColor,
     Color? backgroundColor,
-  }) => FilledButton.styleFrom(
+  }) => _filledButtonStyle(
     padding: EdgeInsets.zero,
     minimumSize: const Size(buttonHeight, buttonHeight),
     fixedSize: const Size(buttonHeight, buttonHeight),
     foregroundColor: foregroundColor,
     backgroundColor: backgroundColor,
-    shape: _buttonShape,
   );
 
   /// Creates a [ButtonStyle] for expanded [FilledButton.icon] widgets.
@@ -46,11 +64,10 @@ class HeaderActionRow extends StatelessWidget {
   static ButtonStyle expandedButtonStyle({
     Color? foregroundColor,
     Color? backgroundColor,
-  }) => FilledButton.styleFrom(
+  }) => _filledButtonStyle(
     fixedSize: const Size(double.infinity, buttonHeight),
     foregroundColor: foregroundColor,
     backgroundColor: backgroundColor,
-    shape: _buttonShape,
   );
 
   /// Wraps [child] in a glow effect container using [glowColor].
@@ -63,9 +80,9 @@ class HeaderActionRow extends StatelessWidget {
         borderRadius: AppRadius.borderRadiusXl,
         boxShadow: [
           BoxShadow(
-            color: glowColor.withValues(alpha: 0.55),
-            blurRadius: 18,
-            spreadRadius: 2,
+            color: glowColor.withValues(alpha: _glowAlpha),
+            blurRadius: _glowBlurRadius,
+            spreadRadius: _glowSpreadRadius,
           ),
         ],
       ),
