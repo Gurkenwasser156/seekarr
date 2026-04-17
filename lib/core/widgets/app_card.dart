@@ -164,6 +164,10 @@ class SettingsCard extends StatelessWidget {
   /// Subtitle text
   final String? subtitle;
 
+  /// Optional widget rendered before the subtitle text (e.g. a status icon).
+  /// Only shown when [subtitle] is also provided.
+  final Widget? subtitleLeading;
+
   /// Trailing widget
   final Widget? trailing;
 
@@ -175,6 +179,7 @@ class SettingsCard extends StatelessWidget {
     this.leading,
     required this.title,
     this.subtitle,
+    this.subtitleLeading,
     this.trailing,
     this.onTap,
   });
@@ -212,11 +217,23 @@ class SettingsCard extends StatelessWidget {
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (subtitleLeading != null) ...[
+                        subtitleLeading!,
+                        const SizedBox(width: AppSpacing.xs),
+                      ],
+                      Flexible(
+                        child: Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
