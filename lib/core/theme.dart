@@ -59,6 +59,61 @@ class AppColors {
   static const Color infoContainer = Color(0xFF1E40AF); // blue-800
 }
 
+@immutable
+class SeekarrThemeColors extends ThemeExtension<SeekarrThemeColors> {
+  final Color statusBadgeBackground;
+  final Color statusBadgeForeground;
+
+  const SeekarrThemeColors({
+    required this.statusBadgeBackground,
+    required this.statusBadgeForeground,
+  });
+
+  factory SeekarrThemeColors.defaults({
+    required Brightness brightness,
+    required ColorScheme colorScheme,
+  }) {
+    return SeekarrThemeColors(
+      statusBadgeBackground: colorScheme.surface.withValues(
+        alpha: brightness == Brightness.dark ? 0.8 : 0.8,
+      ),
+      statusBadgeForeground: colorScheme.onSurface,
+    );
+  }
+
+  @override
+  SeekarrThemeColors copyWith({
+    Color? statusBadgeBackground,
+    Color? statusBadgeForeground,
+  }) {
+    return SeekarrThemeColors(
+      statusBadgeBackground:
+          statusBadgeBackground ?? this.statusBadgeBackground,
+      statusBadgeForeground:
+          statusBadgeForeground ?? this.statusBadgeForeground,
+    );
+  }
+
+  @override
+  SeekarrThemeColors lerp(
+    covariant ThemeExtension<SeekarrThemeColors>? other,
+    double t,
+  ) {
+    if (other is! SeekarrThemeColors) {
+      return this;
+    }
+
+    return SeekarrThemeColors(
+      statusBadgeBackground:
+          Color.lerp(statusBadgeBackground, other.statusBadgeBackground, t) ??
+          statusBadgeBackground,
+      statusBadgeForeground:
+          Color.lerp(statusBadgeForeground, other.statusBadgeForeground, t) ??
+          statusBadgeForeground,
+    );
+  }
+}
+
 /// Material Design 3 Theme configuration for Seekarr
 class AppTheme {
   AppTheme._();
@@ -96,6 +151,12 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      extensions: [
+        SeekarrThemeColors.defaults(
+          brightness: brightness,
+          colorScheme: colorScheme,
+        ),
+      ],
       textTheme: _buildTextTheme(
         brightness == Brightness.dark
             ? ThemeData.dark().textTheme
