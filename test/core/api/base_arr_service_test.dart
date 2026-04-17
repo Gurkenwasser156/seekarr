@@ -1,8 +1,9 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/api/base_arr_service.dart';
+
+import '../../test_helpers/fake_api_client.dart';
 
 void main() {
   group('ArrActivityMixin helpers', () {
@@ -154,84 +155,4 @@ class TestItem {
 
   @override
   int get hashCode => Object.hash(id, title);
-}
-
-class FakeApiClient extends ApiClient {
-  dynamic getResponseData;
-  dynamic postResponseData;
-  dynamic putResponseData;
-
-  Object? getException;
-  Object? postException;
-  Object? putException;
-
-  String? lastGetPath;
-  Map<String, dynamic>? lastGetQueryParameters;
-  String? lastPostPath;
-  dynamic lastPostData;
-  Map<String, dynamic>? lastPostQueryParameters;
-  String? lastPutPath;
-  dynamic lastPutData;
-  Map<String, dynamic>? lastPutQueryParameters;
-
-  FakeApiClient() : super(baseUrl: 'https://example.com', apiKey: 'key');
-
-  @override
-  Future<Response> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    CancelToken? cancelToken,
-  }) async {
-    lastGetPath = path;
-    lastGetQueryParameters = queryParameters;
-
-    if (getException != null) {
-      throw getException!;
-    }
-
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: getResponseData,
-    );
-  }
-
-  @override
-  Future<Response> post(
-    String path, {
-    data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    lastPostPath = path;
-    lastPostData = data;
-    lastPostQueryParameters = queryParameters;
-
-    if (postException != null) {
-      throw postException!;
-    }
-
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: postResponseData,
-    );
-  }
-
-  @override
-  Future<Response> put(
-    String path, {
-    data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    lastPutPath = path;
-    lastPutData = data;
-    lastPutQueryParameters = queryParameters;
-
-    if (putException != null) {
-      throw putException!;
-    }
-
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: putResponseData,
-    );
-  }
 }

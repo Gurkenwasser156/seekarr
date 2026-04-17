@@ -1,106 +1,66 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/request_form_provider.dart';
 
+import '../../../test_helpers/fake_services.dart' as shared;
+
 void main() {
-  group('SeerrServer.fromJson', () {
-    test('parses all fields', () {
-      final server = SeerrServer.fromJson({
+  group('form model fromJson', () {
+    test('SeerrServer parses all fields and falls back to defaults', () {
+      final full = SeerrServer.fromJson({
         'id': 1,
         'name': 'Main',
         'activeProfileId': 5,
         'activeDirectory': '/movies',
       });
+      expect(full.id, 1);
+      expect(full.name, 'Main');
+      expect(full.activeProfileId, 5);
+      expect(full.activeDirectory, '/movies');
 
-      expect(server.id, 1);
-      expect(server.name, 'Main');
-      expect(server.activeProfileId, 5);
-      expect(server.activeDirectory, '/movies');
+      final empty = SeerrServer.fromJson({});
+      expect(empty.id, 0);
+      expect(empty.name, 'Server');
+      expect(empty.activeProfileId, isNull);
+      expect(empty.activeDirectory, isNull);
     });
 
-    test('uses safe defaults for missing fields', () {
-      final server = SeerrServer.fromJson({});
+    test('QualityProfileOption parses fields and falls back to defaults', () {
+      final full = QualityProfileOption.fromJson({'id': 7, 'name': 'HD'});
+      expect(full.id, 7);
+      expect(full.name, 'HD');
 
-      expect(server.id, 0);
-      expect(server.name, 'Server');
-      expect(server.activeProfileId, isNull);
-      expect(server.activeDirectory, isNull);
-    });
-  });
-
-  group('QualityProfileOption.fromJson', () {
-    test('parses correctly', () {
-      final profile = QualityProfileOption.fromJson({'id': 7, 'name': 'HD'});
-
-      expect(profile.id, 7);
-      expect(profile.name, 'HD');
+      final empty = QualityProfileOption.fromJson({});
+      expect(empty.id, 0);
+      expect(empty.name, 'Profile');
     });
 
-    test('uses safe defaults', () {
-      final profile = QualityProfileOption.fromJson({});
-
-      expect(profile.id, 0);
-      expect(profile.name, 'Profile');
+    test('RootFolderOption parses fields and falls back to defaults', () {
+      expect(RootFolderOption.fromJson({'path': '/movies'}).path, '/movies');
+      expect(RootFolderOption.fromJson({}).path, '');
     });
   });
 
-  group('RootFolderOption.fromJson', () {
-    test('parses correctly', () {
-      final folder = RootFolderOption.fromJson({'path': '/movies'});
-
-      expect(folder.path, '/movies');
-    });
-
-    test('uses safe defaults', () {
-      final folder = RootFolderOption.fromJson({});
-
-      expect(folder.path, '');
-    });
+  group('RequestFormState.canSubmit', () {
+    const ready = RequestFormState(isLoading: false, selectedProfileId: 1);
+    final cases = <(String, RequestFormState, bool)>[
+      ('ready', ready, true),
+      ('loading', ready.copyWith(isLoading: true), false),
+      ('no profile', const RequestFormState(isLoading: false), false),
+      ('submitting', ready.copyWith(isSubmitting: true), false),
+      ('error set', ready.copyWith(error: 'boom'), false),
+    ];
+    for (final (label, state, expected) in cases) {
+      test('is $expected when $label', () {
+        expect(state.canSubmit, expected);
+      });
+    }
   });
 
-  group('RequestFormState', () {
-    test('canSubmit is false while loading', () {
-      const state = RequestFormState(isLoading: true, selectedProfileId: 1);
-
-      expect(state.canSubmit, isFalse);
-    });
-
-    test('canSubmit is false without profile', () {
-      const state = RequestFormState(isLoading: false);
-
-      expect(state.canSubmit, isFalse);
-    });
-
-    test('canSubmit is false while submitting', () {
-      const state = RequestFormState(
-        isLoading: false,
-        selectedProfileId: 1,
-        isSubmitting: true,
-      );
-
-      expect(state.canSubmit, isFalse);
-    });
-
-    test('canSubmit is false when error exists', () {
-      const state = RequestFormState(
-        isLoading: false,
-        selectedProfileId: 1,
-        error: 'boom',
-      );
-
-      expect(state.canSubmit, isFalse);
-    });
-
-    test('canSubmit is true when ready', () {
-      const state = RequestFormState(isLoading: false, selectedProfileId: 1);
-
-      expect(state.canSubmit, isTrue);
-    });
-
-    test('copyWith preserves unchanged fields', () {
+  group('RequestFormState.copyWith', () {
+    test('preserves unchanged fields', () {
       const state = RequestFormState(
         servers: [SeerrServer(id: 1, name: 'Main')],
         selectedProfileId: 2,
@@ -117,7 +77,7 @@ void main() {
       expect(updated.error, 'boom');
     });
 
-    test('copyWith can clear nullable selections and error', () {
+    test('can clear nullable selections and error', () {
       const state = RequestFormState(
         selectedServerId: 1,
         selectedProfileId: 2,
@@ -140,7 +100,7 @@ void main() {
   });
 
   group('requestFormProvider', () {
-    ProviderContainer createContainer(FakeSeerrService service) {
+    ProviderContainer createContainer(_FakeSeerr service) {
       final container = ProviderContainer(
         overrides: [seerrServiceProvider.overrideWith((ref) => service)],
       );
@@ -148,21 +108,17 @@ void main() {
       return container;
     }
 
-    ProviderSubscription<RequestFormState> keepAlive(
-      ProviderContainer container,
-      RequestFormArgs args,
-    ) {
+    void keepAlive(ProviderContainer container, RequestFormArgs args) {
       final subscription = container.listen<RequestFormState>(
         requestFormProvider(args),
         (previous, next) {},
         fireImmediately: true,
       );
       addTearDown(subscription.close);
-      return subscription;
     }
 
     test('loads movie servers and active defaults', () async {
-      final service = FakeSeerrService(
+      final service = _FakeSeerr(
         radarrServers: [
           {
             'id': 3,
@@ -202,8 +158,7 @@ void main() {
     });
 
     test('reports empty server configuration', () async {
-      final service = FakeSeerrService(radarrServers: const []);
-      final container = createContainer(service);
+      final container = createContainer(_FakeSeerr(radarrServers: const []));
       const args = (mediaId: 123, mediaType: 'movie');
       keepAlive(container, args);
 
@@ -215,7 +170,7 @@ void main() {
     });
 
     test('selectServer loads sonarr profiles for chosen server', () async {
-      final service = FakeSeerrService(
+      final service = _FakeSeerr(
         sonarrServers: [
           {'id': 1, 'name': 'A'},
           {'id': 2, 'name': 'B', 'activeDirectory': '/tv-b'},
@@ -257,7 +212,7 @@ void main() {
     });
 
     test('submitRequest calls service with selected values', () async {
-      final service = FakeSeerrService(
+      final service = _FakeSeerr(
         radarrServers: [
           {'id': 9, 'name': 'Main'},
         ],
@@ -298,7 +253,7 @@ void main() {
     });
 
     test('submitRequest fails when no profile is selected', () async {
-      final container = createContainer(FakeSeerrService());
+      final container = createContainer(_FakeSeerr());
       const args = (mediaId: 111, mediaType: 'movie');
 
       final error = await container
@@ -316,26 +271,24 @@ Future<void> _flushProviderTasks() async {
   }
 }
 
-class FakeSeerrService extends SeerrService {
+class _FakeSeerr extends shared.FakeSeerrService {
+  _FakeSeerr({
+    this.radarrServers = const <Map<String, dynamic>>[],
+    this.sonarrServers = const <Map<String, dynamic>>[],
+    this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
+    this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
+  });
+
   final List<Map<String, dynamic>> radarrServers;
   final List<Map<String, dynamic>> sonarrServers;
   final Map<int, Map<String, dynamic>> radarrProfilesByServer;
   final Map<int, Map<String, dynamic>> sonarrProfilesByServer;
-  final bool throwOnCreateRequest;
 
   int radarrServersCallCount = 0;
   int sonarrServersCallCount = 0;
   final List<int> radarrProfilesCallCount = <int>[];
   final List<int> sonarrProfilesCallCount = <int>[];
   Map<String, Object?>? lastCreateRequestCall;
-
-  FakeSeerrService({
-    this.radarrServers = const <Map<String, dynamic>>[],
-    this.sonarrServers = const <Map<String, dynamic>>[],
-    this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
-    this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
-    this.throwOnCreateRequest = false,
-  }) : super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'k'));
 
   @override
   Future<List<Map<String, dynamic>>> getRadarrServers() async {
@@ -373,10 +326,6 @@ class FakeSeerrService extends SeerrService {
     bool is4k = false,
     List<int>? seasons,
   }) async {
-    if (throwOnCreateRequest) {
-      throw Exception('request failed');
-    }
-
     lastCreateRequestCall = {
       'mediaType': mediaType,
       'mediaId': mediaId,

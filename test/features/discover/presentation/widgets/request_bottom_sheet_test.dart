@@ -4,16 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sheet.dart';
+
+import '../../../../test_helpers/fake_services.dart' as shared;
 
 void main() {
   group('RequestBottomSheet rendering', () {
     testWidgets('shows loading indicator while form is initializing', (
       tester,
     ) async {
-      await _pumpSheetDirect(tester, service: DelayedFakeSeerrService());
+      await _pumpSheetDirect(tester, service: _DelayedFakeSeerr());
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -23,7 +24,7 @@ void main() {
     testWidgets('shows error when no servers are configured', (tester) async {
       await _pumpSheetDirect(
         tester,
-        service: FakeSeerrService(radarrServers: const []),
+        service: _FakeSeerr(radarrServers: const []),
       );
       await tester.pumpAndSettle();
 
@@ -100,7 +101,7 @@ void main() {
     testWidgets('shows a snackbar when submit fails', (tester) async {
       await _pumpSheetDirect(
         tester,
-        service: FakeSeerrService(
+        service: _FakeSeerr(
           radarrServers: const [
             {'id': 1, 'name': 'Main'},
           ],
@@ -137,8 +138,8 @@ void main() {
   });
 }
 
-FakeSeerrService _movieService({bool multipleServers = false}) {
-  return FakeSeerrService(
+_FakeSeerr _movieService({bool multipleServers = false}) {
+  return _FakeSeerr(
     radarrServers: multipleServers
         ? const [
             {'id': 1, 'name': 'Main'},
@@ -168,8 +169,8 @@ FakeSeerrService _movieService({bool multipleServers = false}) {
   );
 }
 
-FakeSeerrService _tvService() {
-  return FakeSeerrService(
+_FakeSeerr _tvService() {
+  return _FakeSeerr(
     sonarrServers: const [
       {'id': 9, 'name': 'TV Main'},
     ],
@@ -257,17 +258,10 @@ class _RequestSheetRouteLauncherState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    if (_pushed) {
-      return;
-    }
-
+    if (_pushed) return;
     _pushed = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => Scaffold(
@@ -291,14 +285,22 @@ class _RequestSheetRouteLauncherState
   }
 }
 
-class DelayedFakeSeerrService extends FakeSeerrService {
+class _DelayedFakeSeerr extends _FakeSeerr {
   @override
   Future<List<Map<String, dynamic>>> getRadarrServers() {
     return Completer<List<Map<String, dynamic>>>().future;
   }
 }
 
-class FakeSeerrService extends SeerrService {
+class _FakeSeerr extends shared.FakeSeerrService {
+  _FakeSeerr({
+    this.radarrServers = const <Map<String, dynamic>>[],
+    this.sonarrServers = const <Map<String, dynamic>>[],
+    this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
+    this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
+    this.throwOnCreateRequest = false,
+  });
+
   final List<Map<String, dynamic>> radarrServers;
   final List<Map<String, dynamic>> sonarrServers;
   final Map<int, Map<String, dynamic>> radarrProfilesByServer;
@@ -307,23 +309,11 @@ class FakeSeerrService extends SeerrService {
 
   Map<String, Object?>? lastCreateRequestCall;
 
-  FakeSeerrService({
-    this.radarrServers = const <Map<String, dynamic>>[],
-    this.sonarrServers = const <Map<String, dynamic>>[],
-    this.radarrProfilesByServer = const <int, Map<String, dynamic>>{},
-    this.sonarrProfilesByServer = const <int, Map<String, dynamic>>{},
-    this.throwOnCreateRequest = false,
-  }) : super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'k'));
+  @override
+  Future<List<Map<String, dynamic>>> getRadarrServers() async => radarrServers;
 
   @override
-  Future<List<Map<String, dynamic>>> getRadarrServers() async {
-    return radarrServers;
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> getSonarrServers() async {
-    return sonarrServers;
-  }
+  Future<List<Map<String, dynamic>>> getSonarrServers() async => sonarrServers;
 
   @override
   Future<Map<String, dynamic>> getRadarrProfiles(int serverId) async {
@@ -347,10 +337,7 @@ class FakeSeerrService extends SeerrService {
     bool is4k = false,
     List<int>? seasons,
   }) async {
-    if (throwOnCreateRequest) {
-      throw Exception('request failed');
-    }
-
+    if (throwOnCreateRequest) throw Exception('request failed');
     lastCreateRequestCall = {
       'mediaType': mediaType,
       'mediaId': mediaId,

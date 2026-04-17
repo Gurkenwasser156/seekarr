@@ -1,265 +1,275 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/features/discover/data/seerr_service.dart';
+
+import '../../../test_helpers/fake_api_client.dart';
+
 void main() {
-  group('SeerrService', () {
-    group('createRequest body format', () {
-      test('movie request body contains correct fields', () {
-        // Test the body creation logic for movies
-        final body = _buildRequestBody(
-          mediaType: 'movie',
-          mediaId: 12345,
-          profileId: 1,
-          rootFolder: '/movies',
-          is4k: false,
-        );
+  late FakeApiClient client;
+  late SeerrService service;
 
-        expect(body['mediaType'], 'movie');
-        expect(body['mediaId'], 12345);
-        expect(body['is4k'], false);
-        expect(body['profileId'], 1);
-        expect(body['rootFolder'], '/movies');
-        expect(body.containsKey('seasons'), false);
+  setUp(() {
+    client = FakeApiClient();
+    service = SeerrService(client);
+  });
+
+  group('createRequest', () {
+    test('movie body contains required fields without seasons', () async {
+      await service.createRequest(
+        mediaType: 'movie',
+        mediaId: 12345,
+        profileId: 1,
+        rootFolder: '/movies',
+      );
+
+      expect(client.lastPostPath, '/api/v1/request');
+      final body = client.lastPostData as Map<String, dynamic>;
+      expect(body, {
+        'mediaType': 'movie',
+        'mediaId': 12345,
+        'is4k': false,
+        'profileId': 1,
+        'rootFolder': '/movies',
       });
-
-      test('TV request body includes seasons="all" when not specified', () {
-        final body = _buildRequestBody(
-          mediaType: 'tv',
-          mediaId: 67890,
-          is4k: false,
-          seasons: null,
-        );
-
-        expect(body['mediaType'], 'tv');
-        expect(body['seasons'], 'all');
-      });
-
-      test('TV request body includes specific seasons when provided', () {
-        final body = _buildRequestBody(
-          mediaType: 'tv',
-          mediaId: 67890,
-          is4k: false,
-          seasons: [1, 2, 3],
-        );
-
-        expect(body['seasons'], [1, 2, 3]);
-      });
-
-      test('4K request sets is4k to true', () {
-        final body = _buildRequestBody(
-          mediaType: 'movie',
-          mediaId: 12345,
-          is4k: true,
-        );
-
-        expect(body['is4k'], true);
-      });
+      expect(body.containsKey('seasons'), isFalse);
     });
 
-    group('profile selection logic', () {
-      test('selects active profile when available', () {
-        final profiles = [
-          {'id': 1, 'name': 'HD-1080p'},
-          {'id': 2, 'name': '4K'},
-          {'id': 3, 'name': 'Web-720p'},
-        ];
-        const activeProfileId = 2;
-
-        final selectedId = _selectProfileId(profiles, activeProfileId);
-        expect(selectedId, 2);
-      });
-
-      test('falls back to first profile when active not found', () {
-        final profiles = [
-          {'id': 1, 'name': 'HD-1080p'},
-          {'id': 2, 'name': '4K'},
-        ];
-        const activeProfileId = 99; // Not in list
-
-        final selectedId = _selectProfileId(profiles, activeProfileId);
-        expect(selectedId, 1);
-      });
-
-      test('returns null when no profiles available', () {
-        final profiles = <Map<String, dynamic>>[];
-        const activeProfileId = 1;
-
-        final selectedId = _selectProfileId(profiles, activeProfileId);
-        expect(selectedId, null);
-      });
+    test('tv body defaults seasons to "all" when not specified', () async {
+      await service.createRequest(mediaType: 'tv', mediaId: 67890);
+      expect((client.lastPostData as Map)['seasons'], 'all');
     });
 
-    group('search result filtering', () {
-      test('filters out person mediaType', () {
-        final results = [
-          {'id': 1, 'mediaType': 'movie', 'title': 'Test Movie'},
-          {'id': 2, 'mediaType': 'person', 'name': 'Test Actor'},
-          {'id': 3, 'mediaType': 'tv', 'name': 'Test Show'},
-        ];
+    test('tv body uses specific seasons when provided', () async {
+      await service.createRequest(
+        mediaType: 'tv',
+        mediaId: 67890,
+        seasons: const [1, 2, 3],
+      );
+      expect((client.lastPostData as Map)['seasons'], [1, 2, 3]);
+    });
 
-        final filtered = _filterSearchResults(results);
+    test('is4k flag is forwarded', () async {
+      await service.createRequest(
+        mediaType: 'movie',
+        mediaId: 12345,
+        is4k: true,
+      );
+      expect((client.lastPostData as Map)['is4k'], isTrue);
+    });
 
-        expect(filtered.length, 2);
-        expect(filtered.any((e) => e['mediaType'] == 'person'), false);
-      });
-
-      test('keeps movie results', () {
-        final results = [
-          {'id': 1, 'mediaType': 'movie', 'title': 'Test Movie'},
-        ];
-
-        final filtered = _filterSearchResults(results);
-
-        expect(filtered.length, 1);
-        expect(filtered.first['mediaType'], 'movie');
-      });
-
-      test('keeps tv results', () {
-        final results = [
-          {'id': 1, 'mediaType': 'tv', 'name': 'Test Show'},
-        ];
-
-        final filtered = _filterSearchResults(results);
-
-        expect(filtered.length, 1);
-        expect(filtered.first['mediaType'], 'tv');
-      });
-
-      test('handles snake_case media_type', () {
-        final results = [
-          {'id': 1, 'media_type': 'movie', 'title': 'Test Movie'},
-          {'id': 2, 'media_type': 'person', 'name': 'Test Actor'},
-          {'id': 3, 'media_type': 'tv', 'name': 'Test Show'},
-        ];
-
-        final filtered = _filterSearchResults(results);
-
-        expect(filtered.length, 2);
-        expect(filtered.any((e) => e['media_type'] == 'person'), false);
-      });
-
-      test('returns empty list when all results are persons', () {
-        final results = [
-          {'id': 1, 'mediaType': 'person', 'name': 'Actor 1'},
-          {'id': 2, 'mediaType': 'person', 'name': 'Actor 2'},
-        ];
-
-        final filtered = _filterSearchResults(results);
-
-        expect(filtered.isEmpty, true);
-      });
+    test('serverId is forwarded when provided', () async {
+      await service.createRequest(mediaType: 'movie', mediaId: 1, serverId: 42);
+      expect((client.lastPostData as Map)['serverId'], 42);
     });
   });
 
-  // Run additional test groups
-  RequestedByTest.runTests();
-}
+  group('search', () {
+    test('returns empty list when query is empty (no network call)', () async {
+      final results = await service.search('');
+      expect(results, isEmpty);
+      expect(client.getCallCount, 0);
+    });
 
-/// Helper to simulate createRequest body building
-Map<String, dynamic> _buildRequestBody({
-  required String mediaType,
-  required int mediaId,
-  int? profileId,
-  String? rootFolder,
-  bool is4k = false,
-  List<int>? seasons,
-}) {
-  final body = <String, dynamic>{
-    'mediaType': mediaType,
-    'mediaId': mediaId,
-    'is4k': is4k,
-  };
+    test('filters out person results and keeps movies & tv', () async {
+      client.getResponseData = {
+        'results': [
+          {'id': 1, 'mediaType': 'movie', 'title': 'Movie'},
+          {'id': 2, 'mediaType': 'person', 'name': 'Actor'},
+          {'id': 3, 'mediaType': 'tv', 'name': 'Show'},
+          {'id': 4, 'media_type': 'person', 'name': 'Another Actor'},
+          {'id': 5, 'media_type': 'movie', 'title': 'Snake Case Movie'},
+        ],
+      };
 
-  // For TV shows, seasons is required
-  if (mediaType == 'tv') {
-    if (seasons != null && seasons.isNotEmpty) {
-      body['seasons'] = seasons;
-    } else {
-      body['seasons'] = 'all';
-    }
-  }
+      final results = await service.search('test');
 
-  if (profileId != null) body['profileId'] = profileId;
-  if (rootFolder != null) body['rootFolder'] = rootFolder;
+      expect(results.length, 3);
+      expect(results.any((r) => r.mediaType == 'person'), isFalse);
+      expect(client.lastGetPath, '/api/v1/search');
+    });
 
-  return body;
-}
+    test('url-encodes the query', () async {
+      client.getResponseData = {'results': const []};
+      await service.search('star wars & friends');
+      final q = client.lastGetQueryParameters!['query'] as String;
+      expect(q, Uri.encodeComponent('star wars & friends'));
+    });
 
-/// Helper to simulate profile selection logic
-int? _selectProfileId(
-  List<Map<String, dynamic>> profiles,
-  int? activeProfileId,
-) {
-  if (profiles.isEmpty) return null;
+    test('returns empty list on network error', () async {
+      client.getException = Exception('network down');
+      expect(await service.search('anything'), isEmpty);
+    });
+  });
 
-  if (activeProfileId != null &&
-      profiles.any((p) => p['id'] == activeProfileId)) {
-    return activeProfileId;
-  }
+  group('discover endpoints', () {
+    test('getDiscoverMovies hits the correct path', () async {
+      client.getResponseData = {'results': const []};
+      await service.getDiscoverMovies(page: 2);
+      expect(client.lastGetPath, '/api/v1/discover/movies');
+      expect(client.lastGetQueryParameters, {'page': 2});
+    });
 
-  return profiles.first['id'] as int?;
-}
+    test('getDiscoverTV hits the correct path', () async {
+      client.getResponseData = {'results': const []};
+      await service.getDiscoverTV();
+      expect(client.lastGetPath, '/api/v1/discover/tv');
+    });
 
-/// Tests for RequestedBy model
-class RequestedByTest {
-  static void runTests() {
-    group('RequestedBy parsing', () {
-      test('parses displayName correctly', () {
-        final json = {'id': 1, 'displayName': 'TestUser', 'avatar': null};
-        final requestedBy = _parseRequestedBy(json);
-        expect(requestedBy['displayName'], 'TestUser');
-      });
+    test('getDiscoverTrending hits the correct path', () async {
+      client.getResponseData = {'results': const []};
+      await service.getDiscoverTrending();
+      expect(client.lastGetPath, '/api/v1/discover/trending');
+    });
 
-      test('falls back to username when displayName is missing', () {
-        final json = {'id': 1, 'username': 'FallbackUser'};
-        final requestedBy = _parseRequestedBy(json);
-        expect(requestedBy['displayName'], 'FallbackUser');
-      });
+    test('discover endpoints return empty on error', () async {
+      client.getException = Exception('boom');
+      expect(await service.getDiscoverMovies(), isEmpty);
+      expect(await service.getDiscoverTV(), isEmpty);
+      expect(await service.getDiscoverTrending(), isEmpty);
+    });
+  });
 
-      test('returns Unknown when no name fields present', () {
-        final json = <String, dynamic>{'id': 1};
-        final requestedBy = _parseRequestedBy(json);
-        expect(requestedBy['displayName'], 'Unknown');
+  group('getRequests', () {
+    test('parses results and skips malformed entries', () async {
+      client.getResponseQueue.addAll([
+        {
+          'results': [
+            {
+              'id': 7,
+              'status': 2,
+              'createdAt': '2024-01-02T00:00:00.000Z',
+              'type': 'movie',
+              'is4k': false,
+              'requestedBy': {'id': 1, 'displayName': 'Matt'},
+              'media': {
+                'id': 101,
+                'tmdbId': 111,
+                'status': 5,
+                'mediaType': 'movie',
+                'title': 'Hydrated Movie',
+              },
+            },
+            'bad',
+          ],
+        },
+      ]);
+
+      final requests = await service.getRequests();
+
+      expect(requests, hasLength(1));
+      expect(requests.single.id, 7);
+      expect(client.lastGetPath, '/api/v1/request');
+      expect(client.lastGetQueryParameters, {
+        'take': 20,
+        'skip': 0,
+        'sort': 'added',
+        'filter': 'all',
       });
     });
 
-    group('Media management endpoint URLs', () {
-      test('delete media URL constructed correctly', () {
-        const mediaId = 123;
-        final url = _buildMediaDeleteUrl(mediaId);
-        expect(url, '/api/v1/media/123');
-      });
+    test('hydrates media when title is Unknown via movie detail', () async {
+      client.getResponseQueue.addAll([
+        {
+          'results': [
+            {
+              'id': 7,
+              'status': 2,
+              'createdAt': '2024-01-02T00:00:00.000Z',
+              'type': 'movie',
+              'is4k': false,
+              'requestedBy': {'id': 1, 'displayName': 'Matt'},
+              'media': {
+                'id': 101,
+                'tmdbId': 111,
+                'status': 5,
+                'mediaType': 'movie',
+                'title': 'Unknown Media',
+              },
+            },
+          ],
+        },
+        {'title': 'Hydrated Movie', 'releaseDate': '2022-05-01'},
+      ]);
 
-      test('delete media file URL constructed correctly', () {
-        const mediaId = 456;
-        final url = _buildMediaFileDeleteUrl(mediaId);
-        expect(url, '/api/v1/media/456/file');
-      });
+      final requests = await service.getRequests();
+
+      expect(requests.single.media?.title, 'Hydrated Movie');
+      expect(requests.single.media?.year, '2022');
     });
-  }
-}
 
-Map<String, dynamic> _parseRequestedBy(Map<String, dynamic> json) {
-  return {
-    'id': json['id'] ?? 0,
-    'displayName': json['displayName'] ?? json['username'] ?? 'Unknown',
-    'avatar': json['avatar']?.toString(),
-  };
-}
+    test('returns [] on network error', () async {
+      client.getException = Exception('offline');
+      expect(await service.getRequests(), isEmpty);
+    });
+  });
 
-String _buildMediaDeleteUrl(int mediaId) {
-  return '/api/v1/media/$mediaId';
-}
+  group('media endpoints', () {
+    test('getMovie hits /api/v1/movie/:id', () async {
+      client.getResponseData = {'title': 'Movie'};
+      final data = await service.getMovie(123);
+      expect(client.lastGetPath, '/api/v1/movie/123');
+      expect(data['title'], 'Movie');
+    });
 
-String _buildMediaFileDeleteUrl(int mediaId) {
-  return '/api/v1/media/$mediaId/file';
-}
+    test('getTv hits /api/v1/tv/:id', () async {
+      client.getResponseData = {'name': 'Show'};
+      final data = await service.getTv(123);
+      expect(client.lastGetPath, '/api/v1/tv/123');
+      expect(data['name'], 'Show');
+    });
 
-/// Helper to simulate search result filtering (mirrors SeerrService.search logic)
-List<Map<String, dynamic>> _filterSearchResults(
-  List<Map<String, dynamic>> results,
-) {
-  return results.where((e) {
-    final mediaType = e['mediaType'] ?? e['media_type'];
-    return mediaType == 'movie' || mediaType == 'tv';
-  }).toList();
+    test('getCollection returns {} on error', () async {
+      client.getException = Exception('offline');
+      expect(await service.getCollection(5), isEmpty);
+    });
+
+    test('deleteMedia hits /api/v1/media/:id', () async {
+      await service.deleteMedia(123);
+      expect(client.lastDeletePath, '/api/v1/media/123');
+    });
+
+    test('deleteMediaFile hits /api/v1/media/:id/file', () async {
+      await service.deleteMediaFile(456);
+      expect(client.lastDeletePath, '/api/v1/media/456/file');
+    });
+
+    test('deleteRequest hits /api/v1/request/:id', () async {
+      await service.deleteRequest(77);
+      expect(client.lastDeletePath, '/api/v1/request/77');
+    });
+  });
+
+  group('service integration endpoints', () {
+    test('getRadarrServers returns list on success', () async {
+      client.getResponseData = [
+        {'id': 1, 'name': 'Main'},
+      ];
+      final servers = await service.getRadarrServers();
+      expect(servers, hasLength(1));
+      expect(client.lastGetPath, '/api/v1/service/radarr');
+    });
+
+    test('getRadarrServers returns [] on error', () async {
+      client.getException = Exception('boom');
+      expect(await service.getRadarrServers(), isEmpty);
+    });
+
+    test('getSonarrServers hits /api/v1/service/sonarr', () async {
+      client.getResponseData = const <Map<String, dynamic>>[];
+      await service.getSonarrServers();
+      expect(client.lastGetPath, '/api/v1/service/sonarr');
+    });
+
+    test('getRadarrProfiles hits /api/v1/service/radarr/:id', () async {
+      client.getResponseData = {'profiles': const [], 'rootFolders': const []};
+      await service.getRadarrProfiles(42);
+      expect(client.lastGetPath, '/api/v1/service/radarr/42');
+    });
+
+    test('getSonarrProfiles hits /api/v1/service/sonarr/:id', () async {
+      client.getResponseData = {'profiles': const [], 'rootFolders': const []};
+      await service.getSonarrProfiles(9);
+      expect(client.lastGetPath, '/api/v1/service/sonarr/9');
+    });
+  });
 }

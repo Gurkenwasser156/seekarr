@@ -2,24 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
-import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/router.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_screen.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
-import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_screen.dart';
 import 'package:seekarr/features/movies/presentation/movies_screen.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
-import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
-import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/music/presentation/music_screen.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
-import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
-import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/nav_tab.dart';
@@ -28,6 +21,9 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/settings_appearance_screen.dart';
 import 'package:seekarr/features/settings/presentation/settings_services_screen.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
+
+import '../test_helpers/fake_services.dart';
+import '../test_helpers/model_builders.dart';
 
 void main() {
   group('routerProvider', () {
@@ -118,7 +114,7 @@ void main() {
       final container = await _pumpRouter(tester);
       final router = container.read(routerProvider);
 
-      router.go('/movies/not-a-number', extra: _buildMovie());
+      router.go('/movies/not-a-number', extra: buildMovie(id: 42));
       await tester.pumpAndSettle();
 
       expect(router.state.uri.toString(), '/movies');
@@ -132,7 +128,7 @@ void main() {
         final container = await _pumpRouter(tester);
         final router = container.read(routerProvider);
 
-        router.go('/movies/42', extra: _buildArtist());
+        router.go('/movies/42', extra: buildArtist(id: 9));
         await tester.pumpAndSettle();
 
         expect(router.state.uri.toString(), '/movies/42');
@@ -142,7 +138,7 @@ void main() {
         expect(movieScreen.movieId, 42);
         expect(movieScreen.initialMovie, isNull);
 
-        router.go('/movies/42', extra: _buildMovie(id: 7));
+        router.go('/movies/42', extra: buildMovie(id: 7));
         await tester.pumpAndSettle();
 
         expect(router.state.uri.toString(), '/movies/42');
@@ -207,26 +203,14 @@ void main() {
 Future<ProviderContainer> _pumpRouter(
   WidgetTester tester, {
   SettingsModel settings = const SettingsModel(),
-  FakeSeerrService? seerrService,
-  FakeRadarrService? radarrService,
-  FakeSonarrService? sonarrService,
-  FakeLidarrService? lidarrService,
 }) async {
   final container = ProviderContainer(
     overrides: [
       currentSettingsProvider.overrideWith((ref) => settings),
-      seerrServiceProvider.overrideWith(
-        (ref) => seerrService ?? FakeSeerrService(),
-      ),
-      radarrServiceProvider.overrideWith(
-        (ref) => radarrService ?? FakeRadarrService(),
-      ),
-      sonarrServiceProvider.overrideWith(
-        (ref) => sonarrService ?? FakeSonarrService(),
-      ),
-      lidarrServiceProvider.overrideWith(
-        (ref) => lidarrService ?? FakeLidarrService(),
-      ),
+      seerrServiceProvider.overrideWith((ref) => FakeSeerrService()),
+      radarrServiceProvider.overrideWith((ref) => FakeRadarrService()),
+      sonarrServiceProvider.overrideWith((ref) => FakeSonarrService()),
+      lidarrServiceProvider.overrideWith((ref) => FakeLidarrService()),
     ],
   );
   addTearDown(container.dispose);
@@ -240,149 +224,4 @@ Future<ProviderContainer> _pumpRouter(
   await tester.pumpAndSettle();
 
   return container;
-}
-
-class FakeSeerrService extends SeerrService {
-  FakeSeerrService({
-    Map<String, dynamic>? movieDetails,
-    Map<String, dynamic>? tvDetails,
-  }) : _movieDetails = movieDetails ?? _buildDiscoverMovieDetails(),
-       _tvDetails = tvDetails ?? _buildDiscoverTvDetails(),
-       super(ApiClient(baseUrl: 'https://seerr.example.com', apiKey: 'key'));
-
-  final Map<String, dynamic> _movieDetails;
-  final Map<String, dynamic> _tvDetails;
-
-  @override
-  Future<List<MediaPreview>> getDiscoverMovies({int page = 1}) async => [];
-
-  @override
-  Future<List<MediaPreview>> getDiscoverTV({int page = 1}) async => [];
-
-  @override
-  Future<List<MediaPreview>> getDiscoverTrending({int page = 1}) async => [];
-
-  @override
-  Future<Map<String, dynamic>> getMovie(int movieId) async => _movieDetails;
-
-  @override
-  Future<Map<String, dynamic>> getTv(int tvId) async => _tvDetails;
-}
-
-class FakeRadarrService extends RadarrService {
-  FakeRadarrService()
-    : super(ApiClient(baseUrl: 'https://radarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<RadarrMovie>> getMovies() async => const [];
-
-  @override
-  Future<RadarrMovie?> getMovie(int movieId) async => _buildMovie(id: movieId);
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
-}
-
-class FakeSonarrService extends SonarrService {
-  FakeSonarrService()
-    : super(ApiClient(baseUrl: 'https://sonarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<SonarrSeries>> getSeries() async => const [];
-
-  @override
-  Future<SonarrSeries?> getSeriesById(int seriesId) async =>
-      _buildSeries(id: seriesId);
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
-
-  @override
-  Future<List<SonarrEpisode>> getEpisodes(int seriesId) async =>
-      const <SonarrEpisode>[];
-}
-
-class FakeLidarrService extends LidarrService {
-  FakeLidarrService()
-    : super(ApiClient(baseUrl: 'https://lidarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<LidarrArtist>> getArtists() async => const [];
-
-  @override
-  Future<LidarrArtist?> getArtistById(int artistId) async =>
-      _buildArtist(id: artistId);
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
-
-  @override
-  Future<List<LidarrAlbum>> getAlbums(int artistId) async =>
-      const <LidarrAlbum>[];
-}
-
-RadarrMovie _buildMovie({int id = 42}) {
-  return RadarrMovie(
-    id: id,
-    title: 'Movie $id',
-    sortTitle: 'movie-$id',
-    sizeOnDisk: 0,
-    status: 'released',
-    hasFile: true,
-    monitored: true,
-    year: 2024,
-    images: const [],
-    tmdbId: 123,
-    runtime: 100,
-    genres: const [],
-  );
-}
-
-SonarrSeries _buildSeries({int id = 55}) {
-  return SonarrSeries(
-    id: id,
-    title: 'Series $id',
-    sortTitle: 'series-$id',
-    status: 'continuing',
-    monitored: true,
-    year: 2024,
-    images: [],
-    tvdbId: 456,
-    runtime: 45,
-    genres: [],
-    seasons: [],
-  );
-}
-
-LidarrArtist _buildArtist({int id = 9}) {
-  return LidarrArtist(
-    id: id,
-    artistName: 'Artist $id',
-    status: 'active',
-    monitored: true,
-    images: [],
-    genres: [],
-  );
-}
-
-Map<String, dynamic> _buildDiscoverMovieDetails() {
-  return const {
-    'title': 'Discover Movie',
-    'overview': 'A movie overview.',
-    'posterPath': '/poster.jpg',
-    'genres': [],
-    'credits': {'cast': [], 'crew': []},
-    'keywords': [],
-  };
-}
-
-Map<String, dynamic> _buildDiscoverTvDetails() {
-  return const {
-    'name': 'Discover Show',
-    'overview': 'A show overview.',
-    'posterPath': '/show.jpg',
-    'genres': [],
-    'credits': {'cast': [], 'crew': []},
-    'keywords': [],
-  };
 }

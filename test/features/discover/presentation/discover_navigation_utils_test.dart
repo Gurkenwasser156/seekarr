@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/discover/presentation/discover_navigation_utils.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
@@ -12,12 +11,15 @@ import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
+import '../../../test_helpers/fake_services.dart' as shared;
+import '../../../test_helpers/model_builders.dart';
+
 void main() {
   group('openMediaInService', () {
     testWidgets('navigates to movie detail and calls dismissSheet', (
       tester,
     ) async {
-      final radarrService = FakeRadarrService(movie: _buildMovie());
+      final radarrService = _FakeRadarr(movie: buildMovie(id: 7));
       final result = ValueNotifier<bool?>(null);
       var dismissCount = 0;
 
@@ -78,13 +80,12 @@ void main() {
     testWidgets('can skip configuration alert and use custom movie message', (
       tester,
     ) async {
-      final radarrService = FakeRadarrService(movie: null);
       final result = ValueNotifier<bool?>(null);
 
       await _pumpHarness(
         tester,
         settings: const SettingsModel(),
-        radarrService: radarrService,
+        radarrService: _FakeRadarr(),
         onPressed: (context, ref) async {
           result.value = await openMediaInService(
             context: context,
@@ -108,13 +109,12 @@ void main() {
     testWidgets('can skip configuration alert and use custom series message', (
       tester,
     ) async {
-      final sonarrService = FakeSonarrService(series: null);
       final result = ValueNotifier<bool?>(null);
 
       await _pumpHarness(
         tester,
         settings: const SettingsModel(),
-        sonarrService: sonarrService,
+        sonarrService: _FakeSonarr(),
         onPressed: (context, ref) async {
           result.value = await openMediaInService(
             context: context,
@@ -142,8 +142,8 @@ Future<void> _pumpHarness(
   WidgetTester tester, {
   required Future<void> Function(BuildContext context, WidgetRef ref) onPressed,
   required SettingsModel settings,
-  FakeRadarrService? radarrService,
-  FakeSonarrService? sonarrService,
+  _FakeRadarr? radarrService,
+  _FakeSonarr? sonarrService,
 }) async {
   final router = GoRouter(
     routes: [
@@ -188,12 +188,11 @@ Future<void> _pumpHarness(
   await tester.pumpAndSettle();
 }
 
-class FakeRadarrService extends RadarrService {
+class _FakeRadarr extends shared.FakeRadarrService {
+  _FakeRadarr({this.movie});
+
   final RadarrMovie? movie;
   int getMovieByTmdbIdCallCount = 0;
-
-  FakeRadarrService({this.movie})
-    : super(ApiClient(baseUrl: 'https://radarr.example.com', apiKey: 'key'));
 
   @override
   Future<RadarrMovie?> getMovieByTmdbId(int tmdbId) async {
@@ -202,29 +201,7 @@ class FakeRadarrService extends RadarrService {
   }
 }
 
-class FakeSonarrService extends SonarrService {
-  final SonarrSeries? series;
-
-  FakeSonarrService({this.series})
-    : super(ApiClient(baseUrl: 'https://sonarr.example.com', apiKey: 'key'));
-
+class _FakeSonarr extends shared.FakeSonarrService {
   @override
-  Future<SonarrSeries?> getSeriesByTvdbId(int tvdbId) async => series;
-}
-
-RadarrMovie _buildMovie() {
-  return const RadarrMovie(
-    id: 7,
-    title: 'Movie',
-    sortTitle: 'movie',
-    sizeOnDisk: 0,
-    status: 'released',
-    hasFile: true,
-    monitored: true,
-    year: 2024,
-    images: [],
-    tmdbId: 123,
-    runtime: 100,
-    genres: [],
-  );
+  Future<SonarrSeries?> getSeriesByTvdbId(int tvdbId) async => null;
 }

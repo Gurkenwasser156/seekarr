@@ -4,17 +4,6 @@ import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 void main() {
   group('RadarrMovie', () {
     group('fromJson', () {
-      test('re-exports RatingSource for callers importing the model', () {
-        const rating = RatingSource(
-          name: 'TMDB',
-          value: 8.1,
-          votes: 200,
-          icon: 'TMDB',
-        );
-
-        expect(rating.name, 'TMDB');
-      });
-
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,

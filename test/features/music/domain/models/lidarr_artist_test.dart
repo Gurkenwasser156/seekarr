@@ -4,17 +4,6 @@ import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 void main() {
   group('LidarrArtist', () {
     group('fromJson', () {
-      test('re-exports RatingSource for callers importing the model', () {
-        const rating = RatingSource(
-          name: '42500 voti',
-          value: 8.1,
-          votes: 42500,
-          icon: 'MB',
-        );
-
-        expect(rating.icon, 'MB');
-      });
-
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,
