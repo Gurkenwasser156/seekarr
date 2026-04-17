@@ -18,7 +18,7 @@ import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sh
 /// Renders a [Column] of [HeaderActionRow] widgets that adapt to
 /// the poster row's [collapseFactor].
 ///
-/// Row 1: Request (expanded, OutlinedButton) + Videos (icon-only).
+/// Row 1: Request (expanded, FilledButton) + Videos (icon-only).
 /// Row 2: Manage (expanded) + Open in Service (icon-only). Only shown when applicable.
 class DiscoverActionButtons extends ConsumerWidget {
   final int mediaId;
@@ -59,14 +59,19 @@ class DiscoverActionButtons extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final gap = MediaDetailPosterRow.actionGap(collapseFactor);
     final showManageRow = hasManageableMedia || isInService;
+    final serviceName = _normalizedMediaType == 'movie' ? 'Radarr' : 'Sonarr';
+    final manageLabel = _normalizedMediaType == 'movie'
+        ? 'Manage Movie'
+        : 'Manage Series';
+    Widget primaryGlow({required Widget child}) =>
+        HeaderActionRow.glowWrap(glowColor: colorScheme.primary, child: child);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Row 1: Request + Videos
         HeaderActionRow(
-          expanded: HeaderActionRow.glowWrap(
-            glowColor: colorScheme.primary,
+          expanded: primaryGlow(
             child: FilledButton.icon(
               onPressed: () => _showRequestSheet(context, ref),
               icon: const Icon(Icons.add_circle_outline),
@@ -79,8 +84,7 @@ class DiscoverActionButtons extends ConsumerWidget {
             ),
           ),
           trailing: videos.isNotEmpty
-              ? HeaderActionRow.glowWrap(
-                  glowColor: colorScheme.primary,
+              ? primaryGlow(
                   child: DiscoverVideosButton.iconOnly(videos: videos),
                 )
               : null,
@@ -90,16 +94,13 @@ class DiscoverActionButtons extends ConsumerWidget {
           SizedBox(height: gap),
           // Row 2: Manage + Open in Service
           HeaderActionRow(
-            expanded: HeaderActionRow.glowWrap(
-              glowColor: colorScheme.primary,
+            expanded: primaryGlow(
               child: hasManageableMedia
                   ? FilledButton.icon(
                       onPressed: () => _showManageSheet(context, ref),
                       icon: const Icon(Icons.settings),
                       label: Text(
-                        _normalizedMediaType == 'movie'
-                            ? 'Manage Movie'
-                            : 'Manage Series',
+                        manageLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
@@ -110,9 +111,7 @@ class DiscoverActionButtons extends ConsumerWidget {
                       onPressed: () => _openInService(context, ref),
                       icon: const Icon(Icons.open_in_new),
                       label: Text(
-                        _normalizedMediaType == 'movie'
-                            ? 'Open in Radarr'
-                            : 'Open in Sonarr',
+                        'Open in $serviceName',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
@@ -121,8 +120,7 @@ class DiscoverActionButtons extends ConsumerWidget {
                     ),
             ),
             trailing: hasManageableMedia && isInService
-                ? HeaderActionRow.glowWrap(
-                    glowColor: colorScheme.primary,
+                ? primaryGlow(
                     child: FilledButton(
                       onPressed: () => _openInService(context, ref),
                       style: HeaderActionRow.iconOnlyButtonStyle(),

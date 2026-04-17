@@ -6,7 +6,7 @@ import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/header_action_row.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 
-/// Full-width outlined button that opens the related-videos sheet.
+/// Full-width filled button that opens the related-videos sheet.
 class DiscoverVideosButton extends StatelessWidget {
   final List<RelatedVideo> videos;
 
