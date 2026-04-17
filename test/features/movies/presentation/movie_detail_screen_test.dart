@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
@@ -12,6 +11,23 @@ import 'package:seekarr/features/movies/presentation/movie_detail_provider.dart'
 import 'package:seekarr/features/movies/presentation/movie_detail_screen.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+import '../../../test_helpers/fake_services.dart';
+import '../../../test_helpers/model_builders.dart';
+
+RadarrMovie _movie({bool hasFile = true, String? path}) => buildMovie(
+  title: 'Inception',
+  overview: 'A mind-bending thriller.',
+  path: path ?? '/movies/Inception (2010)/Inception.mkv',
+  hasFile: hasFile,
+  year: 2010,
+  tmdbId: 100,
+  runtime: 148,
+  sizeOnDisk: 1000000,
+  studio: 'Warner Bros',
+  genres: const ['Sci-Fi', 'Action'],
+  certification: 'PG-13',
+);
 
 void main() {
   group('MovieDetailScreen', () {
@@ -55,7 +71,7 @@ void main() {
     ) async {
       await _pumpMovieDetail(
         tester,
-        detailBuilder: (ref, movieId) async => _makeMovie(),
+        detailBuilder: (ref, movieId) async => _movie(),
       );
       await tester.pumpAndSettle();
 
@@ -72,7 +88,7 @@ void main() {
       await _pumpMovieDetail(
         tester,
         detailBuilder: (ref, movieId) => Completer<RadarrMovie?>().future,
-        initialMovie: _makeMovie(),
+        initialMovie: _movie(),
       );
       await tester.pump();
       await tester.pump();
@@ -87,7 +103,7 @@ void main() {
       await _pumpMovieDetail(
         tester,
         detailBuilder: (ref, movieId) async =>
-            _makeMovie(hasFile: false, path: null),
+            _movie(hasFile: false, path: null),
       );
       await tester.pumpAndSettle();
 
@@ -111,7 +127,7 @@ Future<void> _pumpMovieDetail(
           ),
         ),
         movieDetailProvider.overrideWith(detailBuilder),
-        radarrServiceProvider.overrideWith((ref) => _FakeRadarrService()),
+        radarrServiceProvider.overrideWith((ref) => FakeRadarrService()),
       ],
       child: MaterialApp(
         home: MovieDetailScreen(
@@ -122,33 +138,4 @@ Future<void> _pumpMovieDetail(
       ),
     ),
   );
-}
-
-RadarrMovie _makeMovie({bool hasFile = true, String? path}) {
-  return RadarrMovie(
-    id: 1,
-    title: 'Inception',
-    sortTitle: 'inception',
-    sizeOnDisk: 1000000,
-    status: 'released',
-    overview: 'A mind-bending thriller.',
-    path: path ?? '/movies/Inception (2010)/Inception.mkv',
-    hasFile: hasFile,
-    monitored: true,
-    year: 2010,
-    images: const [],
-    tmdbId: 100,
-    runtime: 148,
-    studio: 'Warner Bros',
-    genres: const ['Sci-Fi', 'Action'],
-    certification: 'PG-13',
-  );
-}
-
-class _FakeRadarrService extends RadarrService {
-  _FakeRadarrService()
-    : super(ApiClient(baseUrl: 'http://localhost:7878', apiKey: 'key'));
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 }

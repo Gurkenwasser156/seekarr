@@ -73,6 +73,56 @@ void main() {
       expect(theme.bottomSheetTheme.backgroundColor, theme.colorScheme.surface);
       expect(theme.dialogTheme.backgroundColor, theme.colorScheme.surface);
     });
+
+    testWidgets('dark theme attaches SeekarrThemeColors defaults', (
+      tester,
+    ) async {
+      final theme = AppTheme.darkTheme(null);
+      await GoogleFonts.pendingFonts();
+
+      final colors = theme.extension<SeekarrThemeColors>();
+
+      expect(colors, isNotNull);
+      expect(
+        colors!.statusBadgeBackground,
+        theme.colorScheme.surface.withValues(alpha: 0.8),
+      );
+      expect(colors.statusBadgeForeground, theme.colorScheme.onSurface);
+    });
+
+    testWidgets('light theme attaches SeekarrThemeColors defaults', (
+      tester,
+    ) async {
+      final theme = AppTheme.lightTheme(null);
+      await GoogleFonts.pendingFonts();
+
+      final colors = theme.extension<SeekarrThemeColors>();
+
+      expect(colors, isNotNull);
+      expect(
+        colors!.statusBadgeBackground,
+        theme.colorScheme.surface.withValues(alpha: 0.8),
+      );
+      expect(colors.statusBadgeForeground, theme.colorScheme.onSurface);
+    });
+
+    test('SeekarrThemeColors.defaults uses surface scrim and onSurface', () {
+      final colorScheme = AppTheme.lightTheme(null).colorScheme.copyWith(
+        surface: const Color(0xFF123456),
+        onSurface: const Color(0xFFABCDEF),
+      );
+
+      final colors = SeekarrThemeColors.defaults(
+        brightness: Brightness.light,
+        colorScheme: colorScheme,
+      );
+
+      expect(
+        colors.statusBadgeBackground,
+        colorScheme.surface.withValues(alpha: 0.8),
+      );
+      expect(colors.statusBadgeForeground, colorScheme.onSurface);
+    });
   });
 }
 

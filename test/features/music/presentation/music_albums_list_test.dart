@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_track.dart';
 import 'package:seekarr/features/music/presentation/widgets/music_albums_list.dart';
+
+import '../../../test_helpers/fake_services.dart';
+import '../../../test_helpers/model_builders.dart';
 
 void main() {
   group('MusicAlbumsList', () {
@@ -30,14 +32,19 @@ void main() {
       final lidarrService = _FakeLidarrService(
         tracksByAlbum: {
           10: [
-            _track(id: 3, mediumNumber: 2, trackNumber: '1', title: 'Lucky'),
-            _track(
+            buildTrack(
+              id: 3,
+              mediumNumber: 2,
+              trackNumber: '1',
+              title: 'Lucky',
+            ),
+            buildTrack(
               id: 1,
               mediumNumber: 1,
               trackNumber: '10',
               title: 'No Surprises',
             ),
-            _track(
+            buildTrack(
               id: 2,
               mediumNumber: 1,
               trackNumber: '2',
@@ -129,42 +136,22 @@ Future<void> _pumpAlbumsList(
   );
 }
 
-LidarrAlbum _album() {
-  return const LidarrAlbum(
-    id: 10,
-    title: 'OK Computer',
-    releaseDate: '1997-06-16',
-    monitored: true,
-    images: [],
-    statistics: {'totalTrackCount': 12, 'trackFileCount': 12},
-  );
-}
+LidarrAlbum _album() => buildAlbum(
+  id: 10,
+  title: 'OK Computer',
+  releaseDate: '1997-06-16',
+  statistics: const {'totalTrackCount': 12, 'trackFileCount': 12},
+);
 
-LidarrTrack _track({
-  required int id,
-  int? mediumNumber,
-  required dynamic trackNumber,
-  required String title,
-}) {
-  return LidarrTrack(
-    id: id,
-    mediumNumber: mediumNumber,
-    trackNumber: trackNumber,
-    title: title,
-    hasFile: true,
-    duration: 180000,
-  );
-}
-
-class _FakeLidarrService extends LidarrService {
-  final Map<int, List<LidarrTrack>> tracksByAlbum;
-  final Set<int> throwForAlbumIds;
-  final List<int> loadedAlbumIds = [];
-
+class _FakeLidarrService extends FakeLidarrService {
   _FakeLidarrService({
     this.tracksByAlbum = const {},
     this.throwForAlbumIds = const {},
-  }) : super(ApiClient(baseUrl: 'http://localhost:8686', apiKey: 'key'));
+  });
+
+  final Map<int, List<LidarrTrack>> tracksByAlbum;
+  final Set<int> throwForAlbumIds;
+  final List<int> loadedAlbumIds = [];
 
   @override
   Future<List<LidarrTrack>> getTracks(int albumId) async {

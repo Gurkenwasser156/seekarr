@@ -1,11 +1,11 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+import '../../../test_helpers/fake_api_client.dart';
 
 void main() {
   group('lidarrServiceProvider', () {
@@ -276,109 +276,4 @@ Map<String, dynamic> _trackJson({
   required int duration,
 }) {
   return {'id': id, 'title': title, 'hasFile': true, 'duration': duration};
-}
-
-class FakeApiClient extends ApiClient {
-  dynamic getResponseData;
-  dynamic postResponseData;
-  dynamic putResponseData;
-  dynamic deleteResponseData;
-
-  Object? getException;
-  Object? postException;
-  Object? putException;
-  Object? deleteException;
-
-  String? lastGetPath;
-  Map<String, dynamic>? lastGetQueryParameters;
-  CancelToken? lastGetCancelToken;
-  String? lastPostPath;
-  dynamic lastPostData;
-  Map<String, dynamic>? lastPostQueryParameters;
-  String? lastPutPath;
-  dynamic lastPutData;
-  Map<String, dynamic>? lastPutQueryParameters;
-  String? lastDeletePath;
-  Map<String, dynamic>? lastDeleteQueryParameters;
-
-  FakeApiClient() : super(baseUrl: 'https://example.com', apiKey: 'key');
-
-  @override
-  Future<Response<dynamic>> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    CancelToken? cancelToken,
-  }) async {
-    lastGetPath = path;
-    lastGetQueryParameters = queryParameters;
-    lastGetCancelToken = cancelToken;
-
-    if (getException != null) {
-      throw getException!;
-    }
-
-    return Response<dynamic>(
-      requestOptions: RequestOptions(path: path),
-      data: getResponseData,
-    );
-  }
-
-  @override
-  Future<Response<dynamic>> post(
-    String path, {
-    data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    lastPostPath = path;
-    lastPostData = data;
-    lastPostQueryParameters = queryParameters;
-
-    if (postException != null) {
-      throw postException!;
-    }
-
-    return Response<dynamic>(
-      requestOptions: RequestOptions(path: path),
-      data: postResponseData,
-    );
-  }
-
-  @override
-  Future<Response<dynamic>> put(
-    String path, {
-    data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    lastPutPath = path;
-    lastPutData = data;
-    lastPutQueryParameters = queryParameters;
-
-    if (putException != null) {
-      throw putException!;
-    }
-
-    return Response<dynamic>(
-      requestOptions: RequestOptions(path: path),
-      data: putResponseData,
-    );
-  }
-
-  @override
-  Future<Response<dynamic>> delete(
-    String path, {
-    data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    lastDeletePath = path;
-    lastDeleteQueryParameters = queryParameters;
-
-    if (deleteException != null) {
-      throw deleteException!;
-    }
-
-    return Response<dynamic>(
-      requestOptions: RequestOptions(path: path),
-      data: deleteResponseData,
-    );
-  }
 }

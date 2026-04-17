@@ -4,17 +4,6 @@ import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 void main() {
   group('SonarrSeries', () {
     group('fromJson', () {
-      test('re-exports RatingSource for callers importing the model', () {
-        const rating = RatingSource(
-          name: 'TVDB',
-          value: 8.4,
-          votes: 145000,
-          icon: 'TVDB',
-        );
-
-        expect(rating.name, 'TVDB');
-      });
-
       test('parses complete JSON correctly', () {
         final json = {
           'id': 1,

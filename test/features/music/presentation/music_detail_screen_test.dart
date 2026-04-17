@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
@@ -14,6 +13,28 @@ import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/music/presentation/widgets/music_albums_list.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+import '../../../test_helpers/fake_services.dart';
+import '../../../test_helpers/model_builders.dart';
+
+LidarrArtist _artist() => buildArtist(
+  artistName: 'Radiohead',
+  overview: 'An English rock band.',
+  statistics: const {'albumCount': 9, 'trackCount': 120, 'trackFileCount': 100},
+  genres: const ['Rock', 'Alternative'],
+  artistType: 'Group',
+  disambiguation: 'UK band',
+  path: '/music/Radiohead',
+);
+
+List<LidarrAlbum> _albums() => [
+  buildAlbum(
+    id: 10,
+    title: 'OK Computer',
+    releaseDate: '1997-06-16',
+    statistics: const {'totalTrackCount': 12, 'trackFileCount': 12},
+  ),
+];
 
 void main() {
   group('MusicDetailScreen', () {
@@ -58,7 +79,7 @@ void main() {
     ) async {
       await _pumpMusicDetail(
         tester,
-        detailBuilder: (ref, artistId) async => _makeArtist(),
+        detailBuilder: (ref, artistId) async => _artist(),
       );
       await tester.pumpAndSettle();
       await _scrollUntilVisible(tester, find.text('Albums'));
@@ -76,7 +97,7 @@ void main() {
       await _pumpMusicDetail(
         tester,
         detailBuilder: (ref, artistId) => Completer<LidarrArtist?>().future,
-        initialArtist: _makeArtist(),
+        initialArtist: _artist(),
       );
       await tester.pump();
       await tester.pump();
@@ -88,7 +109,7 @@ void main() {
     testWidgets('shows album and track count tags', (tester) async {
       await _pumpMusicDetail(
         tester,
-        detailBuilder: (ref, artistId) async => _makeArtist(),
+        detailBuilder: (ref, artistId) async => _artist(),
       );
       await tester.pumpAndSettle();
 
@@ -102,7 +123,7 @@ void main() {
     ) async {
       await _pumpMusicDetail(
         tester,
-        detailBuilder: (ref, artistId) async => _makeArtist(),
+        detailBuilder: (ref, artistId) async => _artist(),
         albumsBuilder: (ref, artistId) => Completer<List<LidarrAlbum>>().future,
       );
       await tester.pump();
@@ -150,9 +171,9 @@ Future<void> _pumpMusicDetail(
         ),
         musicDetailProvider.overrideWith(detailBuilder),
         musicAlbumsProvider.overrideWith(
-          albumsBuilder ?? (ref, artistId) async => _makeAlbums(),
+          albumsBuilder ?? (ref, artistId) async => _albums(),
         ),
-        lidarrServiceProvider.overrideWith((ref) => _FakeLidarrService()),
+        lidarrServiceProvider.overrideWith((ref) => FakeLidarrService()),
       ],
       child: MaterialApp(
         home: MusicDetailScreen(
@@ -163,41 +184,4 @@ Future<void> _pumpMusicDetail(
       ),
     ),
   );
-}
-
-LidarrArtist _makeArtist() {
-  return const LidarrArtist(
-    id: 1,
-    artistName: 'Radiohead',
-    status: 'active',
-    overview: 'An English rock band.',
-    monitored: true,
-    images: [],
-    statistics: {'albumCount': 9, 'trackCount': 120, 'trackFileCount': 100},
-    genres: ['Rock', 'Alternative'],
-    artistType: 'Group',
-    disambiguation: 'UK band',
-    path: '/music/Radiohead',
-  );
-}
-
-List<LidarrAlbum> _makeAlbums() {
-  return const [
-    LidarrAlbum(
-      id: 10,
-      title: 'OK Computer',
-      releaseDate: '1997-06-16',
-      monitored: true,
-      images: [],
-      statistics: {'totalTrackCount': 12, 'trackFileCount': 12},
-    ),
-  ];
-}
-
-class _FakeLidarrService extends LidarrService {
-  _FakeLidarrService()
-    : super(ApiClient(baseUrl: 'http://localhost:8686', apiKey: 'key'));
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 }

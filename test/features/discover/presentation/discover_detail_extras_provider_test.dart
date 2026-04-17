@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/models/rating_source.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_extras_provider.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
@@ -13,12 +12,15 @@ import 'package:seekarr/features/series/domain/models/sonarr_series.dart'
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
+import '../../../test_helpers/fake_services.dart' as shared;
+import '../../../test_helpers/model_builders.dart';
+
 void main() {
   group('discoverDetailExtrasProvider', () {
     ProviderContainer createContainer({
       required SettingsModel settings,
-      FakeRadarrService? radarrService,
-      FakeSonarrService? sonarrService,
+      _FakeRadarr? radarrService,
+      _FakeSonarr? sonarrService,
     }) {
       final container = ProviderContainer(
         overrides: [
@@ -39,7 +41,7 @@ void main() {
           radarrUrl: 'https://radarr.example.com',
           radarrApiKey: 'radarr-key',
         ),
-        radarrService: FakeRadarrService(movieByTmdbId: _buildMovie()),
+        radarrService: _FakeRadarr(movieByTmdbId: buildMovie(tmdbId: 123)),
       );
 
       final result = await container.read(
@@ -62,7 +64,7 @@ void main() {
           radarrUrl: 'https://radarr.example.com',
           radarrApiKey: 'radarr-key',
         ),
-        radarrService: FakeRadarrService(movieByTmdbId: null),
+        radarrService: _FakeRadarr(movieByTmdbId: null),
       );
 
       final result = await container.read(
@@ -81,7 +83,7 @@ void main() {
     test(
       'performs Sonarr library lookup for tv when configured with tvdbId',
       () async {
-        final sonarrService = FakeSonarrService(seriesByTvdbId: _buildSeries());
+        final sonarrService = _FakeSonarr(seriesByTvdbId: buildSeries());
         final container = createContainer(
           settings: const SettingsModel(
             sonarrUrl: 'https://sonarr.example.com',
@@ -107,7 +109,7 @@ void main() {
     );
 
     test('gracefully handles tv media without a tvdb id', () async {
-      final sonarrService = FakeSonarrService(seriesByTvdbId: _buildSeries());
+      final sonarrService = _FakeSonarr(seriesByTvdbId: buildSeries());
       final container = createContainer(
         settings: const SettingsModel(
           sonarrUrl: 'https://sonarr.example.com',
@@ -133,7 +135,7 @@ void main() {
     });
 
     test('skips service calls when Radarr is not configured', () async {
-      final radarrService = FakeRadarrService(movieByTmdbId: _buildMovie());
+      final radarrService = _FakeRadarr(movieByTmdbId: buildMovie());
       final container = createContainer(
         settings: const SettingsModel(),
         radarrService: radarrService,
@@ -156,9 +158,15 @@ void main() {
     });
 
     test('loads fallback ratings when voteAverage is missing', () async {
-      final radarrService = FakeRadarrService(
-        movieByTmdbId: _buildMovie(),
-        lookupResults: [_buildMovieWithRatings()],
+      final radarrService = _FakeRadarr(
+        movieByTmdbId: buildMovie(),
+        lookupResults: [
+          buildMovie(
+            ratings: const [
+              RatingSource(name: 'TMDB', value: 8.1, votes: 200, icon: 'TMDB'),
+            ],
+          ),
+        ],
       );
       final container = createContainer(
         settings: const SettingsModel(
@@ -186,9 +194,20 @@ void main() {
     });
 
     test('loads tv fallback ratings when voteAverage is missing', () async {
-      final sonarrService = FakeSonarrService(
-        seriesByTvdbId: _buildSeries(),
-        lookupResults: [_buildSeriesWithRatings()],
+      final sonarrService = _FakeSonarr(
+        seriesByTvdbId: buildSeries(),
+        lookupResults: [
+          buildSeries(
+            ratings: const [
+              RatingSource(
+                name: 'TVDB',
+                value: 8.4,
+                votes: 145000,
+                icon: 'TVDB',
+              ),
+            ],
+          ),
+        ],
       );
       final container = createContainer(
         settings: const SettingsModel(
@@ -216,7 +235,7 @@ void main() {
     });
 
     test('returns false when series is not found in Sonarr', () async {
-      final sonarrService = FakeSonarrService(seriesByTvdbId: null);
+      final sonarrService = _FakeSonarr(seriesByTvdbId: null);
       final container = createContainer(
         settings: const SettingsModel(
           sonarrUrl: 'https://sonarr.example.com',
@@ -240,7 +259,7 @@ void main() {
     });
 
     test('skips Sonarr library lookup when Sonarr is not configured', () async {
-      final sonarrService = FakeSonarrService(seriesByTvdbId: _buildSeries());
+      final sonarrService = _FakeSonarr(seriesByTvdbId: buildSeries());
       final container = createContainer(
         settings: const SettingsModel(),
         sonarrService: sonarrService,
@@ -263,9 +282,20 @@ void main() {
     test(
       'skips fallback ratings when voteAverage is already present',
       () async {
-        final radarrService = FakeRadarrService(
-          movieByTmdbId: _buildMovie(),
-          lookupResults: [_buildMovieWithRatings()],
+        final radarrService = _FakeRadarr(
+          movieByTmdbId: buildMovie(),
+          lookupResults: [
+            buildMovie(
+              ratings: const [
+                RatingSource(
+                  name: 'TMDB',
+                  value: 8.1,
+                  votes: 200,
+                  icon: 'TMDB',
+                ),
+              ],
+            ),
+          ],
         );
         final container = createContainer(
           settings: const SettingsModel(
@@ -295,7 +325,7 @@ void main() {
           radarrUrl: 'https://radarr.example.com',
           radarrApiKey: 'radarr-key',
         ),
-        radarrService: FakeRadarrService(
+        radarrService: _FakeRadarr(
           throwOnGetMovieByTmdbId: true,
           throwOnLookupMovies: true,
         ),
@@ -316,7 +346,7 @@ void main() {
     });
 
     test('falls back cleanly when Sonarr lookup throws', () async {
-      final sonarrService = FakeSonarrService(
+      final sonarrService = _FakeSonarr(
         throwOnGetSeriesByTvdbId: true,
         throwOnLookupSeries: true,
       );
@@ -346,7 +376,14 @@ void main() {
   });
 }
 
-class FakeRadarrService extends RadarrService {
+class _FakeRadarr extends shared.FakeRadarrService {
+  _FakeRadarr({
+    this.movieByTmdbId,
+    this.lookupResults = const <radarr.RadarrMovie>[],
+    this.throwOnGetMovieByTmdbId = false,
+    this.throwOnLookupMovies = false,
+  });
+
   final radarr.RadarrMovie? movieByTmdbId;
   final List<radarr.RadarrMovie> lookupResults;
   final bool throwOnGetMovieByTmdbId;
@@ -355,35 +392,29 @@ class FakeRadarrService extends RadarrService {
   int getMovieByTmdbIdCallCount = 0;
   int lookupMoviesCallCount = 0;
 
-  FakeRadarrService({
-    this.movieByTmdbId,
-    this.lookupResults = const <radarr.RadarrMovie>[],
-    this.throwOnGetMovieByTmdbId = false,
-    this.throwOnLookupMovies = false,
-  }) : super(ApiClient(baseUrl: 'https://radarr.example.com', apiKey: 'key'));
-
   @override
   Future<radarr.RadarrMovie?> getMovieByTmdbId(int tmdbId) async {
     getMovieByTmdbIdCallCount += 1;
-    if (throwOnGetMovieByTmdbId) {
-      throw Exception('radarr lookup failed');
-    }
-
+    if (throwOnGetMovieByTmdbId) throw Exception('radarr lookup failed');
     return movieByTmdbId;
   }
 
   @override
   Future<List<radarr.RadarrMovie>> lookupMovies(String term) async {
     lookupMoviesCallCount += 1;
-    if (throwOnLookupMovies) {
-      throw Exception('radarr ratings lookup failed');
-    }
-
+    if (throwOnLookupMovies) throw Exception('radarr ratings lookup failed');
     return lookupResults;
   }
 }
 
-class FakeSonarrService extends SonarrService {
+class _FakeSonarr extends shared.FakeSonarrService {
+  _FakeSonarr({
+    this.seriesByTvdbId,
+    this.lookupResults = const <sonarr.SonarrSeries>[],
+    this.throwOnGetSeriesByTvdbId = false,
+    this.throwOnLookupSeries = false,
+  });
+
   final sonarr.SonarrSeries? seriesByTvdbId;
   final List<sonarr.SonarrSeries> lookupResults;
   final bool throwOnGetSeriesByTvdbId;
@@ -392,102 +423,17 @@ class FakeSonarrService extends SonarrService {
   int getSeriesByTvdbIdCallCount = 0;
   int lookupSeriesCallCount = 0;
 
-  FakeSonarrService({
-    this.seriesByTvdbId,
-    this.lookupResults = const <sonarr.SonarrSeries>[],
-    this.throwOnGetSeriesByTvdbId = false,
-    this.throwOnLookupSeries = false,
-  }) : super(ApiClient(baseUrl: 'https://sonarr.example.com', apiKey: 'key'));
-
   @override
   Future<sonarr.SonarrSeries?> getSeriesByTvdbId(int tvdbId) async {
     getSeriesByTvdbIdCallCount += 1;
-    if (throwOnGetSeriesByTvdbId) {
-      throw Exception('sonarr lookup failed');
-    }
-
+    if (throwOnGetSeriesByTvdbId) throw Exception('sonarr lookup failed');
     return seriesByTvdbId;
   }
 
   @override
   Future<List<sonarr.SonarrSeries>> lookupSeries(String term) async {
     lookupSeriesCallCount += 1;
-    if (throwOnLookupSeries) {
-      throw Exception('sonarr ratings lookup failed');
-    }
-
+    if (throwOnLookupSeries) throw Exception('sonarr ratings lookup failed');
     return lookupResults;
   }
-}
-
-radarr.RadarrMovie _buildMovie() {
-  return radarr.RadarrMovie(
-    id: 1,
-    title: 'Movie',
-    sortTitle: 'movie',
-    sizeOnDisk: 0,
-    status: 'released',
-    hasFile: true,
-    monitored: true,
-    year: 2024,
-    images: const [],
-    tmdbId: 123,
-    runtime: 100,
-    genres: const [],
-  );
-}
-
-radarr.RadarrMovie _buildMovieWithRatings() {
-  return radarr.RadarrMovie(
-    id: 1,
-    title: 'Movie',
-    sortTitle: 'movie',
-    sizeOnDisk: 0,
-    status: 'released',
-    hasFile: true,
-    monitored: true,
-    year: 2024,
-    images: const [],
-    tmdbId: 123,
-    runtime: 100,
-    genres: const [],
-    ratings: [
-      const RatingSource(name: 'TMDB', value: 8.1, votes: 200, icon: 'TMDB'),
-    ],
-  );
-}
-
-sonarr.SonarrSeries _buildSeries() {
-  return sonarr.SonarrSeries(
-    id: 1,
-    title: 'Series',
-    sortTitle: 'series',
-    status: 'continuing',
-    monitored: true,
-    year: 2024,
-    images: const [],
-    tvdbId: 555,
-    runtime: 45,
-    genres: const [],
-    seasons: const [],
-  );
-}
-
-sonarr.SonarrSeries _buildSeriesWithRatings() {
-  return sonarr.SonarrSeries(
-    id: 1,
-    title: 'Series',
-    sortTitle: 'series',
-    status: 'continuing',
-    monitored: true,
-    year: 2024,
-    images: const [],
-    tvdbId: 555,
-    runtime: 45,
-    genres: const [],
-    seasons: const [],
-    ratings: [
-      const RatingSource(name: 'TVDB', value: 8.4, votes: 145000, icon: 'TVDB'),
-    ],
-  );
 }

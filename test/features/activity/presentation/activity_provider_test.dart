@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/activity/presentation/activity_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_tab.dart';
@@ -9,6 +8,8 @@ import 'package:seekarr/features/activity/presentation/widgets/wanted_tab.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
+
+import '../../../test_helpers/fake_services.dart';
 
 void main() {
   ProviderContainer createContainer({
@@ -30,74 +31,57 @@ void main() {
     return container;
   }
 
-  group('ServiceType.displayTitle', () {
-    test('returns Movies for movies', () {
-      expect(ServiceType.movies.displayTitle, 'Movies');
-    });
-
-    test('returns Series for series', () {
-      expect(ServiceType.series.displayTitle, 'Series');
-    });
-
-    test('returns Music for music', () {
-      expect(ServiceType.music.displayTitle, 'Music');
-    });
-
-    test('returns Requests for discover', () {
-      expect(ServiceType.discover.displayTitle, 'Requests');
-    });
+  test('ServiceType.displayTitle returns the expected label per type', () {
+    const expected = {
+      ServiceType.movies: 'Movies',
+      ServiceType.series: 'Series',
+      ServiceType.music: 'Music',
+      ServiceType.discover: 'Requests',
+    };
+    for (final entry in expected.entries) {
+      expect(entry.key.displayTitle, entry.value, reason: '${entry.key}');
+    }
   });
 
-  group('ServiceType.supportsArrActivity', () {
-    test('returns true for *arr-backed service types', () {
-      expect(ServiceType.movies.supportsArrActivity, isTrue);
-      expect(ServiceType.series.supportsArrActivity, isTrue);
-      expect(ServiceType.music.supportsArrActivity, isTrue);
-    });
-
-    test('returns false for discover', () {
-      expect(ServiceType.discover.supportsArrActivity, isFalse);
-    });
-  });
-
-  group('ServiceType enum', () {
-    test('has exactly four values', () {
-      expect(ServiceType.values.length, 4);
-    });
+  test('ServiceType.supportsArrActivity is true only for *arr services', () {
+    expect(ServiceType.movies.supportsArrActivity, isTrue);
+    expect(ServiceType.series.supportsArrActivity, isTrue);
+    expect(ServiceType.music.supportsArrActivity, isTrue);
+    expect(ServiceType.discover.supportsArrActivity, isFalse);
   });
 
   group('resolveArrService', () {
-    test('returns Radarr service for movies', () {
-      final service = FakeRadarrActivityService();
-      final container = createContainer(radarrService: service);
-
-      final resolved = container.read(
-        resolvedArrServiceProvider(ServiceType.movies),
+    test('returns the Radarr/Sonarr/Lidarr service for its matching type', () {
+      final radarr = FakeRadarrService();
+      final sonarr = FakeSonarrService();
+      final lidarr = FakeLidarrService();
+      final container = createContainer(
+        radarrService: radarr,
+        sonarrService: sonarr,
+        lidarrService: lidarr,
       );
 
-      expect(identical(resolved, service), isTrue);
-    });
-
-    test('returns Sonarr service for series', () {
-      final service = FakeSonarrActivityService();
-      final container = createContainer(sonarrService: service);
-
-      final resolved = container.read(
-        resolvedArrServiceProvider(ServiceType.series),
+      expect(
+        identical(
+          container.read(resolvedArrServiceProvider(ServiceType.movies)),
+          radarr,
+        ),
+        isTrue,
       );
-
-      expect(identical(resolved, service), isTrue);
-    });
-
-    test('returns Lidarr service for music', () {
-      final service = FakeLidarrActivityService();
-      final container = createContainer(lidarrService: service);
-
-      final resolved = container.read(
-        resolvedArrServiceProvider(ServiceType.music),
+      expect(
+        identical(
+          container.read(resolvedArrServiceProvider(ServiceType.series)),
+          sonarr,
+        ),
+        isTrue,
       );
-
-      expect(identical(resolved, service), isTrue);
+      expect(
+        identical(
+          container.read(resolvedArrServiceProvider(ServiceType.music)),
+          lidarr,
+        ),
+        isTrue,
+      );
     });
 
     test('throws for discover', () {
@@ -117,88 +101,14 @@ void main() {
     });
   });
 
-  group('activity tabs', () {
-    test('ActivityTab rejects discover service type', () {
-      expect(
-        () => ActivityTab(serviceType: ServiceType.discover),
-        throwsA(isA<AssertionError>()),
-      );
-    });
-
-    test('WantedTab rejects discover service type', () {
-      expect(
-        () => WantedTab(serviceType: ServiceType.discover),
-        throwsA(isA<AssertionError>()),
-      );
-    });
+  test('ActivityTab and WantedTab reject the discover service type', () {
+    expect(
+      () => ActivityTab(serviceType: ServiceType.discover),
+      throwsA(isA<AssertionError>()),
+    );
+    expect(
+      () => WantedTab(serviceType: ServiceType.discover),
+      throwsA(isA<AssertionError>()),
+    );
   });
-}
-
-class FakeRadarrActivityService extends RadarrService {
-  FakeRadarrActivityService()
-    : super(ApiClient(baseUrl: 'https://radarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<dynamic>> getQueue() async => [];
-
-  @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getBlocklist() async => [];
-
-  @override
-  Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
-      [];
-}
-
-class FakeSonarrActivityService extends SonarrService {
-  FakeSonarrActivityService()
-    : super(ApiClient(baseUrl: 'https://sonarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<dynamic>> getQueue() async => [];
-
-  @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getBlocklist() async => [];
-
-  @override
-  Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
-      [];
-}
-
-class FakeLidarrActivityService extends LidarrService {
-  FakeLidarrActivityService()
-    : super(ApiClient(baseUrl: 'https://lidarr.example.com', apiKey: 'key'));
-
-  @override
-  Future<List<dynamic>> getQueue() async => [];
-
-  @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getBlocklist() async => [];
-
-  @override
-  Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async =>
-      [];
-
-  @override
-  Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
-      [];
 }

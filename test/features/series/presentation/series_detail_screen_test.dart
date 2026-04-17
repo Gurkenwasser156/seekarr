@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
@@ -14,6 +13,41 @@ import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
 import 'package:seekarr/features/series/presentation/widgets/series_seasons_list.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+import '../../../test_helpers/fake_services.dart';
+import '../../../test_helpers/model_builders.dart';
+
+SonarrSeries _series() => buildSeries(
+  title: 'Breaking Bad',
+  overview: 'A chemistry teacher turns to crime.',
+  path: '/tv/Breaking Bad',
+  year: 2008,
+  tvdbId: 81189,
+  runtime: 45,
+  status: 'ended',
+  network: 'AMC',
+  genres: const ['Drama', 'Crime'],
+  seasons: const [
+    {
+      'seasonNumber': 1,
+      'monitored': true,
+      'statistics': {
+        'episodeFileCount': 7,
+        'totalEpisodeCount': 7,
+        'episodeCount': 7,
+      },
+    },
+  ],
+  statistics: const {
+    'seasonCount': 1,
+    'episodeCount': 7,
+    'episodeFileCount': 7,
+  },
+  seriesType: 'standard',
+  certification: 'TV-MA',
+);
+
+List<SonarrEpisode> _episodes() => [buildEpisode(id: 101, title: 'Pilot')];
 
 void main() {
   group('SeriesDetailScreen', () {
@@ -59,7 +93,7 @@ void main() {
     ) async {
       await _pumpSeriesDetail(
         tester,
-        detailBuilder: (ref, seriesId) async => _makeSeries(),
+        detailBuilder: (ref, seriesId) async => _series(),
       );
       await tester.pumpAndSettle();
       await _scrollUntilVisible(tester, find.text('Seasons'));
@@ -77,7 +111,7 @@ void main() {
       await _pumpSeriesDetail(
         tester,
         detailBuilder: (ref, seriesId) => Completer<SonarrSeries?>().future,
-        initialSeries: _makeSeries(),
+        initialSeries: _series(),
       );
       await tester.pump();
       await tester.pump();
@@ -89,7 +123,7 @@ void main() {
     testWidgets('shows season tile with episode progress', (tester) async {
       await _pumpSeriesDetail(
         tester,
-        detailBuilder: (ref, seriesId) async => _makeSeries(),
+        detailBuilder: (ref, seriesId) async => _series(),
       );
       await tester.pumpAndSettle();
       await _scrollUntilVisible(tester, find.text('Season 1'));
@@ -128,9 +162,9 @@ Future<void> _pumpSeriesDetail(
         ),
         seriesDetailProvider.overrideWith(detailBuilder),
         seriesEpisodesProvider.overrideWith(
-          episodesBuilder ?? (ref, seriesId) async => _makeEpisodes(),
+          episodesBuilder ?? (ref, seriesId) async => _episodes(),
         ),
-        sonarrServiceProvider.overrideWith((ref) => _FakeSonarrService()),
+        sonarrServiceProvider.overrideWith((ref) => FakeSonarrService()),
       ],
       child: MaterialApp(
         home: SeriesDetailScreen(
@@ -141,61 +175,4 @@ Future<void> _pumpSeriesDetail(
       ),
     ),
   );
-}
-
-SonarrSeries _makeSeries() {
-  return SonarrSeries(
-    id: 1,
-    title: 'Breaking Bad',
-    sortTitle: 'breaking bad',
-    status: 'ended',
-    overview: 'A chemistry teacher turns to crime.',
-    path: '/tv/Breaking Bad',
-    monitored: true,
-    year: 2008,
-    images: const [],
-    tvdbId: 81189,
-    runtime: 45,
-    network: 'AMC',
-    genres: const ['Drama', 'Crime'],
-    seasons: const [
-      {
-        'seasonNumber': 1,
-        'monitored': true,
-        'statistics': {
-          'episodeFileCount': 7,
-          'totalEpisodeCount': 7,
-          'episodeCount': 7,
-        },
-      },
-    ],
-    statistics: const {
-      'seasonCount': 1,
-      'episodeCount': 7,
-      'episodeFileCount': 7,
-    },
-    seriesType: 'standard',
-    certification: 'TV-MA',
-  );
-}
-
-List<SonarrEpisode> _makeEpisodes() {
-  return const [
-    SonarrEpisode(
-      id: 101,
-      seasonNumber: 1,
-      episodeNumber: 1,
-      title: 'Pilot',
-      hasFile: true,
-      monitored: true,
-    ),
-  ];
-}
-
-class _FakeSonarrService extends SonarrService {
-  _FakeSonarrService()
-    : super(ApiClient(baseUrl: 'http://localhost:8989', apiKey: 'key'));
-
-  @override
-  Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 }
