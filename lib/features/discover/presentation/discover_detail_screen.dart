@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_extras_provider.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_view_model.dart';
@@ -68,7 +67,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
         final extras =
             extrasAsync.asData?.value ??
             (isInLibrary: null, libraryCheckDone: false, lookupRatings: null);
-        final statusColor = _statusColor(viewModel);
         final watchProviders = viewModel.watchProvidersForRegion(region);
         final contentRating = isMovie
             ? viewModel.movieContentRatingForRegion(region)
@@ -100,9 +98,8 @@ class DiscoverDetailScreen extends ConsumerWidget {
           backdropUrl: viewModel.backdropUrl,
           posterRow: (collapseFactor) => MediaDetailPosterRow(
             collapseFactor: collapseFactor,
-            statusBadge: TagChip(
-              text: viewModel.seerrStatus,
-              color: statusColor,
+            statusBadge: StatusBadge.fromSeerr(
+              statusCode: viewModel.statusCode,
             ),
             posterCard: MediaPosterCard(
               heroTag: heroTag,
@@ -210,18 +207,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
         );
       },
     );
-  }
-
-  static Color _statusColor(DiscoverDetailViewModel viewModel) {
-    if (viewModel.isAvailable) {
-      return AppColors.success;
-    }
-
-    if (viewModel.isPartiallyAvailable) {
-      return AppColors.warning;
-    }
-
-    return AppColors.info;
   }
 
   static List<Widget> _buildRatingWidgets(
