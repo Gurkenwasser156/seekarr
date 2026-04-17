@@ -8,6 +8,7 @@ import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
+import 'package:seekarr/features/settings/data/service_connection_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/regions.dart';
@@ -34,7 +35,7 @@ class SettingsHomeScreen extends ConsumerWidget {
     final content = [
       ..._buildGeneralSection(context, settings),
       const SizedBox(height: AppSpacing.lg),
-      ..._buildServicesSection(context, settings),
+      ..._buildServicesSection(context, ref, settings),
       const SizedBox(height: AppSpacing.lg),
       ..._buildAboutSection(context),
     ];
@@ -91,6 +92,7 @@ class SettingsHomeScreen extends ConsumerWidget {
 
   List<Widget> _buildServicesSection(
     BuildContext context,
+    WidgetRef ref,
     SettingsModel settings,
   ) {
     return [
@@ -103,11 +105,63 @@ class SettingsHomeScreen extends ConsumerWidget {
             leading: Icon(service.icon),
             title: service.title,
             subtitle: _getServiceSubtitle(settings, service),
+            subtitleLeading: _buildConnectionIndicator(
+              context,
+              ref,
+              settings,
+              service,
+            ),
             onTap: () =>
                 context.push('/settings/service/${service.routeParam}'),
           ),
         ),
     ];
+  }
+
+  Widget? _buildConnectionIndicator(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsModel settings,
+    ServiceKey service,
+  ) {
+    // No indicator when the service isn't configured yet.
+    if (settings.urlFor(service).isEmpty) {
+      return null;
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final asyncStatus = ref.watch(serviceConnectionProvider(service));
+    const checkingIndicator = SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+    final disconnectedIndicator = Icon(
+      Icons.cloud_off_rounded,
+      size: 16,
+      color: colorScheme.error,
+    );
+
+    return asyncStatus.when(
+      loading: () => checkingIndicator,
+      error: (_, __) => disconnectedIndicator,
+      data: (status) {
+        switch (status) {
+          case ServiceConnectionStatus.connected:
+            return Icon(
+              Icons.cloud_done_rounded,
+              size: 16,
+              color: colorScheme.primary,
+            );
+          case ServiceConnectionStatus.disconnected:
+            return disconnectedIndicator;
+          case ServiceConnectionStatus.checking:
+            return checkingIndicator;
+          case ServiceConnectionStatus.notConfigured:
+            return null;
+        }
+      },
+    );
   }
 
   List<Widget> _buildAboutSection(BuildContext context) {

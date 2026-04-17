@@ -50,4 +50,8 @@ class ApiClient {
   }) {
     return _dio.delete(path, data: data, queryParameters: queryParameters);
   }
+
+  void close({bool force = false}) {
+    _dio.close(force: force);
+  }
 }
