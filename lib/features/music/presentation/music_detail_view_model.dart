@@ -14,6 +14,7 @@ class MusicDetailViewModel {
   final String? backdropUrl;
   final String status;
   final bool hasFiles;
+  final int trackFileCount;
   final List<String> genres;
   final List<RatingSource> ratings;
   final int? qualityProfileId;
@@ -31,6 +32,7 @@ class MusicDetailViewModel {
     this.backdropUrl,
     required this.status,
     required this.hasFiles,
+    this.trackFileCount = 0,
     required this.genres,
     required this.ratings,
     this.qualityProfileId,
@@ -108,6 +110,7 @@ class MusicDetailViewModel {
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: artist.status,
       hasFiles: artist.hasFiles,
+      trackFileCount: artist.trackFileCount,
       genres: artist.genres,
       ratings: artist.ratings,
       qualityProfileId: artist.qualityProfileId,

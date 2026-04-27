@@ -14,6 +14,7 @@ class SeriesDetailViewModel {
   final String? backdropUrl;
   final String status;
   final bool hasFiles;
+  final int? episodeFileCount;
   final String year;
   final String? runtimeStr;
   final String? network;
@@ -38,6 +39,7 @@ class SeriesDetailViewModel {
     this.backdropUrl,
     required this.status,
     required this.hasFiles,
+    this.episodeFileCount,
     required this.year,
     this.runtimeStr,
     this.network,
@@ -141,6 +143,9 @@ class SeriesDetailViewModel {
       coverTypes: const ['fanart'],
     );
     final stats = series.statistics;
+    final episodeFileCount = (stats?['episodeFileCount'] as num?)?.toInt();
+    final seasonCount = (stats?['seasonCount'] as num?)?.toInt();
+    final episodeCount = (stats?['episodeCount'] as num?)?.toInt();
 
     return SeriesDetailViewModel(
       title: series.title,
@@ -151,7 +156,8 @@ class SeriesDetailViewModel {
       posterHeaders: posterSource.headers,
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: series.status,
-      hasFiles: ((stats?['episodeFileCount'] as num?)?.toInt() ?? 0) > 0,
+      hasFiles: (episodeFileCount ?? 0) > 0,
+      episodeFileCount: episodeFileCount,
       year: series.year > 0 ? series.year.toString() : '',
       runtimeStr: series.runtime > 0 ? '${series.runtime} min' : null,
       network: series.network,
@@ -160,8 +166,8 @@ class SeriesDetailViewModel {
       path: series.path,
       qualityProfileId: series.qualityProfileId,
       seasons: series.seasons,
-      seasonCount: (stats?['seasonCount'] as num?)?.toInt(),
-      episodeCount: (stats?['episodeCount'] as num?)?.toInt(),
+      seasonCount: seasonCount,
+      episodeCount: episodeCount,
       seriesType: series.seriesType,
       certification: series.certification,
       firstAired: series.firstAired,

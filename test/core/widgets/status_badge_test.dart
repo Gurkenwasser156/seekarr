@@ -36,6 +36,77 @@ void main() {
         },
       );
     }
+
+    test('fileCount >= totalCount -> available', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 10,
+        totalCount: 10,
+        status: 'continuing',
+      );
+      expect(badge.status, MediaStatus.available);
+    });
+
+    test('fileCount > totalCount -> available', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 15,
+        totalCount: 10,
+        status: 'continuing',
+      );
+      expect(badge.status, MediaStatus.available);
+    });
+
+    test('0 < fileCount < totalCount -> partial', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 4,
+        totalCount: 10,
+        status: 'continuing',
+      );
+      expect(badge.status, MediaStatus.partial);
+    });
+
+    test('fileCount == 0 with totalCount > 0 -> missing', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 0,
+        totalCount: 10,
+        status: 'continuing',
+      );
+      expect(badge.status, MediaStatus.missing);
+    });
+
+    test('fileCount == 0 with downloading status -> downloading', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 0,
+        totalCount: 10,
+        status: 'downloading',
+      );
+      expect(badge.status, MediaStatus.downloading);
+    });
+
+    test('totalCount == 0 falls back to hasFile/status', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 0,
+        totalCount: 0,
+        hasFile: false,
+        status: 'released',
+      );
+      expect(badge.status, MediaStatus.missing);
+    });
+
+    test('null totalCount falls back to fileCount presence', () {
+      final badge = StatusBadge.fromMedia(
+        fileCount: 2,
+        totalCount: null,
+        status: 'continuing',
+      );
+      expect(badge.status, MediaStatus.available);
+    });
+
+    test('missing availability inputs throws ArgumentError', () {
+      expect(
+        () => StatusBadge.fromMedia(status: 'released'),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('StatusBadge.fromSeerr', () {
@@ -118,6 +189,11 @@ void main() {
         status: MediaStatus.available,
         label: 'Available',
         icon: Icons.check_circle_rounded,
+      ),
+      (
+        status: MediaStatus.partial,
+        label: 'Partial',
+        icon: Icons.donut_large_rounded,
       ),
       (
         status: MediaStatus.missing,

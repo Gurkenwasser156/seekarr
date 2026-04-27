@@ -25,8 +25,12 @@ class MusicScreen extends StatelessWidget {
       searchResultsProvider: musicSearchResultsProvider,
       imagesExtractor: (artist) => artist.images,
       idExtractor: (artist) => artist.id,
-      statusExtractor: (artist) =>
-          (hasFile: artist.hasFiles, status: artist.status),
+      statusExtractor: (artist) => MediaAvailabilityInfo(
+        hasFile: artist.hasFiles,
+        status: artist.status,
+        fileCount: artist.trackFileCount,
+        totalCount: artist.trackCount,
+      ),
       settingsSelector: (settings) =>
           (settings.lidarrUrl, settings.lidarrApiKey),
       onItemTap: (context, artist, heroTag) {

@@ -4,7 +4,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
 
 /// Represents the status of a media item.
-enum MediaStatus { available, missing, downloading, queued, unknown }
+enum MediaStatus { available, partial, missing, downloading, queued, unknown }
 
 /// A badge widget to display media availability in grids and detail headers.
 ///
@@ -25,23 +25,75 @@ class StatusBadge extends StatelessWidget {
   });
 
   /// Creates a StatusBadge from a hasFile boolean and status string.
+  ///
+  /// For media types that can be partially available (e.g. series, artists),
+  /// pass [fileCount] and [totalCount] instead of (or in addition to) [hasFile]
+  /// to surface a `partial` state when `0 < fileCount < totalCount`.
+  ///
+  /// Throws an [ArgumentError] when neither [hasFile] nor [fileCount] is
+  /// provided.
   factory StatusBadge.fromMedia({
-    required bool hasFile,
+    bool? hasFile,
+    int? fileCount,
+    int? totalCount,
     required String status,
     bool compact = false,
   }) {
-    final normalizedStatus = status.toLowerCase();
-    MediaStatus mediaStatus;
-    if (hasFile) {
-      mediaStatus = MediaStatus.available;
-    } else if (normalizedStatus == 'downloading') {
-      mediaStatus = MediaStatus.downloading;
-    } else if (normalizedStatus == 'queued') {
-      mediaStatus = MediaStatus.queued;
-    } else {
-      mediaStatus = MediaStatus.missing;
+    if (hasFile == null && fileCount == null) {
+      throw ArgumentError(
+        'StatusBadge.fromMedia requires either hasFile or fileCount',
+      );
     }
-    return StatusBadge(status: mediaStatus, compact: compact);
+
+    final normalizedStatus = status.toLowerCase();
+
+    if (fileCount != null && totalCount != null && totalCount > 0) {
+      return StatusBadge(
+        status: _statusFromCounts(
+          fileCount: fileCount,
+          totalCount: totalCount,
+          normalizedStatus: normalizedStatus,
+        ),
+        compact: compact,
+      );
+    }
+
+    final resolvedHasFile = hasFile ?? ((fileCount ?? 0) > 0);
+
+    return StatusBadge(
+      status: resolvedHasFile
+          ? MediaStatus.available
+          : _statusWithoutFiles(normalizedStatus),
+      compact: compact,
+    );
+  }
+
+  static MediaStatus _statusFromCounts({
+    required int fileCount,
+    required int totalCount,
+    required String normalizedStatus,
+  }) {
+    if (fileCount >= totalCount) {
+      return MediaStatus.available;
+    }
+
+    if (fileCount > 0) {
+      return MediaStatus.partial;
+    }
+
+    return _statusWithoutFiles(normalizedStatus);
+  }
+
+  static MediaStatus _statusWithoutFiles(String normalizedStatus) {
+    if (normalizedStatus == 'downloading') {
+      return MediaStatus.downloading;
+    }
+
+    if (normalizedStatus == 'queued') {
+      return MediaStatus.queued;
+    }
+
+    return MediaStatus.missing;
   }
 
   factory StatusBadge.fromSeerr({
@@ -174,6 +226,11 @@ class StatusBadge extends StatelessWidget {
       icon: Icons.check_circle_rounded,
       label: 'Available',
       tone: _StatusTone.success,
+    ),
+    MediaStatus.partial => const _StatusConfig(
+      icon: Icons.donut_large_rounded,
+      label: 'Partial',
+      tone: _StatusTone.info,
     ),
     MediaStatus.missing => const _StatusConfig(
       icon: Icons.cancel_rounded,

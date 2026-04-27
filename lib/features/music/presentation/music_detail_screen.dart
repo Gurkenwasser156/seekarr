@@ -101,6 +101,8 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     return MediaDetailPosterRow(
       collapseFactor: collapseFactor,
       statusBadge: StatusBadge.fromMedia(
+        fileCount: viewModel.trackFileCount,
+        totalCount: viewModel.trackCount,
         hasFile: viewModel.hasFiles,
         status: viewModel.status,
       ),
