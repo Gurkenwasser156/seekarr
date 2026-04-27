@@ -6,7 +6,12 @@ import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 /// Represents the reachability state of a configured service.
-enum ServiceConnectionStatus { notConfigured, checking, connected, disconnected }
+enum ServiceConnectionStatus {
+  notConfigured,
+  checking,
+  connected,
+  disconnected,
+}
 
 /// Returns the health-check endpoint path for [service].
 String _healthEndpoint(ServiceKey service) {
@@ -41,8 +46,8 @@ Future<ServiceConnectionStatus> _checkService(
   try {
     final statusCode =
         (await client
-        .get(_healthEndpoint(service))
-        .timeout(const Duration(seconds: 5)))
+                .get(_healthEndpoint(service))
+                .timeout(const Duration(seconds: 5)))
             .statusCode ??
         0;
     return statusCode >= 200 && statusCode < 300

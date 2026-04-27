@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:seekarr/core/app_radius.dart';
+
+/// Builds a [TextStyle] backed by the bundled Inter variable font.
+TextStyle _inter({
+  Color? color,
+  double? fontSize,
+  FontWeight? fontWeight,
+  double? letterSpacing,
+}) {
+  return TextStyle(
+    fontFamily: AppTheme.fontFamily,
+    color: color,
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    letterSpacing: letterSpacing,
+  );
+}
 
 /// Seerr-inspired color palette for Seekarr
 ///
@@ -116,6 +131,9 @@ class SeekarrThemeColors extends ThemeExtension<SeekarrThemeColors> {
 class AppTheme {
   AppTheme._();
 
+  /// Bundled app font family declared in pubspec.yaml.
+  static const String fontFamily = 'Inter';
+
   // === DARK THEME (Primary) ===
   static ThemeData darkTheme(ColorScheme? dynamicColorScheme) {
     return _buildTheme(
@@ -168,7 +186,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: _inter(
           color: colorScheme.onSurface,
           fontSize: 22,
           fontWeight: FontWeight.w600,
@@ -182,13 +200,13 @@ class AppTheme {
         indicatorColor: colorScheme.primaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
+            return _inter(
               color: colorScheme.primary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             );
           }
-          return GoogleFonts.inter(
+          return _inter(
             color: colorScheme.onSurfaceVariant,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -212,10 +230,7 @@ class AppTheme {
       // Chip
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surfaceContainerHighest,
-        labelStyle: GoogleFonts.inter(
-          color: colorScheme.onSurfaceVariant,
-          fontSize: 12,
-        ),
+        labelStyle: _inter(color: colorScheme.onSurfaceVariant, fontSize: 12),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusSm),
       ),
@@ -225,10 +240,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          textStyle: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-          ),
+          textStyle: _inter(fontSize: 12, fontWeight: FontWeight.w400),
           shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusMd),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
@@ -238,10 +250,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: _inter(fontSize: 14, fontWeight: FontWeight.w600),
           side: BorderSide(color: colorScheme.outline),
           shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusMd),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -252,10 +261,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: _inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -315,9 +321,7 @@ class AppTheme {
       // SnackBar
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colorScheme.inverseSurface,
-        contentTextStyle: GoogleFonts.inter(
-          color: colorScheme.onInverseSurface,
-        ),
+        contentTextStyle: _inter(color: colorScheme.onInverseSurface),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusMd),
       ),
@@ -333,14 +337,8 @@ class AppTheme {
         labelColor: colorScheme.primary,
         unselectedLabelColor: colorScheme.onSurfaceVariant,
         indicatorColor: colorScheme.primary,
-        labelStyle: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+        labelStyle: _inter(fontSize: 14, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: _inter(fontSize: 14, fontWeight: FontWeight.w500),
       ),
 
       // ProgressIndicator
@@ -439,78 +437,65 @@ class AppTheme {
   // === TEXT THEME ===
 
   static TextTheme _buildTextTheme(TextTheme base) {
-    return GoogleFonts.interTextTheme(base).copyWith(
-      // Display
-      displayLarge: GoogleFonts.inter(
-        fontSize: 57,
-        fontWeight: FontWeight.w400,
-        letterSpacing: -0.25,
-      ),
-      displayMedium: GoogleFonts.inter(
-        fontSize: 45,
-        fontWeight: FontWeight.w400,
-      ),
-      displaySmall: GoogleFonts.inter(
-        fontSize: 36,
-        fontWeight: FontWeight.w400,
-      ),
-      // Headline
-      headlineLarge: GoogleFonts.inter(
-        fontSize: 32,
-        fontWeight: FontWeight.w600,
-      ),
-      headlineMedium: GoogleFonts.inter(
-        fontSize: 28,
-        fontWeight: FontWeight.w600,
-      ),
-      headlineSmall: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-      ),
-      // Title
-      titleLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w600),
-      titleMedium: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.15,
-      ),
-      titleSmall: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-      ),
-      // Body
-      bodyLarge: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        letterSpacing: 0.5,
-      ),
-      bodyMedium: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        letterSpacing: 0.25,
-      ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        letterSpacing: 0.4,
-      ),
-      // Label
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.1,
-      ),
-      labelMedium: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.5,
-      ),
-      labelSmall: GoogleFonts.inter(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.5,
-      ),
-    );
+    return base
+        .apply(fontFamily: fontFamily)
+        .copyWith(
+          // Display
+          displayLarge: _inter(
+            fontSize: 57,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.25,
+          ),
+          displayMedium: _inter(fontSize: 45, fontWeight: FontWeight.w400),
+          displaySmall: _inter(fontSize: 36, fontWeight: FontWeight.w400),
+          // Headline
+          headlineLarge: _inter(fontSize: 32, fontWeight: FontWeight.w600),
+          headlineMedium: _inter(fontSize: 28, fontWeight: FontWeight.w600),
+          headlineSmall: _inter(fontSize: 24, fontWeight: FontWeight.w600),
+          // Title
+          titleLarge: _inter(fontSize: 22, fontWeight: FontWeight.w600),
+          titleMedium: _inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.15,
+          ),
+          titleSmall: _inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+          // Body
+          bodyLarge: _inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.5,
+          ),
+          bodyMedium: _inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.25,
+          ),
+          bodySmall: _inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.4,
+          ),
+          // Label
+          labelLarge: _inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+          ),
+          labelMedium: _inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+          labelSmall: _inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+        );
   }
 }

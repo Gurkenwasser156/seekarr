@@ -27,8 +27,15 @@ class SeriesScreen extends StatelessWidget {
       idExtractor: (series) => series.id,
       statusExtractor: (series) {
         final stats = series.statistics;
-        final episodeFileCount = stats?['episodeFileCount'] as int? ?? 0;
-        return (hasFile: episodeFileCount > 0, status: series.status);
+        final episodeFileCount =
+            (stats?['episodeFileCount'] as num?)?.toInt() ?? 0;
+        final episodeCount = (stats?['episodeCount'] as num?)?.toInt() ?? 0;
+        return MediaAvailabilityInfo(
+          hasFile: episodeFileCount > 0,
+          status: series.status,
+          fileCount: episodeFileCount,
+          totalCount: episodeCount,
+        );
       },
       settingsSelector: (settings) =>
           (settings.sonarrUrl, settings.sonarrApiKey),

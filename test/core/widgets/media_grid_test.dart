@@ -88,8 +88,10 @@ void main() {
               items: items,
               imagesExtractor: (_) => null,
               idExtractor: (item) => items.indexOf(item),
-              statusExtractor: (item) =>
-                  (hasFile: item == 'Available', status: item.toLowerCase()),
+              statusExtractor: (item) => MediaAvailabilityInfo(
+                hasFile: item == 'Available',
+                status: item.toLowerCase(),
+              ),
               baseUrl: 'http://localhost',
               apiKey: 'test',
               heroTagPrefix: 'test',

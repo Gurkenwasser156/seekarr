@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import 'package:seekarr/core/app_animation.dart';
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/theme.dart';
 
 /// A destination for the [FloatingBottomNavBar].
 class FloatingNavDestination {
@@ -124,7 +125,7 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
     super.initState();
     _springController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: AppAnimation.durationXl,
     );
   }
 
@@ -279,10 +280,10 @@ class _NavBarItem extends StatelessWidget {
           // Icon with scale animation
           AnimatedScale(
             scale: isSelected ? 1.15 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
+            duration: AppAnimation.durationSm,
+            curve: AppAnimation.emphasizedCurve,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              duration: AppAnimation.durationSm,
               child: Icon(
                 isSelected ? destination.selectedIcon : destination.icon,
                 key: ValueKey(isSelected),
@@ -294,8 +295,9 @@ class _NavBarItem extends StatelessWidget {
           const SizedBox(height: 2),
           // Label
           AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: GoogleFonts.inter(
+            duration: AppAnimation.durationSm,
+            style: TextStyle(
+              fontFamily: AppTheme.fontFamily,
               fontSize: 11,
               fontWeight: fontWeight,
               color: labelColor,

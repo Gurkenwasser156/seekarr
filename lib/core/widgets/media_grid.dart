@@ -1,15 +1,31 @@
+import 'package:flutter/material.dart';
+
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
-import 'package:flutter/material.dart';
 
 /// Callback signature for when a media item is tapped.
 typedef OnMediaItemTap<T> = void Function(T item, String heroTag);
 
+/// Availability details used to build a [StatusBadge].
+class MediaAvailabilityInfo {
+  final bool hasFile;
+  final String status;
+  final int? fileCount;
+  final int? totalCount;
+
+  const MediaAvailabilityInfo({
+    required this.hasFile,
+    required this.status,
+    this.fileCount,
+    this.totalCount,
+  });
+}
+
 /// Callback signature for extracting status from a media item.
-typedef StatusExtractor<T> = ({bool hasFile, String status})? Function(T item);
+typedef StatusExtractor<T> = MediaAvailabilityInfo? Function(T item);
 
 /// A reusable grid widget for displaying media items (movies, series, music).
 ///
@@ -129,6 +145,8 @@ class MediaGrid<T> extends StatelessWidget {
           if (statusInfo != null) {
             badge = StatusBadge.fromMedia(
               hasFile: statusInfo.hasFile,
+              fileCount: statusInfo.fileCount,
+              totalCount: statusInfo.totalCount,
               status: statusInfo.status,
               compact: true,
             );

@@ -26,7 +26,7 @@ class MoviesScreen extends StatelessWidget {
       imagesExtractor: (movie) => movie.images,
       idExtractor: (movie) => movie.id,
       statusExtractor: (movie) =>
-          (hasFile: movie.hasFile, status: movie.status),
+          MediaAvailabilityInfo(hasFile: movie.hasFile, status: movie.status),
       settingsSelector: (settings) =>
           (settings.radarrUrl, settings.radarrApiKey),
       onItemTap: (context, movie, heroTag) {

@@ -91,6 +91,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     return MediaDetailPosterRow(
       collapseFactor: collapseFactor,
       statusBadge: StatusBadge.fromMedia(
+        fileCount: viewModel.episodeFileCount,
+        totalCount: viewModel.episodeCount,
         hasFile: viewModel.hasFiles,
         status: viewModel.status,
       ),
