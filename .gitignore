@@ -36,8 +36,13 @@ ios/Flutter/LocalSigning.xcconfig
 
 # Agent configuration
 .agent/
+agents
+hooks
+references
+skills
 AGENTS.md
 /AGENTS.md
+CLAUDE.md
 opencode.jsonc
 context
 
