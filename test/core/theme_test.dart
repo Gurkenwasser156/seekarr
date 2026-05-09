@@ -10,6 +10,12 @@ void main() {
     ) async {
       final theme = AppTheme.darkTheme(null);
 
+      expect(theme.colorScheme.surface, const Color(0xFF0F1117));
+      expect(theme.colorScheme.surfaceContainer, const Color(0xFF1C2130));
+      expect(theme.colorScheme.surfaceContainerHigh, const Color(0xFF252D3D));
+      expect(theme.colorScheme.outline, const Color(0xFF2D3748));
+      expect(theme.colorScheme.onSurface, const Color(0xFFF0F2F8));
+      expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF9CA3AF));
       expect(
         theme.navigationBarTheme.backgroundColor,
         AppColors.surfaceContainerDark,
@@ -29,6 +35,12 @@ void main() {
     ) async {
       final theme = AppTheme.lightTheme(null);
 
+      expect(theme.colorScheme.surface, const Color(0xFFF3F4F6));
+      expect(theme.colorScheme.surfaceContainer, Colors.white);
+      expect(theme.colorScheme.surfaceContainerHigh, const Color(0xFFF0F1F5));
+      expect(theme.colorScheme.outline, const Color(0xFFE2E4EA));
+      expect(theme.colorScheme.onSurface, const Color(0xFF111827));
+      expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF6B7280));
       expect(
         theme.navigationBarTheme.backgroundColor,
         theme.colorScheme.surface,
@@ -83,6 +95,13 @@ void main() {
         colorScheme.surface.withValues(alpha: 0.8),
       );
       expect(colors.statusBadgeForeground, colorScheme.onSurface);
+    });
+
+    test('service accent colors match the Open Design prototype', () {
+      expect(AppColors.seerr, const Color(0xFF6366F1));
+      expect(AppColors.radarr, const Color(0xFFF59E0B));
+      expect(AppColors.sonarr, const Color(0xFF8B5CF6));
+      expect(AppColors.lidarr, const Color(0xFFEC4899));
     });
   });
 }

@@ -129,7 +129,7 @@ class SeerrRequest {
     );
   }
 
-  // Allow enriching with new media (e.g. with title)
+  // Allow enriching with new media (e.g. with title/poster metadata)
   SeerrRequest copyWith({RequestMedia? media}) {
     return SeerrRequest(
       id: id,
@@ -164,6 +164,7 @@ class RequestMedia {
   final String? externalServiceSlug;
   final int? externalServiceId; // Radarr/Sonarr ID
   final String? mediaType;
+  final String? posterPath;
 
   const RequestMedia({
     this.id,
@@ -175,6 +176,7 @@ class RequestMedia {
     this.externalServiceSlug,
     this.externalServiceId,
     this.mediaType,
+    this.posterPath,
   });
 
   factory RequestMedia.fromJson(Map<String, dynamic> json) {
@@ -190,6 +192,8 @@ class RequestMedia {
     // Initial title attempt (unlikely to be here based on JSON)
     String? title = json['title'] ?? json['name'];
     String? year = json['year']?.toString() ?? json['releaseDate']?.toString();
+    final posterPath =
+        json['posterPath']?.toString() ?? json['poster_path']?.toString();
 
     return RequestMedia(
       id: id,
@@ -201,10 +205,11 @@ class RequestMedia {
       externalServiceSlug: slug,
       externalServiceId: externalServiceId,
       mediaType: mediaType,
+      posterPath: posterPath,
     );
   }
 
-  RequestMedia copyWith({String? title, String? year}) {
+  RequestMedia copyWith({String? title, String? year, String? posterPath}) {
     return RequestMedia(
       id: id,
       title: title ?? this.title,
@@ -215,6 +220,7 @@ class RequestMedia {
       externalServiceSlug: externalServiceSlug,
       externalServiceId: externalServiceId,
       mediaType: mediaType,
+      posterPath: posterPath ?? this.posterPath,
     );
   }
 }

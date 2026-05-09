@@ -62,7 +62,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       baseUrl: settings.sonarrUrl,
       apiKey: settings.sonarrApiKey,
     );
-    final infoGroups = viewModel.buildInfoGroups();
+    final infoGroups = viewModel.buildInfoGroups(currentProfileName ?? '');
 
     return MediaDetailView(
       heroTag: widget.heroTag,
@@ -71,8 +71,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       backdropUrl: viewModel.backdropUrl,
       posterRow: (collapseFactor) =>
           _buildPosterRow(context, viewModel, collapseFactor),
-      contentSections: _buildContentSections(viewModel, infoGroups),
-      slivers: [_buildSeasonsSliver(context, viewModel, episodesAsync)],
+      contentSections: _buildContentSections(
+        viewModel,
+        infoGroups,
+        episodesAsync,
+      ),
     );
   }
 
@@ -96,14 +99,28 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         hasFile: viewModel.hasFiles,
         status: viewModel.status,
       ),
+      title: viewModel.title,
+      metadataItems: viewModel.metadataItems,
+      tags: _buildSummaryTags(viewModel),
       posterCard: MediaPosterCard(
         heroTag: widget.heroTag,
         imageUrl: viewModel.posterUrl,
         imageHeaders: viewModel.posterHeaders,
         fallbackIcon: Icons.tv_outlined,
       ),
-      actions: LibraryDetailActions(
-        collapseFactor: collapseFactor,
+    );
+  }
+
+  List<Widget> _buildContentSections(
+    SeriesDetailViewModel viewModel,
+    List<MediaInfoGroup> infoGroups,
+    AsyncValue<List<SonarrEpisode>> episodesAsync,
+  ) {
+    final detailInfoGroups = _detailInfoGroups(infoGroups);
+
+    return [
+      LibraryDetailActions(
+        collapseFactor: 0,
         isSearching: _isSearching,
         isDeleting: _isDeleting,
         currentProfileName: currentProfileName,
@@ -115,77 +132,115 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         onProfileSelected: _updateProfile,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
-    );
-  }
-
-  List<Widget> _buildContentSections(
-    SeriesDetailViewModel viewModel,
-    List<MediaInfoGroup> infoGroups,
-  ) {
-    return [
-      MediaDetailTitleSection(title: viewModel.title),
-      if (viewModel.metadataItems.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.sm),
-        MediaMetadataLine(items: viewModel.metadataItems),
+      if (viewModel.overview.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailOverviewSection(overview: viewModel.overview),
+        ),
       ],
       if (viewModel.ratings.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: RatingChipsRow(ratings: viewModel.ratings),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: RatingChipsRow(ratings: viewModel.ratings),
+          ),
         ),
-      ],
-      if (infoGroups.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: MediaInfoCard(groups: infoGroups),
-        ),
-      ],
-      if (viewModel.overview.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        MediaDetailOverviewSection(overview: viewModel.overview),
       ],
       if (viewModel.hasFiles && viewModel.path != null) ...[
-        const SizedBox(height: AppSpacing.xl),
-        FileInfoSection(path: viewModel.path),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: FileInfoSection(path: viewModel.path),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+      ],
+      if (detailInfoGroups.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const MediaDetailSectionHeader(title: 'Details'),
+              SizedBox(
+                width: double.infinity,
+                child: MediaInfoCard(groups: detailInfoGroups),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+      ],
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Where to Watch',
+          message: 'Watch provider info is not available from Sonarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      _buildSeasonsSection(context, viewModel, episodesAsync),
+      const SizedBox(height: AppSpacing.lg),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Cast',
+          message: 'Cast info is not available from Sonarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      if (viewModel.genres.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailTagsSection(tags: viewModel.genres),
+        ),
+        const SizedBox(height: AppSpacing.lg),
       ],
     ];
   }
 
-  Widget _buildSeasonsSliver(
+  List<Widget> _buildSummaryTags(SeriesDetailViewModel viewModel) {
+    return viewModel.genres
+        .map((genre) => GenreChip(genre: genre))
+        .toList(growable: false);
+  }
+
+  List<MediaInfoGroup> _detailInfoGroups(List<MediaInfoGroup> infoGroups) =>
+      infoGroups;
+
+  Widget _buildSeasonsSection(
     BuildContext context,
     SeriesDetailViewModel viewModel,
     AsyncValue<List<SonarrEpisode>> episodesAsync,
   ) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Seasons', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.lg),
-            SeriesSeasonsList(
-              seasons: viewModel.seasons,
-              episodesAsync: episodesAsync,
-              onSearchSeason: (seasonNumber) =>
-                  _searchSeason(context, seasonNumber),
-              onInteractiveSearchSeason: (seasonNumber) =>
-                  _interactiveSearchSeason(
-                    context,
-                    seasonNumber,
-                    title: viewModel.title,
-                  ),
-              onSearchEpisode: (episodeId) =>
-                  _searchEpisode(context, episodeId),
-              onInteractiveSearchEpisode: (episodeId) =>
-                  _interactiveSearchEpisode(context, episodeId),
-              searchingSeasons: _searchingSeasons,
-              searchingEpisodes: _searchingEpisodes,
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const MediaDetailSectionHeader(title: 'Seasons'),
+          SeriesSeasonsList(
+            seasons: viewModel.seasons,
+            episodesAsync: episodesAsync,
+            onSearchSeason: (seasonNumber) =>
+                _searchSeason(context, seasonNumber),
+            onInteractiveSearchSeason: (seasonNumber) =>
+                _interactiveSearchSeason(
+                  context,
+                  seasonNumber,
+                  title: viewModel.title,
+                ),
+            onSearchEpisode: (episodeId) => _searchEpisode(context, episodeId),
+            onInteractiveSearchEpisode: (episodeId) =>
+                _interactiveSearchEpisode(context, episodeId),
+            searchingSeasons: _searchingSeasons,
+            searchingEpisodes: _searchingEpisodes,
+          ),
+        ],
       ),
     );
   }

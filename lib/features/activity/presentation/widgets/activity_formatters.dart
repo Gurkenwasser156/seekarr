@@ -1,32 +1,15 @@
+import 'package:seekarr/core/utils/dynamic_map_utils.dart'
+    show intOrNull, mapOrNull, stringOrNull;
 import 'package:seekarr/core/utils/release_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 
+export 'package:seekarr/core/utils/dynamic_map_utils.dart'
+    show intOrNull, stringOrNull;
 export 'package:seekarr/core/utils/string_utils.dart' show formatIsoDate;
 
-Map<String, dynamic>? asActivityMap(dynamic value) {
-  if (value is Map<String, dynamic>) return value;
-  if (value is Map) {
-    return value.map(
-      (key, nestedValue) => MapEntry(key.toString(), nestedValue),
-    );
-  }
-  return null;
-}
-
-String? stringOrNull(dynamic value) {
-  if (value == null) return null;
-  final text = value.toString().trim();
-  return text.isEmpty ? null : text;
-}
-
-int? intOrNull(dynamic value) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  if (value == null) return null;
-  return int.tryParse(value.toString());
-}
+Map<String, dynamic>? asActivityMap(dynamic value) => mapOrNull(value);
 
 String joinActivityParts(Iterable<String?> parts, {String separator = ' · '}) {
   return parts

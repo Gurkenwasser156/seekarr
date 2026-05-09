@@ -1,22 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/header_action_row.dart';
-import 'package:seekarr/core/widgets/media_detail_poster_row.dart';
 import 'package:seekarr/core/widgets/media_profile_selector.dart';
-
-const _kSpinner = SizedBox.square(
-  dimension: 16,
-  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-);
 
 /// Shared action buttons for library detail screens (Movies, Series, Music).
 ///
-/// Row 1: Interactive Search (expanded) + Auto Search (icon-only).
-/// Row 2: Quality Profile (expanded) + Delete (icon-only, red).
-/// Row 2 only appears when [currentProfileName] is non-null.
-///
-/// All buttons use [FilledButton] with primary background, rounded shape
-/// ([AppRadius.xl]), and an Apple TV-style glow effect.
+/// Prototype-style icon action row for library detail screens.
 class LibraryDetailActions extends StatelessWidget {
   /// Collapse progress from [MediaDetailPosterRow].
   final double collapseFactor;
@@ -65,61 +55,167 @@ class LibraryDetailActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    Widget primaryGlow({required Widget child}) =>
-        HeaderActionRow.glowWrap(glowColor: colorScheme.primary, child: child);
-    Widget errorGlow({required Widget child}) =>
-        HeaderActionRow.glowWrap(glowColor: colorScheme.error, child: child);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        HeaderActionRow(
-          expanded: primaryGlow(
-            child: FilledButton.icon(
-              onPressed: isSearching ? null : onInteractiveSearch,
-              icon: isSearching ? _kSpinner : const Icon(Icons.search),
-              label: const Text(
-                'Interactive Search',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              style: HeaderActionRow.expandedButtonStyle(),
-            ),
-          ),
-          trailing: primaryGlow(
-            child: FilledButton(
-              onPressed: isSearching ? null : onAutoSearch,
-              style: HeaderActionRow.iconOnlyButtonStyle(),
-              child: const Icon(Icons.saved_search),
-            ),
-          ),
+    final actions = <Widget>[
+      _DetailActionButton(
+        icon: isSearching ? null : Icons.search_rounded,
+        label: 'Interactive',
+        onPressed: isSearching ? null : onInteractiveSearch,
+        loading: isSearching,
+      ),
+      _DetailActionButton(
+        icon: Icons.saved_search_rounded,
+        label: 'Auto Search',
+        onPressed: isSearching ? null : onAutoSearch,
+      ),
+      if (currentProfileName != null)
+        _ProfileActionButton(
+          currentProfileName: currentProfileName!,
+          currentProfileId: currentProfileId,
+          qualityProfiles: qualityProfiles,
+          onProfileSelected: onProfileSelected,
         ),
-        if (currentProfileName != null) ...[
-          SizedBox(height: MediaDetailPosterRow.actionGap(collapseFactor)),
-          HeaderActionRow(
-            expanded: primaryGlow(
-              child: MediaProfileSelector.split(
-                currentProfileName: currentProfileName!,
-                currentProfileId: currentProfileId,
-                qualityProfiles: qualityProfiles,
-                onProfileSelected: onProfileSelected,
+      _DetailActionButton(
+        icon: Icons.download_for_offline_outlined,
+        label: 'Import',
+        onPressed: null,
+      ),
+      _DetailActionButton(
+        icon: isDeleting ? null : Icons.delete_outline_rounded,
+        label: 'Delete',
+        onPressed: isDeleting ? null : onDelete,
+        loading: isDeleting,
+        color: colorScheme.error,
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: actions,
+      ),
+    );
+  }
+}
+
+class _DetailActionButton extends StatelessWidget {
+  final IconData? icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+  final Color? color;
+
+  const _DetailActionButton({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final effectiveColor = color ?? colorScheme.onSurfaceVariant;
+    final backgroundColor = color == colorScheme.error
+        ? colorScheme.error.withValues(alpha: 0.1)
+        : colorScheme.onSurface.withValues(alpha: 0.06);
+    final borderColor = color == colorScheme.error
+        ? colorScheme.error.withValues(alpha: 0.25)
+        : colorScheme.outlineVariant;
+
+    return SizedBox(
+      width: 58,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox.square(
+            dimension: HeaderActionRow.buttonHeight,
+            child: OutlinedButton(
+              onPressed: onPressed,
+              style: HeaderActionRow.tonalIconButtonStyle(
+                foregroundColor: effectiveColor,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
               ),
+              child: loading
+                  ? SizedBox.square(
+                      dimension: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: effectiveColor,
+                      ),
+                    )
+                  : Icon(icon, size: 18),
             ),
-            trailing: errorGlow(
-              child: FilledButton(
-                onPressed: isDeleting ? null : onDelete,
-                style: HeaderActionRow.iconOnlyButtonStyle(
-                  foregroundColor: colorScheme.onError,
-                  backgroundColor: colorScheme.error,
-                ),
-                child: isDeleting
-                    ? _kSpinner
-                    : const Icon(Icons.delete_outline),
-              ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: effectiveColor,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
-      ],
+      ),
+    );
+  }
+}
+
+class _ProfileActionButton extends StatelessWidget {
+  final String currentProfileName;
+  final int? currentProfileId;
+  final List<Map<String, dynamic>> qualityProfiles;
+  final Future<void> Function(int profileId) onProfileSelected;
+
+  const _ProfileActionButton({
+    required this.currentProfileName,
+    required this.currentProfileId,
+    required this.qualityProfiles,
+    required this.onProfileSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 58,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox.square(
+            dimension: HeaderActionRow.buttonHeight,
+            child: MediaProfileSelector.iconOnly(
+              currentProfileName: currentProfileName,
+              currentProfileId: currentProfileId,
+              qualityProfiles: qualityProfiles,
+              onProfileSelected: onProfileSelected,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Profile',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

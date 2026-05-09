@@ -8,7 +8,10 @@ import 'package:seekarr/features/movies/presentation/movies_provider.dart';
 import 'package:seekarr/features/movies/presentation/movies_search_provider.dart';
 
 class MoviesScreen extends StatelessWidget {
-  const MoviesScreen({super.key});
+  final bool showAppBar;
+  final double topPadding;
+
+  const MoviesScreen({super.key, this.showAppBar = true, this.topPadding = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,7 @@ class MoviesScreen extends StatelessWidget {
       title: 'Movies',
       searchHint: 'Search movies...',
       activityRoute: '/activity/movies',
-      navigationSection: NavigationSection.movies,
+      navigationSection: NavigationSection.services,
       serviceName: 'Radarr',
       heroTagPrefix: 'movie',
       searchHeroTagPrefix: 'movie_search',
@@ -30,8 +33,13 @@ class MoviesScreen extends StatelessWidget {
       settingsSelector: (settings) =>
           (settings.radarrUrl, settings.radarrApiKey),
       onItemTap: (context, movie, heroTag) {
-        context.push('/movies/${movie.id}?heroTag=$heroTag', extra: movie);
+        context.push(
+          '/services/radarr/movie/${movie.id}?heroTag=$heroTag',
+          extra: movie,
+        );
       },
+      showAppBar: showAppBar,
+      topPadding: topPadding,
     );
   }
 }

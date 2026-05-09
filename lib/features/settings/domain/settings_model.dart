@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' show ThemeMode;
 
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
 enum AppThemeMode {
@@ -39,7 +38,6 @@ class SettingsModel {
   final String lidarrApiKey;
   final String region;
   final AppThemeMode themeMode;
-  final Set<NavTab> hiddenTabs;
 
   static final Map<ServiceKey, _ServiceSettingsAccess> _serviceSettingsAccess =
       {
@@ -74,10 +72,6 @@ class SettingsModel {
     return normalized.isEmpty ? 'US' : normalized;
   }
 
-  static Set<NavTab> sanitizeHiddenTabs(Iterable<NavTab> tabs) {
-    return tabs.where((tab) => tab.canBeHidden).toSet();
-  }
-
   const SettingsModel({
     this.seerrUrl = '',
     this.seerrApiKey = '',
@@ -89,7 +83,6 @@ class SettingsModel {
     this.lidarrApiKey = '',
     this.region = 'US',
     this.themeMode = AppThemeMode.system,
-    this.hiddenTabs = const <NavTab>{},
   });
 
   SettingsModel copyWith({
@@ -103,7 +96,6 @@ class SettingsModel {
     String? lidarrApiKey,
     String? region,
     AppThemeMode? themeMode,
-    Set<NavTab>? hiddenTabs,
   }) {
     return SettingsModel(
       seerrUrl: seerrUrl ?? this.seerrUrl,
@@ -116,17 +108,10 @@ class SettingsModel {
       lidarrApiKey: lidarrApiKey ?? this.lidarrApiKey,
       region: region ?? this.region,
       themeMode: themeMode ?? this.themeMode,
-      hiddenTabs: hiddenTabs == null
-          ? this.hiddenTabs
-          : sanitizeHiddenTabs(hiddenTabs),
     );
   }
 
   ThemeMode get resolvedThemeMode => themeMode.materialThemeMode;
-
-  bool isTabVisible(NavTab tab) {
-    return !tab.canBeHidden || !hiddenTabs.contains(tab);
-  }
 
   _ServiceSettingsAccess _serviceAccessFor(ServiceKey service) {
     return _serviceSettingsAccess[service]!;

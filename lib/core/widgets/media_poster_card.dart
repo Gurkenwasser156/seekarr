@@ -16,6 +16,8 @@ class MediaPosterCard extends StatelessWidget {
   final String? imageUrl;
   final Map<String, String>? imageHeaders;
   final IconData fallbackIcon;
+  final bool circular;
+  final BorderRadius? borderRadius;
 
   const MediaPosterCard({
     super.key,
@@ -23,6 +25,8 @@ class MediaPosterCard extends StatelessWidget {
     this.imageUrl,
     this.imageHeaders,
     this.fallbackIcon = Icons.movie_outlined,
+    this.circular = false,
+    this.borderRadius,
   });
 
   static const _shadowAlpha = 0.4;
@@ -34,45 +38,58 @@ class MediaPosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    final effectiveBorderRadius = borderRadius ?? AppRadius.borderRadiusMd;
+    Widget fallback() => Container(
+      color: colorScheme.surfaceContainer,
+      child: Center(
+        child: Icon(
+          fallbackIcon,
+          size: _fallbackIconSize,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+
+    final image = hasImage
+        ? CachedNetworkImage(
+            imageUrl: imageUrl!,
+            httpHeaders: imageHeaders,
+            fit: BoxFit.cover,
+            errorWidget: (context, url, error) => fallback(),
+          )
+        : fallback();
+    final clippedImage = circular
+        ? ClipOval(child: image)
+        : ClipRRect(borderRadius: effectiveBorderRadius, child: image);
+
+    Widget heroChild = DecoratedBox(
+      decoration: BoxDecoration(
+        shape: circular ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circular ? null : effectiveBorderRadius,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: _shadowAlpha),
+            blurRadius: _shadowBlur,
+            spreadRadius: _shadowSpread,
+          ),
+        ],
+      ),
+      child: clippedImage,
+    );
+
+    if (hasImage) {
+      heroChild = Stack(
+        fit: StackFit.expand,
+        children: [
+          heroChild,
+          Opacity(opacity: 0, child: fallback()),
+        ],
+      );
+    }
 
     return Hero(
       tag: heroTag,
-      child: Material(
-        type: MaterialType.transparency,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.borderRadiusMd,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: _shadowAlpha),
-                blurRadius: _shadowBlur,
-                spreadRadius: _shadowSpread,
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.borderRadiusMd,
-            child: hasImage
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl!,
-                    httpHeaders: imageHeaders,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) =>
-                        Container(color: colorScheme.surfaceContainer),
-                  )
-                : Container(
-                    color: colorScheme.surfaceContainer,
-                    child: Center(
-                      child: Icon(
-                        fallbackIcon,
-                        size: _fallbackIconSize,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-      ),
+      child: Material(type: MaterialType.transparency, child: heroChild),
     );
   }
 }

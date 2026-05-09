@@ -26,6 +26,7 @@ RadarrMovie buildMovie({
   String? certification,
   List<String> genres = const [],
   List<RatingSource> ratings = const [],
+  List<dynamic> images = const [],
 }) {
   return RadarrMovie(
     id: id,
@@ -38,7 +39,7 @@ RadarrMovie buildMovie({
     hasFile: hasFile,
     monitored: monitored,
     year: year,
-    images: const [],
+    images: images,
     tmdbId: tmdbId,
     runtime: runtime,
     studio: studio,
@@ -65,6 +66,7 @@ SonarrSeries buildSeries({
   List<Map<String, dynamic>> seasons = const [],
   Map<String, dynamic>? statistics,
   List<RatingSource> ratings = const [],
+  List<dynamic> images = const [],
 }) {
   return SonarrSeries(
     id: id,
@@ -75,7 +77,7 @@ SonarrSeries buildSeries({
     path: path,
     monitored: monitored,
     year: year,
-    images: const [],
+    images: images,
     tvdbId: tvdbId,
     runtime: runtime,
     network: network,
@@ -99,6 +101,7 @@ LidarrArtist buildArtist({
   String? disambiguation,
   List<String> genres = const [],
   Map<String, dynamic>? statistics,
+  List<dynamic> images = const [],
 }) {
   return LidarrArtist(
     id: id,
@@ -106,7 +109,7 @@ LidarrArtist buildArtist({
     status: status,
     overview: overview,
     monitored: monitored,
-    images: const [],
+    images: images,
     statistics: statistics,
     genres: genres,
     artistType: artistType,

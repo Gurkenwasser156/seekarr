@@ -76,10 +76,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Inception'), findsAtLeastNWidgets(1));
+      expect(find.byType(MediaDetailHeroSummaryCard), findsOneWidget);
+      expect(find.byType(GenreChip), findsNWidgets(2));
+      expect(
+        find.descendant(
+          of: find.byType(MediaInfoCard),
+          matching: find.byType(GenreChip),
+        ),
+        findsNothing,
+      );
       expect(find.text('A mind-bending thriller.'), findsOneWidget);
       expect(find.byType(MediaMetadataLine), findsOneWidget);
       expect(find.byType(MediaInfoCard), findsOneWidget);
       expect(find.byType(FileInfoSection), findsOneWidget);
+
+      await _scrollUntilVisible(tester, find.text('Where to Watch'));
+
+      expect(find.text('Where to Watch'), findsOneWidget);
+      expect(find.text('Cast'), findsOneWidget);
+      expect(find.text('Tags'), findsOneWidget);
     });
 
     testWidgets('uses initialMovie while provider is still loading', (
@@ -110,6 +125,15 @@ void main() {
       expect(find.byType(FileInfoSection), findsNothing);
     });
   });
+}
+
+Future<void> _scrollUntilVisible(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(
+    finder,
+    300,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<void> _pumpMovieDetail(

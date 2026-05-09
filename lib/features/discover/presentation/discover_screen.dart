@@ -16,7 +16,14 @@ import 'package:seekarr/features/discover/presentation/discover_search_provider.
 ///
 /// Features horizontal carousels for each section following M3 design.
 class DiscoverScreen extends ConsumerWidget {
-  const DiscoverScreen({super.key});
+  final bool showAppBar;
+  final double topPadding;
+
+  const DiscoverScreen({
+    super.key,
+    this.showAppBar = true,
+    this.topPadding = 0,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +32,7 @@ class DiscoverScreen extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Listen for navigation refresh trigger
-    ref.listen<int>(navigationRefreshProvider(NavigationSection.discover), (
+    ref.listen<int>(navigationRefreshProvider(NavigationSection.services), (
       previous,
       next,
     ) {
@@ -37,27 +44,32 @@ class DiscoverScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        leading: searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () {
-                  ref.read(discoverSearchQueryProvider.notifier).state = '';
-                },
-                tooltip: 'Exit search',
-              )
-            : null,
-        title: const Text('Discover'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            onPressed: () => context.push('/activity/discover'),
-            tooltip: 'Activity',
-          ),
-        ],
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              leading: searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: () {
+                        ref.read(discoverSearchQueryProvider.notifier).state =
+                            '';
+                      },
+                      tooltip: 'Exit search',
+                    )
+                  : null,
+              title: const Text('Discover'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.history_rounded),
+                  onPressed: () => context.push('/activity/discover'),
+                  tooltip: 'Activity',
+                ),
+              ],
+            )
+          : null,
       body: Column(
         children: [
+          if (topPadding > 0)
+            SizedBox(height: topPadding + MediaQuery.paddingOf(context).top),
           SearchBarHeader(
             hintText: 'Search movies & TV shows...',
             onQueryChanged: (query) {
@@ -94,14 +106,14 @@ class DiscoverScreen extends ConsumerWidget {
               title: 'Trending',
               sectionId: 'trending',
               provider: discoverTrendingProvider,
-              onSeeAll: () => context.push('/discover/trending/all'),
+              onSeeAll: () => context.push('/services/seerr/trending/all'),
             ),
             const SizedBox(height: AppSpacing.xl),
             _DiscoverSection(
               title: 'Movies',
               sectionId: 'movies',
               provider: discoverMoviesProvider,
-              onSeeAll: () => context.push('/discover/movies/all'),
+              onSeeAll: () => context.push('/services/seerr/movies/all'),
               forcedMediaType: 'movie',
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -109,7 +121,7 @@ class DiscoverScreen extends ConsumerWidget {
               title: 'TV Series',
               sectionId: 'tv',
               provider: discoverTVProvider,
-              onSeeAll: () => context.push('/discover/tv/all'),
+              onSeeAll: () => context.push('/services/seerr/tv/all'),
               forcedMediaType: 'tv',
             ),
           ],
@@ -201,7 +213,7 @@ class DiscoverScreen extends ConsumerWidget {
               onTap: () {
                 final encodedUrl = Uri.encodeComponent(imageUrl);
                 context.push(
-                  '/discover/${item.mediaType}/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                  '/services/seerr/${item.mediaType}/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
                 );
               },
               child: Hero(
@@ -282,7 +294,7 @@ class _DiscoverSection extends ConsumerWidget {
                       onTap: () {
                         final encodedUrl = Uri.encodeComponent(imageUrl);
                         context.push(
-                          '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                          '/services/seerr/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
                         );
                       },
                       child: Hero(

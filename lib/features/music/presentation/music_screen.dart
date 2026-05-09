@@ -8,7 +8,10 @@ import 'package:seekarr/features/music/presentation/music_provider.dart';
 import 'package:seekarr/features/music/presentation/music_search_provider.dart';
 
 class MusicScreen extends StatelessWidget {
-  const MusicScreen({super.key});
+  final bool showAppBar;
+  final double topPadding;
+
+  const MusicScreen({super.key, this.showAppBar = true, this.topPadding = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,7 @@ class MusicScreen extends StatelessWidget {
       title: 'Music',
       searchHint: 'Search artists...',
       activityRoute: '/activity/music',
-      navigationSection: NavigationSection.music,
+      navigationSection: NavigationSection.services,
       serviceName: 'Lidarr',
       heroTagPrefix: 'artist',
       searchHeroTagPrefix: 'artist_search',
@@ -34,9 +37,14 @@ class MusicScreen extends StatelessWidget {
       settingsSelector: (settings) =>
           (settings.lidarrUrl, settings.lidarrApiKey),
       onItemTap: (context, artist, heroTag) {
-        context.push('/music/${artist.id}?heroTag=$heroTag', extra: artist);
+        context.push(
+          '/services/lidarr/artist/${artist.id}?heroTag=$heroTag',
+          extra: artist,
+        );
       },
       coverTypes: const ['poster', 'fanart', 'banner'],
+      showAppBar: showAppBar,
+      topPadding: topPadding,
     );
   }
 }

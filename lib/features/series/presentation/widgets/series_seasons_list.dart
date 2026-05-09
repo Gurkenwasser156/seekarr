@@ -6,7 +6,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 
-class SeriesSeasonsList extends StatelessWidget {
+class SeriesSeasonsList extends StatefulWidget {
   final List<dynamic> seasons;
   final AsyncValue<List<SonarrEpisode>> episodesAsync;
   final void Function(int seasonNumber) onSearchSeason;
@@ -29,8 +29,15 @@ class SeriesSeasonsList extends StatelessWidget {
   });
 
   @override
+  State<SeriesSeasonsList> createState() => _SeriesSeasonsListState();
+}
+
+class _SeriesSeasonsListState extends State<SeriesSeasonsList> {
+  int? _selectedSeasonNumber;
+
+  @override
   Widget build(BuildContext context) {
-    if (seasons.isEmpty) {
+    if (widget.seasons.isEmpty) {
       return Text(
         'No seasons found.',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -39,31 +46,111 @@ class SeriesSeasonsList extends StatelessWidget {
       );
     }
 
-    final sortedSeasons = List<dynamic>.from(seasons)
-      ..sort((a, b) => _seasonNumber(a).compareTo(_seasonNumber(b)));
+    final sortedSeasons = List<dynamic>.from(widget.seasons)
+      ..sort((a, b) => _compareSeasons(_seasonNumber(a), _seasonNumber(b)));
+    final selectedSeason = _selectedSeason(sortedSeasons);
 
     return Column(
-      children: sortedSeasons
-          .map(
-            (season) => _SeasonTile(
-              season: season,
-              episodesAsync: episodesAsync,
-              onSearchSeason: onSearchSeason,
-              onInteractiveSearchSeason: onInteractiveSearchSeason,
-              onSearchEpisode: onSearchEpisode,
-              onInteractiveSearchEpisode: onInteractiveSearchEpisode,
-              isSeasonSearching: searchingSeasons.contains(
-                _seasonNumber(season),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var index = 0; index < sortedSeasons.length; index++) ...[
+                _SeasonPill(
+                  season: sortedSeasons[index],
+                  selected:
+                      _seasonNumber(sortedSeasons[index]) ==
+                      _seasonNumber(selectedSeason),
+                  isSearching: widget.searchingSeasons.contains(
+                    _seasonNumber(sortedSeasons[index]),
+                  ),
+                  onSelected: () => setState(
+                    () => _selectedSeasonNumber = _seasonNumber(
+                      sortedSeasons[index],
+                    ),
+                  ),
+                ),
+                if (index < sortedSeasons.length - 1)
+                  const SizedBox(width: AppSpacing.xs),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _SelectedSeasonPanel(
+          season: selectedSeason,
+          episodesAsync: widget.episodesAsync,
+          onSearchSeason: widget.onSearchSeason,
+          onInteractiveSearchSeason: widget.onInteractiveSearchSeason,
+          onSearchEpisode: widget.onSearchEpisode,
+          onInteractiveSearchEpisode: widget.onInteractiveSearchEpisode,
+          isSeasonSearching: widget.searchingSeasons.contains(
+            _seasonNumber(selectedSeason),
+          ),
+          searchingEpisodes: widget.searchingEpisodes,
+        ),
+      ],
+    );
+  }
+
+  dynamic _selectedSeason(List<dynamic> sortedSeasons) {
+    final selectedNumber = _selectedSeasonNumber;
+    if (selectedNumber != null) {
+      for (final season in sortedSeasons) {
+        if (_seasonNumber(season) == selectedNumber) {
+          return season;
+        }
+      }
+    }
+
+    return sortedSeasons.first;
+  }
+}
+
+class _SeasonPill extends StatelessWidget {
+  final dynamic season;
+  final bool selected;
+  final bool isSearching;
+  final VoidCallback onSelected;
+
+  const _SeasonPill({
+    required this.season,
+    required this.selected,
+    required this.isSearching,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final seasonNumber = _seasonNumber(season);
+
+    return ChoiceChip(
+      label: Text(seasonNumber == 0 ? 'Specials' : 'S$seasonNumber'),
+      avatar: isSearching
+          ? SizedBox.square(
+              dimension: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.primary,
               ),
-              searchingEpisodes: searchingEpisodes,
-            ),
-          )
-          .toList(growable: false),
+            )
+          : null,
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      visualDensity: VisualDensity.compact,
+      labelStyle: theme.textTheme.labelMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: selected ? colorScheme.onSecondaryContainer : null,
+      ),
     );
   }
 }
 
-class _SeasonTile extends StatelessWidget {
+class _SelectedSeasonPanel extends StatelessWidget {
   final dynamic season;
   final AsyncValue<List<SonarrEpisode>> episodesAsync;
   final void Function(int seasonNumber) onSearchSeason;
@@ -73,7 +160,7 @@ class _SeasonTile extends StatelessWidget {
   final bool isSeasonSearching;
   final Set<int> searchingEpisodes;
 
-  const _SeasonTile({
+  const _SelectedSeasonPanel({
     required this.season,
     required this.episodesAsync,
     required this.onSearchSeason,
@@ -102,6 +189,7 @@ class _SeasonTile extends StatelessWidget {
         : progress > 0
         ? colorScheme.tertiary
         : colorScheme.outline;
+
     final episodes = episodesAsync.asData?.value ?? const <SonarrEpisode>[];
     final seasonEpisodes =
         episodes
@@ -110,71 +198,65 @@ class _SeasonTile extends StatelessWidget {
           ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainer,
-        borderRadius: AppRadius.borderRadiusMd,
+        borderRadius: AppRadius.borderRadiusSm,
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
-          child: Text(
-            seasonNumber == 0 ? 'S' : seasonNumber.toString(),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w700,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  seasonNumber == 0 ? 'Specials' : 'Season $seasonNumber',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              MediaSearchPopupMenu(
+                onAutoSearch: () => onSearchSeason(seasonNumber),
+                onInteractiveSearch: () =>
+                    onInteractiveSearchSeason(seasonNumber),
+                isLoading: isSeasonSearching,
+                iconSize: 18,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Icon(
+                monitored ? Icons.bookmark : Icons.bookmark_border,
+                size: 18,
+                color: monitored ? colorScheme.tertiary : colorScheme.outline,
+              ),
+            ],
+          ),
+          Text(
+            '$episodeFileCount / $totalEpisodeCount Episodes',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-        ),
-        title: Text(
-          seasonNumber == 0 ? 'Specials' : 'Season $seasonNumber',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+          const SizedBox(height: AppSpacing.xs),
+          ClipRRect(
+            borderRadius: AppRadius.borderRadiusXs,
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              minHeight: 3,
+            ),
           ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '$episodeFileCount / $totalEpisodeCount Episodes',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ClipRRect(
-              borderRadius: AppRadius.borderRadiusXs,
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                minHeight: AppSpacing.xs,
-              ),
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            MediaSearchPopupMenu(
-              onAutoSearch: () => onSearchSeason(seasonNumber),
-              onInteractiveSearch: () =>
-                  onInteractiveSearchSeason(seasonNumber),
-              isLoading: isSeasonSearching,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Icon(
-              monitored ? Icons.bookmark : Icons.bookmark_border,
-              color: monitored ? colorScheme.tertiary : colorScheme.outline,
-            ),
-          ],
-        ),
-        children: _buildEpisodeChildren(
-          context,
-          seasonEpisodes: seasonEpisodes,
-          seasonNumber: seasonNumber,
-        ),
+          const SizedBox(height: AppSpacing.sm),
+          ..._buildEpisodeChildren(
+            context,
+            seasonEpisodes: seasonEpisodes,
+            seasonNumber: seasonNumber,
+          ),
+        ],
       ),
     );
   }
@@ -213,7 +295,7 @@ class _SeasonTile extends StatelessWidget {
     if (seasonEpisodes.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Text(
             seasonNumber == 0
                 ? 'No specials found.'
@@ -228,28 +310,48 @@ class _SeasonTile extends StatelessWidget {
 
     return seasonEpisodes
         .map(
-          (episode) => ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              radius: AppSpacing.md,
-              backgroundColor: episode.hasFile
-                  ? colorScheme.primary
-                  : colorScheme.outline,
-              child: Text(
-                episode.episodeNumber.toString(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: episode.hasFile
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
+          (episode) => Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    episode.episodeNumber.toString().padLeft(2, '0'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            title: Text(episode.title, style: theme.textTheme.bodyMedium),
-            trailing: MediaSearchPopupMenu(
-              onAutoSearch: () => onSearchEpisode(episode.id),
-              onInteractiveSearch: () => onInteractiveSearchEpisode(episode.id),
-              isLoading: searchingEpisodes.contains(episode.id),
+                Expanded(
+                  child: Text(
+                    episode.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                MediaSearchPopupMenu(
+                  onAutoSearch: () => onSearchEpisode(episode.id),
+                  onInteractiveSearch: () =>
+                      onInteractiveSearchEpisode(episode.id),
+                  isLoading: searchingEpisodes.contains(episode.id),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: episode.hasFile
+                        ? colorScheme.primary
+                        : colorScheme.outline,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ),
           ),
         )
@@ -263,4 +365,16 @@ int _seasonNumber(dynamic season) =>
 Map<String, dynamic>? _seasonStatistics(dynamic season) {
   final stats = season['statistics'];
   return stats is Map<String, dynamic> ? stats : null;
+}
+
+int _compareSeasons(int left, int right) {
+  if (left == 0 && right != 0) {
+    return 1;
+  }
+
+  if (left != 0 && right == 0) {
+    return -1;
+  }
+
+  return left.compareTo(right);
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
@@ -27,7 +26,6 @@ class DetailSheets {
       context: context,
       title: stringOrNull(item['title']) ?? 'Queue Item',
       sections: _buildQueueSections(item),
-      footer: _buildManualImportFooter(context),
     );
   }
 
@@ -326,22 +324,6 @@ List<_DetailField> _buildWantedFields(
     ]),
     ServiceType.discover => const <_DetailField>[],
   };
-}
-
-Widget _buildManualImportFooter(BuildContext context) {
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpacing.lg,
-      0,
-      AppSpacing.lg,
-      AppSpacing.lg,
-    ),
-    child: FilledButton.icon(
-      onPressed: () => SnackBarHelper.info(context, 'Import coming soon'),
-      icon: const Icon(Icons.file_download_rounded),
-      label: const Text('Manual Import'),
-    ),
-  );
 }
 
 class _SectionContent extends StatelessWidget {

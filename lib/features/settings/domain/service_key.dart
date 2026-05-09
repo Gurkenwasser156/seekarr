@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:seekarr/core/theme.dart';
+
 enum ServiceKey { seerr, radarr, sonarr, lidarr }
 
 extension ServiceKeyExtension on ServiceKey {
@@ -29,6 +31,43 @@ extension ServiceKeyExtension on ServiceKey {
     }
   }
 
+  Color get accent {
+    switch (this) {
+      case ServiceKey.seerr:
+        return AppColors.seerr;
+      case ServiceKey.radarr:
+        return AppColors.radarr;
+      case ServiceKey.sonarr:
+        return AppColors.sonarr;
+      case ServiceKey.lidarr:
+        return AppColors.lidarr;
+    }
+  }
+
+  String get apiVersion {
+    switch (this) {
+      case ServiceKey.seerr:
+      case ServiceKey.lidarr:
+        return 'v1';
+      case ServiceKey.radarr:
+      case ServiceKey.sonarr:
+        return 'v3';
+    }
+  }
+
+  String get itemLabel {
+    switch (this) {
+      case ServiceKey.seerr:
+        return 'requests';
+      case ServiceKey.radarr:
+        return 'movies';
+      case ServiceKey.sonarr:
+        return 'series';
+      case ServiceKey.lidarr:
+        return 'artists';
+    }
+  }
+
   String get routeParam {
     switch (this) {
       case ServiceKey.seerr:
@@ -41,10 +80,17 @@ extension ServiceKeyExtension on ServiceKey {
   }
 
   String? extractHost(String? url) {
-    if (url == null || url.isEmpty) return null;
+    final value = url?.trim() ?? '';
+    if (value.isEmpty) return null;
+    final parseableValue = value.contains('://') ? value : 'http://$value';
+
     try {
-      final uri = Uri.parse(url);
-      return uri.host;
+      final uri = Uri.parse(parseableValue);
+      if (uri.host.isNotEmpty) {
+        return uri.hasPort ? '${uri.host}:${uri.port}' : uri.host;
+      }
+
+      return uri.path.isEmpty ? null : uri.path;
     } catch (_) {
       return null;
     }

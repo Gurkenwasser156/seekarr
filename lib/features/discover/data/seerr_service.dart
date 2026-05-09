@@ -47,6 +47,7 @@ class SeerrService {
       return await Future.wait(
         requests.map((request) async {
           if (request.media?.title != null &&
+              request.media?.posterPath != null &&
               request.media!.title != 'Unknown Media' &&
               !request.media!.title!.startsWith('Unknown Media (')) {
             return request;
@@ -60,6 +61,9 @@ class SeerrService {
                 media: request.media?.copyWith(
                   title: details['title'],
                   year: details['releaseDate']?.toString().substring(0, 4),
+                  posterPath:
+                      details['posterPath']?.toString() ??
+                      details['poster_path']?.toString(),
                 ),
               );
             } else if (request.media?.mediaType == 'tv' &&
@@ -69,6 +73,9 @@ class SeerrService {
                 media: request.media?.copyWith(
                   title: details['name'],
                   year: details['firstAirDate']?.toString().substring(0, 4),
+                  posterPath:
+                      details['posterPath']?.toString() ??
+                      details['poster_path']?.toString(),
                 ),
               );
             }

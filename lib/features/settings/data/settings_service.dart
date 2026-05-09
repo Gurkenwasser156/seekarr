@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
@@ -39,7 +38,6 @@ class FlutterSecureSettingsStore implements SecureSettingsStore {
 class SettingsService {
   static const _kRegion = 'region';
   static const _kThemeMode = 'theme_mode';
-  static const _kHiddenTabs = 'hidden_tabs';
 
   static const Map<ServiceKey, _ServiceStorageKeys> _serviceStorageKeys = {
     ServiceKey.seerr: _ServiceStorageKeys(
@@ -133,21 +131,16 @@ class SettingsService {
       lidarrApiKey: serviceSettings[ServiceKey.lidarr]!.$2,
       region: _loadRegion(),
       themeMode: AppThemeMode.fromName(_prefs.getString(_kThemeMode)),
-      hiddenTabs: _loadHiddenTabs(),
     );
   }
 
   Future<void> saveSettings(SettingsModel settings) async {
     final normalizedRegion = SettingsModel.normalizeRegion(settings.region);
-    final hiddenTabs = SettingsModel.sanitizeHiddenTabs(settings.hiddenTabs);
 
     await _saveServiceUrls(settings);
     await _prefs.setString(_kRegion, normalizedRegion);
     await _prefs.setString(_kThemeMode, settings.themeMode.name);
-    await _prefs.setStringList(
-      _kHiddenTabs,
-      hiddenTabs.map((tab) => tab.name).toList(growable: false),
-    );
+    await _prefs.remove('hidden_tabs');
 
     await _saveServiceApiKeys(settings);
   }
@@ -198,30 +191,6 @@ class SettingsService {
         await _secureStore.delete(key: storageKeys.legacySecureApiKey!);
       }
     }
-  }
-
-  Set<NavTab> _loadHiddenTabs() {
-    final storedNames =
-        _prefs.getStringList(_kHiddenTabs) ?? _loadLegacyHiddenTabs();
-
-    return SettingsModel.sanitizeHiddenTabs(
-      storedNames
-          .map((name) => NavTab.fromName(name.trim()))
-          .whereType<NavTab>(),
-    );
-  }
-
-  List<String> _loadLegacyHiddenTabs() {
-    final legacyHiddenTabs = _prefs.getString(_kHiddenTabs);
-    if (legacyHiddenTabs == null || legacyHiddenTabs.trim().isEmpty) {
-      return const [];
-    }
-
-    return legacyHiddenTabs
-        .split(',')
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toList(growable: false);
   }
 
   String _loadString(String key) {

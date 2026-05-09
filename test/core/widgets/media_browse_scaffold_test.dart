@@ -201,7 +201,9 @@ void main() {
         expect(libraryLoadCount, 1);
 
         container
-            .read(navigationRefreshProvider(NavigationSection.movies).notifier)
+            .read(
+              navigationRefreshProvider(NavigationSection.services).notifier,
+            )
             .state++;
         await tester.pump();
         await tester.pumpAndSettle();
@@ -228,7 +230,7 @@ Widget _buildTestScaffold() {
     title: 'Test Title',
     searchHint: 'Search test...',
     activityRoute: '/activity/test',
-    navigationSection: NavigationSection.movies,
+    navigationSection: NavigationSection.services,
     serviceName: 'Test Service',
     heroTagPrefix: 'test',
     searchHeroTagPrefix: 'test_search',
@@ -256,7 +258,7 @@ Widget _buildCustomTestApp({
         title: 'Test Title',
         searchHint: 'Search test...',
         activityRoute: '/activity/test',
-        navigationSection: NavigationSection.movies,
+        navigationSection: NavigationSection.services,
         serviceName: 'Test Service',
         heroTagPrefix: 'test',
         searchHeroTagPrefix: 'test_search',

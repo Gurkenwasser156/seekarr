@@ -33,12 +33,14 @@ class RatingChip extends StatelessWidget {
         triggerMode: TooltipTriggerMode.tap,
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
+            horizontal: 10,
             vertical: AppSpacing.xs,
           ),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            borderRadius: AppRadius.borderRadiusSm,
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.12),
+            borderRadius: AppRadius.borderRadiusFull,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -47,14 +49,15 @@ class RatingChip extends StatelessWidget {
                 sourceIcon,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 displayText,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],

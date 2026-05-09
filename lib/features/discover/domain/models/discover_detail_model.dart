@@ -149,6 +149,7 @@ class TvSeason {
   final int episodeCount;
   final String? airDate;
   final String? posterPath;
+  final List<TvEpisodeSummary> episodes;
 
   const TvSeason({
     required this.id,
@@ -157,6 +158,7 @@ class TvSeason {
     required this.episodeCount,
     this.airDate,
     this.posterPath,
+    this.episodes = const [],
   });
 
   factory TvSeason.fromJson(Map<String, dynamic> json) {
@@ -170,6 +172,9 @@ class TvSeason {
       airDate: json['airDate']?.toString() ?? json['air_date']?.toString(),
       posterPath:
           json['posterPath']?.toString() ?? json['poster_path']?.toString(),
+      episodes: _asMapList(
+        json['episodes'],
+      ).map(TvEpisodeSummary.fromJson).toList(growable: false),
     );
   }
 }

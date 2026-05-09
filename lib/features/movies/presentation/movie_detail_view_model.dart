@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
@@ -56,7 +55,30 @@ class MovieDetailViewModel {
     if (runtimeStr != null) runtimeStr!,
   ].where((item) => item.isNotEmpty).toList(growable: false);
 
-  List<MediaInfoGroup> buildInfoGroups() {
+  List<MediaInfoGroup> buildInfoGroups([String? qualityProfileName]) {
+    if (qualityProfileName == null) {
+      return _buildLegacyInfoGroups();
+    }
+
+    final releaseFacts = _buildReleaseFacts();
+    final fileFacts = _buildFileFacts(qualityProfileName);
+
+    return [
+      if (fileFacts.isNotEmpty) ...fileFacts,
+      if (releaseFacts.isNotEmpty)
+        ...releaseFacts.map(
+          (fact) => MediaInfoGroup(title: fact.label, child: Text(fact.value)),
+        ),
+      if (_hasText(studio))
+        MediaInfoGroup(title: 'Studio', child: Text(studio!)),
+      if (_hasText(certification))
+        MediaInfoGroup(title: 'Certification', child: Text(certification!)),
+      if (_hasText(originalLanguage))
+        MediaInfoGroup(title: 'Language', child: Text(originalLanguage!)),
+    ];
+  }
+
+  List<MediaInfoGroup> _buildLegacyInfoGroups() {
     final releaseFacts = _buildReleaseFacts();
 
     return [
@@ -76,8 +98,6 @@ class MovieDetailViewModel {
         MediaInfoGroup(
           title: 'Genre',
           child: Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
             children: genres
                 .map((genre) => GenreChip(genre: genre))
                 .toList(growable: false),
@@ -87,6 +107,12 @@ class MovieDetailViewModel {
         MediaInfoGroup(title: 'Studio', child: Text(studio!)),
     ];
   }
+
+  List<MediaInfoGroup> _buildFileFacts(String? qualityProfileName) => [
+    if (hasFile) const MediaInfoGroup(title: 'Monitored', child: Text('Yes')),
+    if (_hasText(qualityProfileName))
+      MediaInfoGroup(title: 'Profile', child: Text(qualityProfileName!)),
+  ];
 
   List<MediaFact> _buildReleaseFacts() => [
     if (_hasText(inCinemas)) MediaFact('In Cinemas', formatIsoDate(inCinemas!)),

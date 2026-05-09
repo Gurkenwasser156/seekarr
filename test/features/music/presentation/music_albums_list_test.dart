@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_track.dart';
@@ -25,7 +26,28 @@ void main() {
       expect(find.text('OK Computer'), findsOneWidget);
       expect(find.text('1997'), findsOneWidget);
       expect(find.text('12 / 12 tracks'), findsOneWidget);
+      expect(find.byType(AppCard), findsOneWidget);
+      expect(find.byType(StatusBadge), findsOneWidget);
       expect(find.byType(ExpansionTile), findsOneWidget);
+    });
+
+    testWidgets('renders availability badges for album completion states', (
+      tester,
+    ) async {
+      await _pumpAlbumsList(
+        tester,
+        albums: [
+          _album(id: 10, title: 'Complete', fileCount: 12, trackCount: 12),
+          _album(id: 11, title: 'Half Album', fileCount: 6, trackCount: 12),
+          _album(id: 12, title: 'Empty Album', fileCount: 0, trackCount: 12),
+        ],
+      );
+
+      expect(find.text('Available'), findsOneWidget);
+      expect(find.text('Partial'), findsOneWidget);
+      expect(find.text('Missing'), findsOneWidget);
+      expect(find.byType(AppCard), findsNWidgets(3));
+      expect(find.byType(StatusBadge), findsNWidgets(3));
     });
 
     testWidgets('loads and sorts tracks when album expands', (tester) async {
@@ -136,11 +158,16 @@ Future<void> _pumpAlbumsList(
   );
 }
 
-LidarrAlbum _album() => buildAlbum(
-  id: 10,
-  title: 'OK Computer',
+LidarrAlbum _album({
+  int id = 10,
+  String title = 'OK Computer',
+  int trackCount = 12,
+  int fileCount = 12,
+}) => buildAlbum(
+  id: id,
+  title: title,
   releaseDate: '1997-06-16',
-  statistics: const {'totalTrackCount': 12, 'trackFileCount': 12},
+  statistics: {'totalTrackCount': trackCount, 'trackFileCount': fileCount},
 );
 
 class _FakeLidarrService extends FakeLidarrService {

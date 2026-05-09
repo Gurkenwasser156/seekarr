@@ -1,10 +1,107 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// ignore: implementation_imports
+import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:seekarr/core/api/base_arr_service.dart';
+import 'package:seekarr/core/utils/dynamic_map_utils.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
+import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
+
+final activityRefreshVersionProvider = StateProvider<int>((ref) => 0);
+
+const _globalActivityPageSize = 50;
+
+enum GlobalActivityKind { request, queue, history, blocklist, missing, cutoff }
+
+class GlobalActivityItem {
+  final GlobalActivityKind kind;
+  final ServiceKey service;
+  final ServiceType serviceType;
+  final String title;
+  final String subtitle;
+  final String status;
+  final double? progress;
+  final DateTime? sortDate;
+  final Map<String, dynamic>? raw;
+  final SeerrRequest? request;
+
+  const GlobalActivityItem({
+    required this.kind,
+    required this.service,
+    required this.serviceType,
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    this.progress,
+    this.sortDate,
+    this.raw,
+    this.request,
+  });
+}
+
+final globalActivityFeedProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  final results = await Future.wait([
+    _loadRequestItems(ref),
+    _loadArrItems(ref, GlobalActivityKind.queue),
+    _loadArrItems(ref, GlobalActivityKind.history),
+  ]);
+
+  return _sortItems(results.expand((items) => items).toList(growable: false));
+});
+
+final globalQueueItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  return _loadArrItems(ref, GlobalActivityKind.queue);
+});
+
+final globalHistoryItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  return _loadArrItems(ref, GlobalActivityKind.history);
+});
+
+final globalWantedItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  final results = await Future.wait([
+    _loadArrItems(ref, GlobalActivityKind.missing),
+    _loadArrItems(ref, GlobalActivityKind.cutoff),
+  ]);
+  return _sortItems(results.expand((items) => items).toList(growable: false));
+});
+
+final globalBlocklistItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  return _loadArrItems(ref, GlobalActivityKind.blocklist);
+});
+
+final globalMissingItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  return _loadArrItems(ref, GlobalActivityKind.missing);
+});
+
+final globalCutoffItemsProvider = FutureProvider<List<GlobalActivityItem>>((
+  ref,
+) async {
+  ref.watch(activityRefreshVersionProvider);
+  return _loadArrItems(ref, GlobalActivityKind.cutoff);
+});
 
 /// Resolves a [ServiceType] to the corresponding *arr service.
 ///
@@ -12,6 +109,8 @@ import 'package:seekarr/features/series/data/sonarr_service.dart';
 /// supported by this provider.
 final resolvedArrServiceProvider =
     Provider.family<ArrActivityMixin, ServiceType>((ref, serviceType) {
+      ref.watch(activityRefreshVersionProvider);
+
       assert(
         serviceType.supportsArrActivity,
         'resolvedArrServiceProvider only supports movies, series, and music.',
@@ -32,3 +131,255 @@ final resolvedArrServiceProvider =
           );
       }
     });
+
+Future<List<GlobalActivityItem>> _loadRequestItems(Ref ref) async {
+  try {
+    final requests = await ref.read(requestsProvider.future);
+    return requests.map(_requestItem).toList(growable: false);
+  } catch (_) {
+    return const [];
+  }
+}
+
+Future<List<GlobalActivityItem>> _loadArrItems(
+  Ref ref,
+  GlobalActivityKind kind,
+) async {
+  final results = await Future.wait(
+    const [ServiceType.movies, ServiceType.series, ServiceType.music].map((
+      serviceType,
+    ) async {
+      try {
+        final service = ref.read(resolvedArrServiceProvider(serviceType));
+        final items = await _loadRawItems(service, kind);
+        return items
+            .whereType<Map>()
+            .map((item) => _arrItem(kind, serviceType, stringKeyMap(item)))
+            .toList(growable: false);
+      } catch (_) {
+        return const <GlobalActivityItem>[];
+      }
+    }),
+  );
+
+  return _sortItems(results.expand((items) => items).toList(growable: false));
+}
+
+Future<List<dynamic>> _loadRawItems(
+  ArrActivityMixin service,
+  GlobalActivityKind kind,
+) {
+  return switch (kind) {
+    GlobalActivityKind.queue => service.getQueue(),
+    GlobalActivityKind.history => service.getHistory(pageSize: 25),
+    GlobalActivityKind.blocklist => service.getBlocklist(),
+    GlobalActivityKind.missing => service.getMissing(
+      pageSize: _globalActivityPageSize,
+    ),
+    GlobalActivityKind.cutoff => service.getCutoff(
+      pageSize: _globalActivityPageSize,
+    ),
+    GlobalActivityKind.request => Future.value(const <dynamic>[]),
+  };
+}
+
+GlobalActivityItem _requestItem(SeerrRequest request) {
+  final title = request.media?.title ?? 'Unknown request';
+  final requester = request.requestedBy?.displayName;
+  final type = request.type == 'tv' ? 'Series' : 'Movie';
+  return GlobalActivityItem(
+    kind: GlobalActivityKind.request,
+    service: ServiceKey.seerr,
+    serviceType: ServiceType.discover,
+    title: title,
+    subtitle: [requester, type].whereType<String>().join(' · '),
+    status: _requestStatusLabel(request.status),
+    sortDate: DateTime.tryParse(request.createdAt),
+    request: request,
+  );
+}
+
+GlobalActivityItem _arrItem(
+  GlobalActivityKind kind,
+  ServiceType serviceType,
+  Map<String, dynamic> item,
+) {
+  final service = _serviceKeyFor(serviceType);
+  return GlobalActivityItem(
+    kind: kind,
+    service: service,
+    serviceType: serviceType,
+    title: _titleFor(kind, serviceType, item),
+    subtitle: _subtitleFor(kind, serviceType, item),
+    status: _statusFor(kind, item),
+    progress: kind == GlobalActivityKind.queue ? queueProgress(item) : null,
+    sortDate: _sortDateFor(kind, item),
+    raw: item,
+  );
+}
+
+List<GlobalActivityItem> _sortItems(List<GlobalActivityItem> items) {
+  return [...items]..sort((a, b) {
+    final left = a.sortDate;
+    final right = b.sortDate;
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    return right.compareTo(left);
+  });
+}
+
+ServiceKey _serviceKeyFor(ServiceType serviceType) {
+  return switch (serviceType) {
+    ServiceType.discover => ServiceKey.seerr,
+    ServiceType.movies => ServiceKey.radarr,
+    ServiceType.series => ServiceKey.sonarr,
+    ServiceType.music => ServiceKey.lidarr,
+  };
+}
+
+String _titleFor(
+  GlobalActivityKind kind,
+  ServiceType serviceType,
+  Map<String, dynamic> item,
+) {
+  return switch (kind) {
+    GlobalActivityKind.queue =>
+      stringOrNull(item['title']) ?? _mediaTitle(item) ?? 'Unknown release',
+    GlobalActivityKind.history =>
+      stringOrNull(item['sourceTitle']) ?? _mediaTitle(item) ?? 'History item',
+    GlobalActivityKind.blocklist =>
+      stringOrNull(item['sourceTitle']) ??
+          _mediaTitle(item) ??
+          'Blocked release',
+    GlobalActivityKind.missing ||
+    GlobalActivityKind.cutoff => _wantedTitle(serviceType, item),
+    GlobalActivityKind.request => 'Request',
+  };
+}
+
+String _subtitleFor(
+  GlobalActivityKind kind,
+  ServiceType serviceType,
+  Map<String, dynamic> item,
+) {
+  final quality = _qualityName(item);
+  return switch (kind) {
+    GlobalActivityKind.queue => [
+      _serviceKeyFor(serviceType).title,
+      quality,
+      stringOrNull(item['indexer']),
+    ].whereType<String>().join(' · '),
+    GlobalActivityKind.history => [
+      _serviceKeyFor(serviceType).title,
+      stringOrNull(item['eventType']),
+      _dateLabel(item['date']),
+    ].whereType<String>().join(' · '),
+    GlobalActivityKind.blocklist => [
+      _serviceKeyFor(serviceType).title,
+      stringOrNull(item['message']),
+    ].whereType<String>().join(' · '),
+    GlobalActivityKind.missing || GlobalActivityKind.cutoff => [
+      _serviceKeyFor(serviceType).title,
+      _wantedContext(serviceType, item),
+    ].whereType<String>().join(' · '),
+    GlobalActivityKind.request => _serviceKeyFor(serviceType).title,
+  };
+}
+
+String _statusFor(GlobalActivityKind kind, Map<String, dynamic> item) {
+  return switch (kind) {
+    GlobalActivityKind.queue =>
+      stringOrNull(item['status']) ??
+          stringOrNull(item['trackedDownloadStatus']) ??
+          'Queued',
+    GlobalActivityKind.history => stringOrNull(item['eventType']) ?? 'History',
+    GlobalActivityKind.blocklist => 'Blocked',
+    GlobalActivityKind.missing => 'Missing',
+    GlobalActivityKind.cutoff => 'Cutoff',
+    GlobalActivityKind.request => 'Request',
+  };
+}
+
+DateTime? _sortDateFor(GlobalActivityKind kind, Map<String, dynamic> item) {
+  return switch (kind) {
+    GlobalActivityKind.queue => DateTime.tryParse(
+      stringOrNull(item['estimatedCompletionTime']) ?? '',
+    ),
+    GlobalActivityKind.history || GlobalActivityKind.blocklist =>
+      DateTime.tryParse(stringOrNull(item['date']) ?? ''),
+    GlobalActivityKind.missing ||
+    GlobalActivityKind.cutoff => DateTime.tryParse(
+      stringOrNull(
+            item['airDateUtc'] ?? item['releaseDate'] ?? item['added'],
+          ) ??
+          '',
+    ),
+    GlobalActivityKind.request => null,
+  };
+}
+
+String _requestStatusLabel(RequestStatus status) {
+  return switch (status) {
+    RequestStatus.pendingApproval => 'Pending',
+    RequestStatus.approved => 'Approved',
+    RequestStatus.declined => 'Declined',
+    RequestStatus.unknown => 'Unknown',
+  };
+}
+
+String _wantedTitle(ServiceType serviceType, Map<String, dynamic> item) {
+  return switch (serviceType) {
+    ServiceType.movies => stringOrNull(item['title']) ?? 'Missing movie',
+    ServiceType.series =>
+      stringOrNull(mapOrNull(item['series'])?['title']) ??
+          stringOrNull(item['title']) ??
+          'Missing episode',
+    ServiceType.music =>
+      stringOrNull(item['title']) ??
+          stringOrNull(mapOrNull(item['album'])?['title']) ??
+          'Missing album',
+    ServiceType.discover => 'Request',
+  };
+}
+
+String? _wantedContext(ServiceType serviceType, Map<String, dynamic> item) {
+  return switch (serviceType) {
+    ServiceType.movies => _yearLabel(item),
+    ServiceType.series => _episodeLabel(item),
+    ServiceType.music => stringOrNull(mapOrNull(item['artist'])?['artistName']),
+    ServiceType.discover => null,
+  };
+}
+
+String? _mediaTitle(Map<String, dynamic> item) {
+  return stringOrNull(mapOrNull(item['movie'])?['title']) ??
+      stringOrNull(mapOrNull(item['series'])?['title']) ??
+      stringOrNull(mapOrNull(item['artist'])?['artistName']) ??
+      stringOrNull(mapOrNull(item['album'])?['title']);
+}
+
+String? _yearLabel(Map<String, dynamic> item) {
+  final year = item['year'];
+  if (year == null) return null;
+  return year.toString();
+}
+
+String? _episodeLabel(Map<String, dynamic> item) {
+  final season = intOrNull(item['seasonNumber']);
+  final episode = intOrNull(item['episodeNumber']);
+  if (season == null || episode == null) return stringOrNull(item['title']);
+  return 'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}';
+}
+
+String? _qualityName(Map<String, dynamic> item) {
+  final quality = mapOrNull(item['quality']);
+  return stringOrNull(mapOrNull(quality?['quality'])?['name']) ??
+      stringOrNull(quality?['name']);
+}
+
+String? _dateLabel(dynamic value) {
+  final text = stringOrNull(value);
+  if (text == null || text.length < 10) return text;
+  return text.substring(0, 10);
+}

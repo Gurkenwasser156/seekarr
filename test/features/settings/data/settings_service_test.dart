@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seekarr/features/settings/data/settings_service.dart';
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 import '../../../test_helpers/fake_secure_settings_store.dart';
@@ -81,7 +80,6 @@ void main() {
         lidarrApiKey: 'lidarr-key',
         region: 'IT',
         themeMode: AppThemeMode.dark,
-        hiddenTabs: {NavTab.movies, NavTab.music},
       );
 
       await service.saveSettings(settings);
@@ -98,7 +96,6 @@ void main() {
       expect(loaded.lidarrApiKey, settings.lidarrApiKey);
       expect(loaded.region, settings.region);
       expect(loaded.themeMode, settings.themeMode);
-      expect(loaded.hiddenTabs, unorderedEquals(settings.hiddenTabs));
     });
 
     test('loadSettings returns empty defaults on fresh storage', () async {
@@ -113,21 +110,6 @@ void main() {
       expect(loaded.lidarrUrl, isEmpty);
       expect(loaded.lidarrApiKey, isEmpty);
       expect(loaded.themeMode, AppThemeMode.system);
-      expect(loaded.hiddenTabs, isEmpty);
-    });
-
-    test('loadSettings ignores unknown and non-hideable hidden tabs', () async {
-      await prefs.setStringList('hidden_tabs', [
-        'discover',
-        'music',
-        'unknown',
-      ]);
-
-      final loaded = await service.loadSettings();
-
-      expect(loaded.hiddenTabs, unorderedEquals([NavTab.music]));
-      expect(loaded.isTabVisible(NavTab.discover), isTrue);
-      expect(loaded.isTabVisible(NavTab.music), isFalse);
     });
 
     test('saveSettings removes secure keys when values are empty', () async {

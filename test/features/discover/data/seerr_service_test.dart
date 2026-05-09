@@ -147,6 +147,7 @@ void main() {
                 'status': 5,
                 'mediaType': 'movie',
                 'title': 'Hydrated Movie',
+                'posterPath': '/poster.jpg',
               },
             },
             'bad',
@@ -188,13 +189,18 @@ void main() {
             },
           ],
         },
-        {'title': 'Hydrated Movie', 'releaseDate': '2022-05-01'},
+        {
+          'title': 'Hydrated Movie',
+          'releaseDate': '2022-05-01',
+          'posterPath': '/hydrated.jpg',
+        },
       ]);
 
       final requests = await service.getRequests();
 
       expect(requests.single.media?.title, 'Hydrated Movie');
       expect(requests.single.media?.year, '2022');
+      expect(requests.single.media?.posterPath, '/hydrated.jpg');
     });
 
     test('returns [] on network error', () async {

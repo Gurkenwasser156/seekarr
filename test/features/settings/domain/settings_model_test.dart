@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show ThemeMode;
+import 'package:flutter/material.dart' show Color, Icons, ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/features/settings/domain/nav_tab.dart';
@@ -90,36 +90,78 @@ void main() {
     });
   });
 
-  group('SettingsModel.hiddenTabs', () {
-    test('copyWith sanitizes non-hideable tabs', () {
-      const settings = SettingsModel();
-
-      final updated = settings.copyWith(
-        hiddenTabs: {NavTab.discover, NavTab.movies, NavTab.settings},
-      );
-
-      expect(updated.hiddenTabs, unorderedEquals([NavTab.movies]));
+  group('NavTab', () {
+    test('matches the approved four-tab navigation model', () {
+      expect(NavTab.values, [
+        NavTab.services,
+        NavTab.activity,
+        NavTab.search,
+        NavTab.settings,
+      ]);
+      expect(NavTab.values.map((tab) => tab.label), [
+        'Services',
+        'Activity',
+        'Search',
+        'Settings',
+      ]);
+      expect(NavTab.values.map((tab) => tab.accentColor), [
+        const Color(0xFF6366F1),
+        const Color(0xFFF59E0B),
+        const Color(0xFF6366F1),
+        const Color(0xFF9CA3AF),
+      ]);
     });
-
-    test(
-      'discover and settings stay visible even if present in hiddenTabs',
-      () {
-        const settings = SettingsModel(
-          hiddenTabs: {NavTab.discover, NavTab.music, NavTab.settings},
-        );
-
-        expect(settings.isTabVisible(NavTab.discover), isTrue);
-        expect(settings.isTabVisible(NavTab.settings), isTrue);
-        expect(settings.isTabVisible(NavTab.music), isFalse);
-      },
-    );
   });
 
   group('ServiceKey.routeParam', () {
-    test('matches enum name for all values', () {
-      for (final key in ServiceKey.values) {
-        expect(key.routeParam, key.name);
-      }
+    test('uses stable route params including the Seerr rename', () {
+      expect(ServiceKey.seerr.routeParam, 'seerr');
+      expect(ServiceKey.radarr.routeParam, 'radarr');
+      expect(ServiceKey.sonarr.routeParam, 'sonarr');
+      expect(ServiceKey.lidarr.routeParam, 'lidarr');
+    });
+  });
+
+  group('ServiceKey metadata', () {
+    test('exposes prototype accent colors and icons', () {
+      expect(ServiceKey.seerr.accent.toARGB32(), 0xFF6366F1);
+      expect(ServiceKey.radarr.accent.toARGB32(), 0xFFF59E0B);
+      expect(ServiceKey.sonarr.accent.toARGB32(), 0xFF8B5CF6);
+      expect(ServiceKey.lidarr.accent.toARGB32(), 0xFFEC4899);
+      expect(ServiceKey.seerr.icon, Icons.search_rounded);
+      expect(ServiceKey.radarr.icon, Icons.movie_rounded);
+      expect(ServiceKey.sonarr.icon, Icons.tv_rounded);
+      expect(ServiceKey.lidarr.icon, Icons.music_note_rounded);
+    });
+
+    test('maps API versions per service', () {
+      expect(ServiceKey.seerr.apiVersion, 'v1');
+      expect(ServiceKey.radarr.apiVersion, 'v3');
+      expect(ServiceKey.sonarr.apiVersion, 'v3');
+      expect(ServiceKey.lidarr.apiVersion, 'v1');
+    });
+
+    test('maps summary item labels per service', () {
+      expect(ServiceKey.seerr.itemLabel, 'requests');
+      expect(ServiceKey.radarr.itemLabel, 'movies');
+      expect(ServiceKey.sonarr.itemLabel, 'series');
+      expect(ServiceKey.lidarr.itemLabel, 'artists');
+    });
+
+    test('extracts host labels with ports for service cards', () {
+      expect(
+        ServiceKey.radarr.extractHost('http://radarr.local:7878'),
+        'radarr.local:7878',
+      );
+      expect(
+        ServiceKey.seerr.extractHost('seerr.local:5055'),
+        'seerr.local:5055',
+      );
+      expect(
+        ServiceKey.sonarr.extractHost('sonarr.local:8989/api?token=secret'),
+        'sonarr.local:8989',
+      );
+      expect(ServiceKey.lidarr.extractHost(''), isNull);
     });
   });
 }

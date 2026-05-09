@@ -1,9 +1,10 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seekarr/core/utils/route_utils.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seekarr/features/shell/presentation/shell_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_screen.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
@@ -14,6 +15,10 @@ import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
 import 'package:seekarr/features/music/presentation/music_screen.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
+import 'package:seekarr/features/search/presentation/search_screen.dart';
+import 'package:seekarr/features/services/presentation/service_all_screens.dart';
+import 'package:seekarr/features/services/presentation/service_dashboard_screen.dart';
+import 'package:seekarr/features/services/presentation/services_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
 import 'package:seekarr/features/discover/presentation/discover_see_all_screen.dart';
 import 'package:seekarr/features/settings/presentation/settings_appearance_screen.dart';
@@ -26,13 +31,15 @@ import 'package:seekarr/features/settings/domain/service_key.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
+const double _serviceDashboardTopPadding = kToolbarHeight;
+
 Page<void> _discoverDetailPage(
   GoRouterState state, {
   required String mediaType,
 }) {
   final id = RouteUtils.safeIntParam(state, 'id');
   if (id == null) {
-    return RouteUtils.redirectPage(key: state.pageKey, location: '/discover');
+    return RouteUtils.redirectPage(key: state.pageKey, location: '/services');
   }
   final heroTag =
       state.uri.queryParameters['heroTag'] ?? 'discover_${mediaType}_$id';
@@ -52,16 +59,12 @@ Page<void> _discoverDetailPage(
 
 Page<void> _libraryDetailPage<T>(
   GoRouterState state, {
-  required String fallbackLocation,
   required String heroPrefix,
   required Widget Function(int id, String heroTag, T? initialItem) buildChild,
 }) {
   final id = RouteUtils.safeIntParam(state, 'id');
   if (id == null) {
-    return RouteUtils.redirectPage(
-      key: state.pageKey,
-      location: fallbackLocation,
-    );
+    return RouteUtils.redirectPage(key: state.pageKey, location: '/services');
   }
   final item = RouteUtils.safeExtra<T>(state);
   final heroTag = state.uri.queryParameters['heroTag'] ?? '${heroPrefix}_$id';
@@ -75,10 +78,256 @@ Page<void> _settingsSubpage(GoRouterState state, Widget child) {
   return RouteUtils.cupertinoPage(key: state.pageKey, child: child);
 }
 
+GoRoute _discoverRoutes({required String path, String? redirectLocation}) {
+  return GoRoute(
+    path: path,
+    redirect: redirectLocation == null
+        ? null
+        : (context, state) => _redirectLegacyDiscover(state),
+    builder: path.startsWith('/')
+        ? (context, state) => const DiscoverScreen()
+        : null,
+    pageBuilder: path.startsWith('/')
+        ? null
+        : (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: ServiceDashboardScreen(
+              service: ServiceKey.seerr,
+              child: const DiscoverScreen(
+                showAppBar: false,
+                topPadding: _serviceDashboardTopPadding,
+              ),
+            ),
+          ),
+    routes: [
+      GoRoute(
+        path: 'requests',
+        builder: (context, state) => const ServiceAllRequestsScreen(),
+      ),
+      GoRoute(
+        path: 'movies/all',
+        builder: (context, state) =>
+            const DiscoverSeeAllScreen(type: 'movies', title: 'Movies'),
+      ),
+      GoRoute(
+        path: 'tv/all',
+        builder: (context, state) =>
+            const DiscoverSeeAllScreen(type: 'tv', title: 'TV Series'),
+      ),
+      GoRoute(
+        path: 'trending/all',
+        builder: (context, state) =>
+            const DiscoverSeeAllScreen(type: 'trending', title: 'Trending'),
+      ),
+      GoRoute(
+        path: 'movie/:id',
+        redirect: (context, state) =>
+            RouteUtils.safeIntParam(state, 'id') == null ? '/services' : null,
+        pageBuilder: (context, state) =>
+            _discoverDetailPage(state, mediaType: 'movie'),
+      ),
+      GoRoute(
+        path: 'tv/:id',
+        redirect: (context, state) =>
+            RouteUtils.safeIntParam(state, 'id') == null ? '/services' : null,
+        pageBuilder: (context, state) =>
+            _discoverDetailPage(state, mediaType: 'tv'),
+      ),
+    ],
+  );
+}
+
+GoRoute _moviesRoutes({required String path, String? redirectLocation}) {
+  return GoRoute(
+    path: path,
+    redirect: redirectLocation == null
+        ? null
+        : (context, state) => _redirectLegacyLibrary(
+            state,
+            legacyBase: '/movies',
+            serviceBase: '/services/radarr/movie',
+          ),
+    builder: path.startsWith('/')
+        ? (context, state) => const MoviesScreen()
+        : null,
+    pageBuilder: path.startsWith('/')
+        ? null
+        : (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: ServiceDashboardScreen(
+              service: ServiceKey.radarr,
+              child: const MoviesScreen(
+                showAppBar: false,
+                topPadding: _serviceDashboardTopPadding,
+              ),
+            ),
+          ),
+    routes: [
+      GoRoute(
+        path: 'media',
+        builder: (context, state) =>
+            const ServiceAllMediaScreen(service: ServiceKey.radarr),
+      ),
+      GoRoute(
+        path: path.startsWith('/') ? ':id' : 'movie/:id',
+        redirect: (context, state) =>
+            RouteUtils.safeIntParam(state, 'id') == null ? '/services' : null,
+        pageBuilder: (context, state) => _libraryDetailPage<RadarrMovie>(
+          state,
+          heroPrefix: 'movie',
+          buildChild: (id, heroTag, movie) => MovieDetailScreen(
+            movieId: id,
+            heroTag: heroTag,
+            initialMovie: movie,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+GoRoute _seriesRoutes({required String path, String? redirectLocation}) {
+  return GoRoute(
+    path: path,
+    redirect: redirectLocation == null
+        ? null
+        : (context, state) => _redirectLegacyLibrary(
+            state,
+            legacyBase: '/series',
+            serviceBase: '/services/sonarr/series',
+          ),
+    builder: path.startsWith('/')
+        ? (context, state) => const SeriesScreen()
+        : null,
+    pageBuilder: path.startsWith('/')
+        ? null
+        : (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: ServiceDashboardScreen(
+              service: ServiceKey.sonarr,
+              child: const SeriesScreen(
+                showAppBar: false,
+                topPadding: _serviceDashboardTopPadding,
+              ),
+            ),
+          ),
+    routes: [
+      GoRoute(
+        path: 'media',
+        builder: (context, state) =>
+            const ServiceAllMediaScreen(service: ServiceKey.sonarr),
+      ),
+      GoRoute(
+        path: path.startsWith('/') ? ':id' : 'series/:id',
+        redirect: (context, state) =>
+            RouteUtils.safeIntParam(state, 'id') == null ? '/services' : null,
+        pageBuilder: (context, state) => _libraryDetailPage<SonarrSeries>(
+          state,
+          heroPrefix: 'series',
+          buildChild: (id, heroTag, series) => SeriesDetailScreen(
+            seriesId: id,
+            heroTag: heroTag,
+            initialSeries: series,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+GoRoute _musicRoutes({required String path, String? redirectLocation}) {
+  return GoRoute(
+    path: path,
+    redirect: redirectLocation == null
+        ? null
+        : (context, state) => _redirectLegacyLibrary(
+            state,
+            legacyBase: '/music',
+            serviceBase: '/services/lidarr/artist',
+          ),
+    builder: path.startsWith('/')
+        ? (context, state) => const MusicScreen()
+        : null,
+    pageBuilder: path.startsWith('/')
+        ? null
+        : (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: ServiceDashboardScreen(
+              service: ServiceKey.lidarr,
+              child: const MusicScreen(
+                showAppBar: false,
+                topPadding: _serviceDashboardTopPadding,
+              ),
+            ),
+          ),
+    routes: [
+      GoRoute(
+        path: 'media',
+        builder: (context, state) =>
+            const ServiceAllMediaScreen(service: ServiceKey.lidarr),
+      ),
+      GoRoute(
+        path: path.startsWith('/') ? ':id' : 'artist/:id',
+        redirect: (context, state) =>
+            RouteUtils.safeIntParam(state, 'id') == null ? '/services' : null,
+        pageBuilder: (context, state) => _libraryDetailPage<LidarrArtist>(
+          state,
+          heroPrefix: 'artist',
+          buildChild: (id, heroTag, artist) => MusicDetailScreen(
+            artistId: id,
+            heroTag: heroTag,
+            initialArtist: artist,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+String? _redirectLegacyDiscover(GoRouterState state) {
+  final path = state.uri.path;
+  if (path == '/discover') return '/services';
+
+  const legacyBase = '/discover/';
+  if (!path.startsWith(legacyBase)) return null;
+
+  final suffix = path.substring(legacyBase.length);
+  if (suffix == 'movies/all' ||
+      suffix == 'tv/all' ||
+      suffix == 'trending/all' ||
+      suffix.startsWith('movie/') ||
+      suffix.startsWith('tv/')) {
+    return _preserveQuery(state.uri, '/services/seerr/$suffix');
+  }
+
+  return '/services';
+}
+
+String? _redirectLegacyLibrary(
+  GoRouterState state, {
+  required String legacyBase,
+  required String serviceBase,
+}) {
+  final path = state.uri.path;
+  if (path == legacyBase) return '/services';
+
+  final prefix = '$legacyBase/';
+  if (!path.startsWith(prefix)) return null;
+
+  final id = path.substring(prefix.length);
+  if (id.isEmpty || id.contains('/')) return '/services';
+  return _preserveQuery(state.uri, '$serviceBase/$id');
+}
+
+String _preserveQuery(Uri source, String path) {
+  final query = source.hasQuery ? '?${source.query}' : '';
+  return '$path$query';
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/discover',
+    initialLocation: '/services',
     routes: [
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -87,99 +336,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
         routes: [
           GoRoute(
-            path: '/discover',
-            builder: (context, state) => const DiscoverScreen(),
+            path: '/services',
+            builder: (context, state) => const ServicesScreen(),
             routes: [
-              GoRoute(
-                path: 'movies/all',
-                builder: (context, state) =>
-                    const DiscoverSeeAllScreen(type: 'movies', title: 'Movies'),
-              ),
-              GoRoute(
-                path: 'tv/all',
-                builder: (context, state) =>
-                    const DiscoverSeeAllScreen(type: 'tv', title: 'TV Series'),
-              ),
-              GoRoute(
-                path: 'trending/all',
-                builder: (context, state) => const DiscoverSeeAllScreen(
-                  type: 'trending',
-                  title: 'Trending',
-                ),
-              ),
-              GoRoute(
-                path: 'movie/:id',
-                pageBuilder: (context, state) =>
-                    _discoverDetailPage(state, mediaType: 'movie'),
-              ),
-              GoRoute(
-                path: 'tv/:id',
-                pageBuilder: (context, state) =>
-                    _discoverDetailPage(state, mediaType: 'tv'),
-              ),
-            ],
-          ),
-
-          GoRoute(
-            path: '/movies',
-            builder: (context, state) => const MoviesScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                pageBuilder: (context, state) =>
-                    _libraryDetailPage<RadarrMovie>(
-                      state,
-                      fallbackLocation: '/movies',
-                      heroPrefix: 'movie',
-                      buildChild: (id, heroTag, movie) => MovieDetailScreen(
-                        movieId: id,
-                        heroTag: heroTag,
-                        initialMovie: movie,
-                      ),
-                    ),
-              ),
+              _discoverRoutes(path: 'seerr'),
+              _moviesRoutes(path: 'radarr'),
+              _seriesRoutes(path: 'sonarr'),
+              _musicRoutes(path: 'lidarr'),
             ],
           ),
           GoRoute(
-            path: '/series',
-            builder: (context, state) => const SeriesScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                pageBuilder: (context, state) =>
-                    _libraryDetailPage<SonarrSeries>(
-                      state,
-                      fallbackLocation: '/series',
-                      heroPrefix: 'series',
-                      buildChild: (id, heroTag, series) => SeriesDetailScreen(
-                        seriesId: id,
-                        heroTag: heroTag,
-                        initialSeries: series,
-                      ),
-                    ),
-              ),
-            ],
+            path: '/activity',
+            builder: (context, state) => const GlobalActivityScreen(),
           ),
           GoRoute(
-            path: '/music',
-            builder: (context, state) => const MusicScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                pageBuilder: (context, state) =>
-                    _libraryDetailPage<LidarrArtist>(
-                      state,
-                      fallbackLocation: '/music',
-                      heroPrefix: 'artist',
-                      buildChild: (id, heroTag, artist) => MusicDetailScreen(
-                        artistId: id,
-                        heroTag: heroTag,
-                        initialArtist: artist,
-                      ),
-                    ),
-              ),
-            ],
+            path: '/search',
+            builder: (context, state) => const SearchScreen(),
           ),
+          _discoverRoutes(path: '/discover', redirectLocation: '/services'),
+          _moviesRoutes(path: '/movies', redirectLocation: '/services'),
+          _seriesRoutes(path: '/series', redirectLocation: '/services'),
+          _musicRoutes(path: '/music', redirectLocation: '/services'),
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsHomeScreen(),

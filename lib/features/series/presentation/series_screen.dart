@@ -8,7 +8,10 @@ import 'package:seekarr/features/series/presentation/series_provider.dart';
 import 'package:seekarr/features/series/presentation/series_search_provider.dart';
 
 class SeriesScreen extends StatelessWidget {
-  const SeriesScreen({super.key});
+  final bool showAppBar;
+  final double topPadding;
+
+  const SeriesScreen({super.key, this.showAppBar = true, this.topPadding = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,7 @@ class SeriesScreen extends StatelessWidget {
       title: 'TV Series',
       searchHint: 'Search TV series...',
       activityRoute: '/activity/series',
-      navigationSection: NavigationSection.series,
+      navigationSection: NavigationSection.services,
       serviceName: 'Sonarr',
       heroTagPrefix: 'series',
       searchHeroTagPrefix: 'series_search',
@@ -40,8 +43,13 @@ class SeriesScreen extends StatelessWidget {
       settingsSelector: (settings) =>
           (settings.sonarrUrl, settings.sonarrApiKey),
       onItemTap: (context, series, heroTag) {
-        context.go('/series/${series.id}?heroTag=$heroTag', extra: series);
+        context.go(
+          '/services/sonarr/series/${series.id}?heroTag=$heroTag',
+          extra: series,
+        );
       },
+      showAppBar: showAppBar,
+      topPadding: topPadding,
     );
   }
 }

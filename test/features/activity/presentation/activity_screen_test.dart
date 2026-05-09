@@ -5,9 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_tab.dart';
 import 'package:seekarr/features/activity/presentation/widgets/wanted_tab.dart';
+import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
+import 'package:seekarr/features/music/data/lidarr_service.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
 
 import '../../../test_helpers/fake_services.dart';
 
@@ -58,4 +61,104 @@ void main() {
 
     expect(find.byType(WantedTab), findsOneWidget);
   });
+
+  testWidgets('renders global activity dashboard with seven tabs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          requestsProvider.overrideWith(
+            (ref) async => const [
+              SeerrRequest(
+                id: 1,
+                status: RequestStatus.approved,
+                media: RequestMedia(title: 'Shogun'),
+                createdAt: '2026-04-03T09:05:00Z',
+                type: 'tv',
+                requestedBy: RequestedBy(id: 1, displayName: 'sarah'),
+              ),
+            ],
+          ),
+          seerrServiceProvider.overrideWith((ref) => FakeSeerrService()),
+          radarrServiceProvider.overrideWith(
+            (ref) => _ActivityRadarrService(
+              queue: const [
+                {
+                  'title': 'Furiosa',
+                  'status': 'downloading',
+                  'size': 100,
+                  'sizeleft': 25,
+                },
+              ],
+              history: const [
+                {
+                  'sourceTitle': 'Dune.Part.Two.2024',
+                  'eventType': 'downloadImported',
+                  'date': '2026-04-02T11:18:00Z',
+                },
+              ],
+              missing: const [
+                {'title': 'Kingdom of the Planet of the Apes'},
+              ],
+            ),
+          ),
+          sonarrServiceProvider.overrideWith((ref) => FakeSonarrService()),
+          lidarrServiceProvider.overrideWith((ref) => FakeLidarrService()),
+        ],
+        child: const MaterialApp(home: GlobalActivityScreen()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Activity'), findsWidgets);
+    for (final label in [
+      'Queue',
+      'History',
+      'Wanted',
+      'Blocklist',
+      'Missing',
+      'Cutoff',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('Furiosa'), findsOneWidget);
+    expect(find.text('Shogun'), findsOneWidget);
+
+    await tester.tap(find.text('Missing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kingdom of the Planet of the Apes'), findsOneWidget);
+    expect(find.text('Furiosa'), findsNothing);
+  });
+}
+
+class _ActivityRadarrService extends FakeRadarrService {
+  _ActivityRadarrService({
+    this.queue = const [],
+    this.history = const [],
+    this.missing = const [],
+  });
+
+  final List<dynamic> queue;
+  final List<dynamic> history;
+  final List<dynamic> missing;
+
+  @override
+  Future<List<dynamic>> getQueue() async => queue;
+
+  @override
+  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
+      history;
+
+  @override
+  Future<List<dynamic>> getAllHistory() async => history;
+
+  @override
+  Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async =>
+      missing;
+
+  @override
+  Future<List<dynamic>> getAllMissing() async => missing;
 }

@@ -40,6 +40,8 @@ class MediaBrowseScaffold<T> extends ConsumerWidget {
   final SettingsSelector settingsSelector;
   final MediaBrowseItemTap<T> onItemTap;
   final List<String>? coverTypes;
+  final bool showAppBar;
+  final double topPadding;
 
   const MediaBrowseScaffold({
     super.key,
@@ -59,6 +61,8 @@ class MediaBrowseScaffold<T> extends ConsumerWidget {
     required this.settingsSelector,
     required this.onItemTap,
     this.coverTypes,
+    this.showAppBar = true,
+    this.topPadding = 0,
   });
 
   @override
@@ -76,27 +80,31 @@ class MediaBrowseScaffold<T> extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        leading: isSearching
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  ref.read(searchQueryProvider.notifier).state = '';
-                },
-                tooltip: 'Exit search',
-              )
-            : null,
-        title: Text(title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => context.push(activityRoute),
-            tooltip: 'Activity',
-          ),
-        ],
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              leading: isSearching
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        ref.read(searchQueryProvider.notifier).state = '';
+                      },
+                      tooltip: 'Exit search',
+                    )
+                  : null,
+              title: Text(title),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () => context.push(activityRoute),
+                  tooltip: 'Activity',
+                ),
+              ],
+            )
+          : null,
       body: Column(
         children: [
+          if (topPadding > 0)
+            SizedBox(height: topPadding + MediaQuery.paddingOf(context).top),
           SearchBarHeader(
             hintText: searchHint,
             onQueryChanged: (query) {

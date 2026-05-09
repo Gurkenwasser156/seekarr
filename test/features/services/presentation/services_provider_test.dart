@@ -1,0 +1,251 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:seekarr/core/api/api_client.dart';
+import 'package:seekarr/features/movies/data/radarr_service.dart';
+import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+import 'package:seekarr/features/series/data/sonarr_service.dart';
+import 'package:seekarr/features/services/domain/service_summary.dart';
+import 'package:seekarr/features/services/presentation/services_provider.dart';
+import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
+import 'package:seekarr/features/settings/domain/settings_model.dart';
+
+import '../../../test_helpers/fake_services.dart';
+import '../../../test_helpers/model_builders.dart';
+
+void main() {
+  group('serviceSummaryProvider', () {
+    test('returns offline summary when service is not configured', () async {
+      final container = _container();
+
+      final summary = await container.read(
+        serviceSummaryProvider(ServiceKey.radarr).future,
+      );
+
+      expect(summary.service, ServiceKey.radarr);
+      expect(summary.status, ServiceSummaryStatus.offline);
+      expect(summary.host, isEmpty);
+      expect(summary.countLabel, 'Offline');
+    });
+
+    test('returns online summary with version and item count', () async {
+      final container = _container(
+        settings: const SettingsModel(
+          radarrUrl: 'http://radarr.local:7878',
+          radarrApiKey: 'key',
+        ),
+        statusClient: _StatusClient({'version': '5.4.6'}),
+        radarrService: _MoviesRadarrService([buildMovie(title: 'Dune')]),
+      );
+
+      final summary = await container.read(
+        serviceSummaryProvider(ServiceKey.radarr).future,
+      );
+
+      expect(summary.status, ServiceSummaryStatus.online);
+      expect(summary.host, 'radarr.local:7878');
+      expect(summary.versionLabel, 'v5.4.6');
+      expect(summary.countLabel, '1 movie');
+    });
+
+    test('returns offline summary when status endpoint fails', () async {
+      final container = _container(
+        settings: const SettingsModel(
+          radarrUrl: 'http://radarr.local:7878',
+          radarrApiKey: 'key',
+        ),
+        statusClient: _ThrowingStatusClient(),
+        radarrService: _MoviesRadarrService([buildMovie(title: 'Dune')]),
+      );
+
+      final summary = await container.read(
+        serviceSummaryProvider(ServiceKey.radarr).future,
+      );
+
+      expect(summary.status, ServiceSummaryStatus.offline);
+      expect(summary.host, 'radarr.local:7878');
+      expect(summary.countLabel, 'Offline');
+    });
+
+    test('keeps service online when only item count fails', () async {
+      final container = _container(
+        settings: const SettingsModel(
+          radarrUrl: 'http://radarr.local:7878',
+          radarrApiKey: 'key',
+        ),
+        statusClient: _StatusClient({'version': '5.4.6'}),
+        radarrService: _ThrowingMoviesRadarrService(),
+      );
+
+      final summary = await container.read(
+        serviceSummaryProvider(ServiceKey.radarr).future,
+      );
+
+      expect(summary.status, ServiceSummaryStatus.online);
+      expect(summary.versionLabel, 'v5.4.6');
+      expect(summary.countLabel, 'Summary unavailable');
+    });
+  });
+
+  group('servicesQueueProvider', () {
+    test('combines Radarr and Sonarr queue items with progress', () async {
+      final container = _container(
+        radarrService: _QueueRadarrService([
+          {
+            'title': 'Furiosa',
+            'status': 'downloading',
+            'size': 100,
+            'sizeleft': 25,
+            'quality': {
+              'quality': {'name': 'WEB-DL 1080p'},
+            },
+          },
+        ]),
+        sonarrService: _QueueSonarrService([
+          {
+            'title': 'The Boys S04E07',
+            'status': 'downloading',
+            'size': 200,
+            'sizeleft': 100,
+          },
+          {'title': 'Shogun'},
+          {'title': 'Slow Horses'},
+        ]),
+      );
+
+      final items = await container.read(servicesQueueProvider.future);
+
+      expect(items, hasLength(3));
+      expect(items[0].service, ServiceKey.radarr);
+      expect(items[0].title, 'Furiosa');
+      expect(items[0].subtitle, 'Radarr · WEB-DL 1080p');
+      expect(items[0].progress, 0.75);
+      expect(items[1].service, ServiceKey.sonarr);
+      expect(items[1].progress, 0.5);
+      expect(items[2].title, 'Shogun');
+      expect(items.map((item) => item.title), isNot(contains('Slow Horses')));
+    });
+
+    test('keeps queue available when one service fails', () async {
+      final container = _container(
+        radarrService: _ThrowingRadarrService(),
+        sonarrService: _QueueSonarrService([
+          {'title': 'Shogun', 'size': 100, 'sizeleft': 0},
+        ]),
+      );
+
+      final items = await container.read(servicesQueueProvider.future);
+
+      expect(items, hasLength(1));
+      expect(items.single.service, ServiceKey.sonarr);
+      expect(items.single.title, 'Shogun');
+    });
+  });
+}
+
+ProviderContainer _container({
+  SettingsModel settings = const SettingsModel(),
+  RadarrService? radarrService,
+  SonarrService? sonarrService,
+  ApiClient? statusClient,
+}) {
+  final container = ProviderContainer(
+    overrides: [
+      currentSettingsProvider.overrideWith((ref) => settings),
+      if (statusClient != null)
+        serviceStatusClientFactoryProvider.overrideWith(
+          (ref) =>
+              ({required String baseUrl, required String apiKey}) =>
+                  statusClient,
+        ),
+      radarrServiceProvider.overrideWith(
+        (ref) => radarrService ?? FakeRadarrService(),
+      ),
+      sonarrServiceProvider.overrideWith(
+        (ref) => sonarrService ?? FakeSonarrService(),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+  return container;
+}
+
+class _MoviesRadarrService extends FakeRadarrService {
+  _MoviesRadarrService(this.movies);
+
+  final List<RadarrMovie> movies;
+
+  @override
+  Future<List<RadarrMovie>> getMovies() async => movies;
+}
+
+class _ThrowingMoviesRadarrService extends FakeRadarrService {
+  @override
+  Future<List<RadarrMovie>> getMovies() async =>
+      throw Exception('movies failed');
+}
+
+class _QueueRadarrService extends FakeRadarrService {
+  _QueueRadarrService(this.items);
+
+  final List<dynamic> items;
+
+  @override
+  Future<List<dynamic>> getQueue() async => items;
+}
+
+class _ThrowingRadarrService extends FakeRadarrService {
+  @override
+  Future<List<dynamic>> getQueue() async => throw Exception('Radarr failed');
+}
+
+class _QueueSonarrService extends FakeSonarrService {
+  _QueueSonarrService(this.items);
+
+  final List<dynamic> items;
+
+  @override
+  Future<List<dynamic>> getQueue() async => items;
+}
+
+class _StatusClient extends ApiClient {
+  _StatusClient(this.data)
+    : super(baseUrl: 'https://status.example.com', apiKey: 'key');
+
+  final Map<String, dynamic> data;
+
+  @override
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+  }) async {
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      statusCode: 200,
+      data: data,
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _ThrowingStatusClient extends ApiClient {
+  _ThrowingStatusClient()
+    : super(baseUrl: 'https://status.example.com', apiKey: 'key');
+
+  @override
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+  }) async {
+    throw Exception('status failed');
+  }
+
+  @override
+  void close({bool force = false}) {}
+}

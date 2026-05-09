@@ -7,12 +7,8 @@ import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/core/widgets/media_detail_poster_row.dart';
 import 'package:seekarr/core/widgets/shimmer_placeholder.dart';
 
-/// A reusable view for displaying media details with hero poster,
-/// backdrop parallax, and sliver-based scrollable content.
-///
-/// The [posterRow] builder receives a `collapseFactor` (0.0 = expanded,
-/// 1.0 = collapsed) and should return a [MediaDetailPosterRow] that
-/// stays pinned when the user scrolls.
+/// A reusable view for displaying media details with a prototype-style hero,
+/// compact poster/title block, and sliver-based scrollable content.
 class MediaDetailView extends StatelessWidget {
   final String heroTag;
   final String? posterUrl;
@@ -43,24 +39,15 @@ class MediaDetailView extends StatelessWidget {
     this.background,
   });
 
-  /// Height of the SliverAppBar when fully collapsed.
-  ///
-  /// Must accommodate: toolbar (kToolbarHeight) + collapsed poster row
-  /// + vertical padding.
-  static const collapsedHeight =
-      kToolbarHeight +
-      MediaDetailPosterRow.collapsedHeight +
-      AppSpacing.sm +
-      AppSpacing.lg;
+  /// Retained for loading skeleton sizing.
+  static const collapsedHeight = MediaDetailPosterRow.collapsedHeight;
 
-  /// Height of the SliverAppBar when fully expanded.
-  static const expandedHeight = 380.0;
+  /// Prototype hero height excluding the device safe-area inset.
+  static const expandedHeight = 210.0;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasPosterRow = posterRow != null;
-    final hasBackdrop = backdropUrl != null && backdropUrl!.isNotEmpty;
     final scrollBottomPadding =
         FloatingNavBarMetrics.getScrollViewBottomPadding(context);
 
@@ -68,73 +55,29 @@ class MediaDetailView extends StatelessWidget {
       color: colorScheme.surface,
       child: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: expandedHeight,
-            pinned: true,
-            backgroundColor: colorScheme.surface,
-            collapsedHeight: hasPosterRow ? collapsedHeight : null,
-            flexibleSpace: hasPosterRow
-                ? _PinnedPosterRowFlexibleSpace(
-                    backdropUrl: hasBackdrop ? backdropUrl : null,
-                    posterRow: posterRow!,
-                    background: background,
-                    surfaceColor: colorScheme.surface,
-                    collapsedHeight: collapsedHeight,
-                    expandedHeight: expandedHeight,
-                  )
-                : FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (hasBackdrop)
-                          _BackdropHeader(
-                            backdropUrl: backdropUrl!,
-                            surfaceColor: colorScheme.surface,
-                          )
-                        else
-                          Hero(
-                            tag: heroTag,
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: posterUrl != null && posterUrl!.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: posterUrl!,
-                                      httpHeaders: posterHeaders,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (context, url, error) =>
-                                          Container(
-                                            color: colorScheme.surfaceContainer,
-                                          ),
-                                    )
-                                  : Container(
-                                      color: colorScheme.surfaceContainer,
-                                      child: Icon(
-                                        Icons.movie_outlined,
-                                        size: 64,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        if (background != null) background!,
-                      ],
-                    ),
-                  ),
-          ),
-
-          // Main content
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ...contentSections,
-                  if (slivers.isEmpty) SizedBox(height: scrollBottomPadding),
-                ],
-              ),
+            child: _PrototypeDetailHero(
+              heroTag: heroTag,
+              posterUrl: posterUrl,
+              posterHeaders: posterHeaders,
+              backdropUrl: backdropUrl,
+              posterRow: posterRow,
+              background: background,
+              surfaceColor: colorScheme.surface,
             ),
           ),
+
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...contentSections,
+                if (slivers.isEmpty) SizedBox(height: scrollBottomPadding),
+              ],
+            ),
+          ),
+          if (slivers.isNotEmpty)
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
 
           ...slivers,
 
@@ -146,39 +89,22 @@ class MediaDetailView extends StatelessWidget {
   }
 }
 
-double _collapseFactorForHeights({
-  required BoxConstraints constraints,
-  required double topPadding,
-  required double collapsedHeight,
-  required double expandedHeight,
-}) {
-  final minHeight = collapsedHeight + topPadding;
-  final maxHeight = expandedHeight + topPadding;
-  final range = maxHeight - minHeight;
-
-  return range > 0
-      ? (1.0 - ((constraints.maxHeight - minHeight) / range)).clamp(0.0, 1.0)
-      : 0.0;
-}
-
-/// Internal widget that manages the flexible space with a pinned poster row.
-///
-/// Uses [LayoutBuilder] to calculate the collapse progress and positions
-/// the backdrop (with parallax) behind the poster row.
-class _PinnedPosterRowFlexibleSpace extends StatelessWidget {
+class _PrototypeDetailHero extends StatelessWidget {
+  final String heroTag;
+  final String? posterUrl;
+  final Map<String, String>? posterHeaders;
   final String? backdropUrl;
-  final Widget Function(double collapseFactor) posterRow;
+  final Widget Function(double collapseFactor)? posterRow;
   final Widget? background;
   final Color surfaceColor;
-  final double collapsedHeight;
-  final double expandedHeight;
 
-  const _PinnedPosterRowFlexibleSpace({
-    required this.posterRow,
+  const _PrototypeDetailHero({
+    required this.heroTag,
     required this.surfaceColor,
-    required this.collapsedHeight,
-    required this.expandedHeight,
+    this.posterUrl,
+    this.posterHeaders,
     this.backdropUrl,
+    this.posterRow,
     this.background,
   });
 
@@ -187,69 +113,129 @@ class _PinnedPosterRowFlexibleSpace extends StatelessWidget {
     final hasBackdrop = backdropUrl != null && backdropUrl!.isNotEmpty;
     final topPadding = MediaQuery.paddingOf(context).top;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final collapseFactor = _collapseFactorForHeights(
-          constraints: constraints,
-          topPadding: topPadding,
-          collapsedHeight: collapsedHeight,
-          expandedHeight: expandedHeight,
-        );
-
-        return ClipRect(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Backdrop or gradient background
-              if (hasBackdrop)
-                _BackdropHeader(
-                  backdropUrl: backdropUrl!,
-                  surfaceColor: surfaceColor,
-                )
-              else
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                        surfaceColor,
-                      ],
-                    ),
-                  ),
-                ),
-
-              if (background != null) background!,
-
-              // Smooth transition overlay at the bottom edge
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: AppSpacing.xxl,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [surfaceColor.withValues(alpha: 0), surfaceColor],
-                    ),
-                  ),
-                ),
+    return SizedBox(
+      height: MediaDetailView.expandedHeight + topPadding,
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasBackdrop)
+              _BackdropHeader(
+                backdropUrl: backdropUrl!,
+                surfaceColor: surfaceColor,
+              )
+            else
+              _FallbackHeroBackdrop(
+                heroTag: heroTag,
+                posterUrl: posterUrl,
+                posterHeaders: posterHeaders,
+                surfaceColor: surfaceColor,
               ),
+            if (background != null) background!,
+            Positioned(
+              top: topPadding + AppSpacing.md,
+              left: AppSpacing.md,
+              child: const _HeroBackButton(),
+            ),
+            Positioned(
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              bottom: AppSpacing.lg,
+              child: posterRow?.call(0) ?? const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              // Poster row — pinned at bottom
-              Positioned(
-                left: AppSpacing.xl,
-                right: AppSpacing.xl,
-                bottom: AppSpacing.lg,
-                child: posterRow(collapseFactor),
-              ),
-            ],
+class _HeroBackButton extends StatelessWidget {
+  const _HeroBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 36,
+      child: IconButton.filled(
+        onPressed: () => Navigator.of(context).maybePop(),
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.black.withValues(alpha: 0.45),
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.zero,
+        ),
+        icon: const Icon(Icons.chevron_left_rounded, size: 22),
+      ),
+    );
+  }
+}
+
+class _FallbackHeroBackdrop extends StatelessWidget {
+  final String heroTag;
+  final String? posterUrl;
+  final Map<String, String>? posterHeaders;
+  final Color surfaceColor;
+
+  const _FallbackHeroBackdrop({
+    required this.heroTag,
+    required this.surfaceColor,
+    this.posterUrl,
+    this.posterHeaders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasPoster = posterUrl != null && posterUrl!.isNotEmpty;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.surfaceContainerHighest, surfaceColor],
+            ),
           ),
-        );
-      },
+        ),
+        Center(
+          child: Opacity(
+            opacity: 0.22,
+            child: hasPoster
+                ? Hero(
+                    tag: '${heroTag}_backdrop',
+                    child: CachedNetworkImage(
+                      imageUrl: posterUrl!,
+                      httpHeaders: posterHeaders,
+                      width: 120,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Icon(
+                        Icons.movie_outlined,
+                        size: 90,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : Icon(
+                    Icons.movie_outlined,
+                    size: 90,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [surfaceColor.withValues(alpha: 0.04), surfaceColor],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -326,25 +312,48 @@ class MediaDetailOverviewSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          heading,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Text(
+        overview,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          height: 1.6,
+          color: colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          overview,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            height: 1.6,
-            color: colorScheme.onSurfaceVariant,
+        textAlign: TextAlign.start,
+      ),
+    );
+  }
+}
+
+class MediaDetailSectionHeader extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const MediaDetailSectionHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
           ),
-          textAlign: TextAlign.start,
-        ),
-      ],
+          if (trailing != null) trailing!,
+        ],
+      ),
     );
   }
 }
@@ -375,12 +384,8 @@ class MediaDetailLoadingView extends StatelessWidget {
       color: colorScheme.surface,
       child: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: MediaDetailView.expandedHeight,
-            pinned: true,
-            backgroundColor: colorScheme.surface,
-            collapsedHeight: MediaDetailView.collapsedHeight,
-            flexibleSpace: MediaDetailLoadingHeader(posterCard: posterCard),
+          SliverToBoxAdapter(
+            child: MediaDetailLoadingHeader(posterCard: posterCard),
           ),
           _MediaDetailLoadingBody(subtitleWidth: subtitleWidth),
         ],
@@ -399,53 +404,47 @@ class MediaDetailLoadingHeader extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.paddingOf(context).top;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final collapseFactor = _collapseFactorForHeights(
-          constraints: constraints,
-          topPadding: topPadding,
-          collapsedHeight: MediaDetailView.collapsedHeight,
-          expandedHeight: MediaDetailView.expandedHeight,
-        );
-
-        return ClipRect(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      colorScheme.surfaceContainerHighest,
-                      colorScheme.surface,
-                    ],
-                  ),
+    return SizedBox(
+      height: MediaDetailView.expandedHeight + topPadding,
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colorScheme.surfaceContainerHighest,
+                    colorScheme.surface,
+                  ],
                 ),
               ),
-              Positioned(
-                left: AppSpacing.xl,
-                right: AppSpacing.xl,
-                bottom: AppSpacing.lg,
-                child: MediaDetailPosterRow(
-                  collapseFactor: collapseFactor,
-                  posterCard:
-                      posterCard ??
-                      ShimmerPlaceholder.card(
-                        height: MediaDetailPosterRow.expandedHeight,
-                      ),
-                  statusBadge: ShimmerPlaceholder(
-                    width: 96,
-                    height: 28,
-                    borderRadius: AppRadius.borderRadiusLg,
-                  ),
+            ),
+            Positioned(
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              bottom: AppSpacing.lg,
+              child: MediaDetailPosterRow(
+                collapseFactor: 0,
+                posterCard:
+                    posterCard ??
+                    ShimmerPlaceholder.card(
+                      height: MediaDetailPosterRow.expandedHeight,
+                    ),
+                statusBadge: ShimmerPlaceholder(
+                  width: 80,
+                  height: 20,
+                  borderRadius: AppRadius.borderRadiusSm,
                 ),
+                title: ' ',
+                metadataItems: const [' '],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

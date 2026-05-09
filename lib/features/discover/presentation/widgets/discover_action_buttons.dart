@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/header_action_row.dart';
-import 'package:seekarr/core/widgets/media_detail_poster_row.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_extras_provider.dart';
 import 'package:seekarr/features/discover/presentation/discover_details_provider.dart';
@@ -15,11 +15,8 @@ import 'package:seekarr/features/discover/presentation/widgets/request_bottom_sh
 
 /// Action buttons for the discover detail screen header.
 ///
-/// Renders a [Column] of [HeaderActionRow] widgets that adapt to
-/// the poster row's [collapseFactor].
-///
-/// Row 1: Request (expanded, FilledButton) + Videos (icon-only).
-/// Row 2: Manage (expanded) + Open in Service (icon-only). Only shown when applicable.
+/// Renders a compact row: an expanded request button followed by icon-only
+/// actions for videos and management.
 class DiscoverActionButtons extends ConsumerWidget {
   final int mediaId;
   final String mediaType;
@@ -57,80 +54,68 @@ class DiscoverActionButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final gap = MediaDetailPosterRow.actionGap(collapseFactor);
-    final showManageRow = hasManageableMedia || isInService;
     final serviceName = _normalizedMediaType == 'movie' ? 'Radarr' : 'Sonarr';
-    final manageLabel = _normalizedMediaType == 'movie'
-        ? 'Manage Movie'
-        : 'Manage Series';
-    Widget primaryGlow({required Widget child}) =>
-        HeaderActionRow.glowWrap(glowColor: colorScheme.primary, child: child);
+    final requestLabel = isAvailable || isInService || hasManageableMedia
+        ? 'Requested'
+        : 'Request';
+    final hasManageAction = hasManageableMedia || isInService;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Row 1: Request + Videos
-        HeaderActionRow(
-          expanded: primaryGlow(
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Expanded(
             child: FilledButton.icon(
-              onPressed: () => _showRequestSheet(context, ref),
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text(
-                'Request',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              onPressed: isAvailable || isInService || hasManageableMedia
+                  ? null
+                  : () => _showRequestSheet(context, ref),
+              icon: Icon(
+                isAvailable || isInService
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.add_circle_outline_rounded,
+                size: 18,
               ),
-              style: HeaderActionRow.expandedButtonStyle(),
+              label: Text(requestLabel),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(
+                  HeaderActionRow.buttonHeight,
+                ),
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                disabledBackgroundColor: colorScheme.primary.withValues(
+                  alpha: 0.18,
+                ),
+                disabledForegroundColor: colorScheme.primary,
+              ),
             ),
           ),
-          trailing: videos.isNotEmpty
-              ? primaryGlow(
-                  child: DiscoverVideosButton.iconOnly(videos: videos),
-                )
-              : null,
-        ),
-
-        if (showManageRow) ...[
-          SizedBox(height: gap),
-          // Row 2: Manage + Open in Service
-          HeaderActionRow(
-            expanded: primaryGlow(
-              child: hasManageableMedia
-                  ? FilledButton.icon(
-                      onPressed: () => _showManageSheet(context, ref),
-                      icon: const Icon(Icons.settings),
-                      label: Text(
-                        manageLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                      ),
-                      style: HeaderActionRow.expandedButtonStyle(),
-                    )
-                  : FilledButton.icon(
-                      onPressed: () => _openInService(context, ref),
-                      icon: const Icon(Icons.open_in_new),
-                      label: Text(
-                        'Open in $serviceName',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                      ),
-                      style: HeaderActionRow.expandedButtonStyle(),
-                    ),
-            ),
-            trailing: hasManageableMedia && isInService
-                ? primaryGlow(
-                    child: FilledButton(
-                      onPressed: () => _openInService(context, ref),
-                      style: HeaderActionRow.iconOnlyButtonStyle(),
-                      child: const Icon(Icons.open_in_new),
-                    ),
-                  )
+          const SizedBox(width: AppSpacing.sm),
+          _DiscoverDetailIconButton(
+            icon: Icons.play_circle_outline_rounded,
+            tooltip: 'Trailers and teasers',
+            onPressed: videos.isEmpty
+                ? null
+                : () => DiscoverVideosButton.show(context, videos),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _DiscoverDetailIconButton(
+            icon: hasManageableMedia
+                ? Icons.settings_outlined
+                : Icons.open_in_new_rounded,
+            tooltip: hasManageableMedia
+                ? 'Manage ${_normalizedMediaType == 'movie' ? 'movie' : 'series'}'
+                : 'Open in $serviceName',
+            onPressed: hasManageAction
+                ? hasManageableMedia
+                      ? () => _showManageSheet(context, ref)
+                      : () => _openInService(context, ref)
                 : null,
           ),
         ],
-      ],
+      ),
     );
   }
 
@@ -195,6 +180,36 @@ class DiscoverActionButtons extends ConsumerWidget {
         tvdbId: tvdbId,
         voteAverage: voteAverage,
       )),
+    );
+  }
+}
+
+class _DiscoverDetailIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const _DiscoverDetailIconButton({
+    required this.icon,
+    required this.tooltip,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox.square(
+      dimension: HeaderActionRow.buttonHeight,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: HeaderActionRow.tonalIconButtonStyle(
+          foregroundColor: colorScheme.onSurfaceVariant,
+          backgroundColor: colorScheme.onSurface.withValues(alpha: 0.06),
+          borderColor: colorScheme.outlineVariant,
+        ),
+        child: Icon(icon, size: 18, semanticLabel: tooltip),
+      ),
     );
   }
 }

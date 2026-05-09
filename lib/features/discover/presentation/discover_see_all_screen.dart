@@ -97,7 +97,7 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
                     onTap: () {
                       final encodedUrl = Uri.encodeComponent(imageUrl);
                       context.push(
-                        '/discover/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                        '/services/seerr/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
                       );
                     },
                     child: Hero(

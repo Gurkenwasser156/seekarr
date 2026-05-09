@@ -17,23 +17,17 @@ class RatingChipsRow extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: ratings.map((rating) {
-            return RatingChip(
-              value: rating.value.toStringAsFixed(1),
-              votes: rating.votes,
-              sourceName: rating.name,
-              sourceIcon: rating.icon,
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-      ],
+    return Wrap(
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
+      children: ratings.map((rating) {
+        return RatingChip(
+          value: rating.value.toStringAsFixed(1),
+          votes: rating.votes,
+          sourceName: rating.name,
+          sourceIcon: rating.icon,
+        );
+      }).toList(),
     );
   }
 }

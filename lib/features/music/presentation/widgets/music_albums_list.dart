@@ -173,12 +173,22 @@ class _AlbumTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainer,
-        borderRadius: AppRadius.borderRadiusMd,
+        borderRadius: AppRadius.borderRadiusSm,
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.fromLTRB(
+          11,
+          AppSpacing.xs,
+          AppSpacing.sm,
+          AppSpacing.xs,
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(11, 0, 11, AppSpacing.sm),
+        shape: const Border(),
+        collapsedShape: const Border(),
         onExpansionChanged: (expanded) {
           if (expanded) {
             onExpanded();
@@ -189,13 +199,21 @@ class _AlbumTile extends StatelessWidget {
           baseUrl: baseUrl,
           apiKey: apiKey,
         ),
-        title: Text(
-          album.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                album.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _AlbumStatusBadge(album: album),
+          ],
         ),
         subtitle: _AlbumSubtitle(album: album),
         trailing: Row(
@@ -205,10 +223,12 @@ class _AlbumTile extends StatelessWidget {
               onAutoSearch: onSearchAlbum,
               onInteractiveSearch: onInteractiveSearchAlbum,
               isLoading: isSearching,
+              iconSize: 18,
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.xs),
             Icon(
-              album.monitored ? Icons.bookmark : Icons.bookmark_border,
+              album.monitored ? Icons.bookmark_rounded : Icons.bookmark_border,
+              size: 18,
               color: album.monitored
                   ? colorScheme.tertiary
                   : colorScheme.outline,
@@ -217,6 +237,22 @@ class _AlbumTile extends StatelessWidget {
         ),
         children: children,
       ),
+    );
+  }
+}
+
+class _AlbumStatusBadge extends StatelessWidget {
+  final LidarrAlbum album;
+
+  const _AlbumStatusBadge({required this.album});
+
+  @override
+  Widget build(BuildContext context) {
+    return StatusBadge.fromMedia(
+      fileCount: album.trackFileCount,
+      totalCount: album.trackCount,
+      status: album.trackFileCount > 0 ? 'available' : 'missing',
+      iconOnly: true,
     );
   }
 }
@@ -242,13 +278,13 @@ class _AlbumArtwork extends StatelessWidget {
     );
 
     return ClipRRect(
-      borderRadius: AppRadius.borderRadiusXs,
+      borderRadius: BorderRadius.circular(6),
       child: imageSource.url.isNotEmpty
           ? CachedNetworkImage(
               imageUrl: imageSource.url,
               httpHeaders: imageSource.headers,
-              width: 48,
-              height: 48,
+              width: 38,
+              height: 54,
               fit: BoxFit.cover,
               errorWidget: (context, url, error) => const _AlbumPlaceholder(),
             )
@@ -309,8 +345,8 @@ class _AlbumPlaceholder extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: 48,
-      height: 48,
+      width: 38,
+      height: 54,
       color: colorScheme.surfaceContainerHighest,
       child: Icon(Icons.album, color: colorScheme.outline),
     );
@@ -328,7 +364,7 @@ class _TracksLoadError extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Column(
         children: [
           Icon(Icons.error_outline, color: colorScheme.error, size: 32),
@@ -357,7 +393,7 @@ class _TracksLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
       child: Center(child: CircularProgressIndicator()),
     );
   }
@@ -369,7 +405,7 @@ class _EmptyTracksState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Text(
         'No tracks found.',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -390,28 +426,57 @@ class _TrackTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        radius: AppSpacing.md,
-        backgroundColor: track.hasFile
-            ? colorScheme.primary
-            : colorScheme.outline,
-        child: Text(
-          track.displayTrackNumber,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: track.hasFile
-                ? colorScheme.onPrimary
-                : colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: AppRadius.borderRadiusSm,
+          border: Border.all(color: colorScheme.outlineVariant),
         ),
-      ),
-      title: Text(track.title, style: theme.textTheme.bodyMedium),
-      trailing: Text(
-        track.formattedDuration,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Text(
+                  track.displayTrackNumber,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  track.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                track.formattedDuration,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: track.hasFile
+                      ? colorScheme.primary
+                      : colorScheme.outline,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

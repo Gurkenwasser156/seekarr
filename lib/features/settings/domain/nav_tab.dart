@@ -1,37 +1,35 @@
-import 'package:flutter/material.dart' show IconData, Icons;
+import 'package:flutter/material.dart' show Color, IconData, Icons;
+
+import 'package:seekarr/core/theme.dart';
 
 enum NavTab {
-  discover(
-    label: 'Discover',
-    icon: Icons.explore_outlined,
-    selectedIcon: Icons.explore,
-    routePath: '/discover',
-    canBeHidden: false,
+  services(
+    label: 'Services',
+    icon: Icons.view_list_outlined,
+    selectedIcon: Icons.view_list_rounded,
+    routePath: '/services',
+    accentColor: AppColors.seerr,
   ),
-  movies(
-    label: 'Movies',
-    icon: Icons.movie_outlined,
-    selectedIcon: Icons.movie,
-    routePath: '/movies',
+  activity(
+    label: 'Activity',
+    icon: Icons.monitor_heart_outlined,
+    selectedIcon: Icons.monitor_heart_rounded,
+    routePath: '/activity',
+    accentColor: AppColors.radarr,
   ),
-  series(
-    label: 'Series',
-    icon: Icons.tv_outlined,
-    selectedIcon: Icons.tv,
-    routePath: '/series',
-  ),
-  music(
-    label: 'Music',
-    icon: Icons.library_music_outlined,
-    selectedIcon: Icons.library_music,
-    routePath: '/music',
+  search(
+    label: 'Search',
+    icon: Icons.search_outlined,
+    selectedIcon: Icons.search_rounded,
+    routePath: '/search',
+    accentColor: AppColors.seerr,
   ),
   settings(
     label: 'Settings',
     icon: Icons.settings_outlined,
     selectedIcon: Icons.settings,
     routePath: '/settings',
-    canBeHidden: false,
+    accentColor: AppColors.onSurfaceVariantDark,
   );
 
   const NavTab({
@@ -39,21 +37,18 @@ enum NavTab {
     required this.icon,
     required this.selectedIcon,
     required this.routePath,
-    this.canBeHidden = true,
+    required this.accentColor,
   });
 
   final String label;
   final IconData icon;
   final IconData selectedIcon;
   final String routePath;
-  final bool canBeHidden;
+  final Color accentColor;
 
   static final Map<String, NavTab> _tabsByName = {
     for (final tab in values) tab.name: tab,
   };
-
-  static List<NavTab> get hideableValues =>
-      values.where((tab) => tab.canBeHidden).toList(growable: false);
 
   static NavTab? fromName(String name) => _tabsByName[name];
 }

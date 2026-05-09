@@ -69,7 +69,10 @@ Future<bool> _openMovieInService({
 
     final router = GoRouter.of(context);
     dismissSheet?.call();
-    router.push('/movies/${movie.id}?heroTag=radarr_${movie.id}', extra: movie);
+    router.push(
+      '/services/radarr/movie/${movie.id}?heroTag=radarr_${movie.id}',
+      extra: movie,
+    );
     return true;
   } catch (error) {
     if (!context.mounted) {
@@ -117,7 +120,7 @@ Future<bool> _openSeriesInService({
     final router = GoRouter.of(context);
     dismissSheet?.call();
     router.push(
-      '/series/${series.id}?heroTag=sonarr_${series.id}',
+      '/services/sonarr/series/${series.id}?heroTag=sonarr_${series.id}',
       extra: series,
     );
     return true;

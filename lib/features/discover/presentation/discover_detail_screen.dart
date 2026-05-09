@@ -32,7 +32,6 @@ class DiscoverDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final normalizedMediaType = mediaType == 'movie' ? 'movie' : 'tv';
     final region = ref.watch(regionProvider);
     final detailsAsync = ref.watch(
@@ -101,12 +100,22 @@ class DiscoverDetailScreen extends ConsumerWidget {
             statusBadge: StatusBadge.fromSeerr(
               statusCode: viewModel.statusCode,
             ),
+            title: viewModel.title,
+            metadataItems: metadataItems,
+            tags: [
+              ...tags,
+              ...viewModel.genresList
+                  .take(3)
+                  .map((genre) => GenreChip(genre: genre)),
+            ],
             posterCard: MediaPosterCard(
               heroTag: heroTag,
               imageUrl: viewModel.posterUrl,
               fallbackIcon: isMovie ? Icons.movie_outlined : Icons.tv_outlined,
             ),
-            actions: DiscoverActionButtons(
+          ),
+          contentSections: [
+            DiscoverActionButtons(
               mediaId: mediaId,
               mediaType: normalizedMediaType,
               hasManageableMedia: viewModel.hasManageableMedia,
@@ -116,77 +125,77 @@ class DiscoverDetailScreen extends ConsumerWidget {
               mediaInfo: viewModel.mediaInfo,
               title: viewModel.title,
               voteAverage: viewModel.voteAverage,
-              collapseFactor: collapseFactor,
+              collapseFactor: 0,
               videos: viewModel.hasRelatedVideos
                   ? viewModel.playableVideos
                   : const [],
             ),
-          ),
-          contentSections: [
-            MediaDetailTitleSection(title: viewModel.title),
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              MediaDetailTagSection(tags: tags),
-            ],
-            if (metadataItems.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              MediaMetadataLine(items: metadataItems),
-            ],
+            if (viewModel.overview.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: MediaDetailOverviewSection(overview: viewModel.overview),
+              ),
             if (ratingWidgets.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                child: Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: ratingWidgets,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: ratingWidgets,
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: AppSpacing.xl),
-            SizedBox(
-              width: double.infinity,
-              child: isMovie
-                  ? DiscoverReleaseInfoCard.movie(
-                      releases: regionReleases,
-                      region: region,
-                      genresList: viewModel.genresList,
-                      studios: viewModel.studios,
-                      directors: viewModel.directors,
-                      writers: viewModel.writers,
-                    )
-                  : DiscoverReleaseInfoCard.tv(
-                      firstAirDate: viewModel.firstAirDate,
-                      lastAirDate: viewModel.lastAirDate,
-                      nextEpisodeToAir: viewModel.nextEpisodeToAir,
-                      genresList: viewModel.genresList,
-                      studios: viewModel.studios,
-                      directors: viewModel.directors,
-                      writers: viewModel.writers,
-                      networks: viewModel.networks,
-                    ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            SizedBox(
-              width: double.infinity,
-              child: DiscoverWatchProviders(
-                providers: watchProviders,
-                region: region,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: SizedBox(
+                width: double.infinity,
+                child: isMovie
+                    ? DiscoverReleaseInfoCard.movie(
+                        releases: regionReleases,
+                        region: region,
+                        studios: viewModel.studios,
+                        directors: viewModel.directors,
+                        writers: viewModel.writers,
+                      )
+                    : DiscoverReleaseInfoCard.tv(
+                        firstAirDate: viewModel.firstAirDate,
+                        lastAirDate: viewModel.lastAirDate,
+                        nextEpisodeToAir: viewModel.nextEpisodeToAir,
+                        studios: viewModel.studios,
+                        directors: viewModel.directors,
+                        writers: viewModel.writers,
+                        networks: viewModel.networks,
+                      ),
               ),
             ),
-            if (viewModel.overview.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xl),
-              MediaDetailOverviewSection(overview: viewModel.overview),
-            ],
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: SizedBox(
+                width: double.infinity,
+                child: DiscoverWatchProviders(
+                  providers: watchProviders,
+                  region: region,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
           ],
           slivers: [
-            if (viewModel.keywords.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _DiscoverKeywordsSection(keywords: viewModel.keywords),
-              ),
-            if (viewModel.cast.isNotEmpty)
+            if (viewModel.hasSeasons)
               _DetailSectionSliver(
-                child: Text('Cast', style: theme.textTheme.titleLarge),
+                child: DiscoverSeasonsList(
+                  seasons: viewModel.seasons,
+                  mediaInfo: viewModel.mediaInfo,
+                ),
               ),
             if (viewModel.cast.isNotEmpty)
               SliverToBoxAdapter(child: DiscoverCastList(cast: viewModel.cast)),
@@ -196,12 +205,9 @@ class DiscoverDetailScreen extends ConsumerWidget {
                   collection: viewModel.collection!,
                 ),
               ),
-            if (viewModel.hasSeasons)
-              _DetailSectionSliver(
-                child: DiscoverSeasonsList(
-                  seasons: viewModel.seasons,
-                  mediaInfo: viewModel.mediaInfo,
-                ),
+            if (viewModel.keywords.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _DiscoverKeywordsSection(keywords: viewModel.keywords),
               ),
           ],
         );
@@ -271,16 +277,15 @@ class _DiscoverKeywordsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
+        AppSpacing.lg,
         0,
-        AppSpacing.xl,
-        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.lg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Tags', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
+          const MediaDetailSectionHeader(title: 'Tags'),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,

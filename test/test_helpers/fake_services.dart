@@ -10,6 +10,7 @@ library;
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
@@ -35,11 +36,17 @@ class FakeRadarrService extends RadarrService {
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 
   @override
+  Future<List<RadarrMovie>> lookupMovies(String term) async => const [];
+
+  @override
   Future<List<dynamic>> getQueue() async => const [];
 
   @override
   Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllHistory() async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -51,6 +58,12 @@ class FakeRadarrService extends RadarrService {
   @override
   Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllMissing() async => const [];
+
+  @override
+  Future<List<dynamic>> getAllCutoff() async => const [];
 }
 
 class FakeSonarrService extends SonarrService {
@@ -69,11 +82,17 @@ class FakeSonarrService extends SonarrService {
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 
   @override
+  Future<List<SonarrSeries>> lookupSeries(String term) async => const [];
+
+  @override
   Future<List<dynamic>> getQueue() async => const [];
 
   @override
   Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllHistory() async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -85,6 +104,12 @@ class FakeSonarrService extends SonarrService {
   @override
   Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllMissing() async => const [];
+
+  @override
+  Future<List<dynamic>> getAllCutoff() async => const [];
 }
 
 class FakeLidarrService extends LidarrService {
@@ -106,11 +131,17 @@ class FakeLidarrService extends LidarrService {
   Future<List<Map<String, dynamic>>> getQualityProfiles() async => const [];
 
   @override
+  Future<List<LidarrArtist>> lookupArtists(String term) async => const [];
+
+  @override
   Future<List<dynamic>> getQueue() async => const [];
 
   @override
   Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllHistory() async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -122,6 +153,12 @@ class FakeLidarrService extends LidarrService {
   @override
   Future<List<dynamic>> getCutoff({int page = 1, int pageSize = 20}) async =>
       const [];
+
+  @override
+  Future<List<dynamic>> getAllMissing() async => const [];
+
+  @override
+  Future<List<dynamic>> getAllCutoff() async => const [];
 }
 
 class FakeSeerrService extends SeerrService {
@@ -145,6 +182,13 @@ class FakeSeerrService extends SeerrService {
   @override
   Future<List<MediaPreview>> getDiscoverTrending({int page = 1}) async =>
       const [];
+
+  @override
+  Future<List<MediaPreview>> search(String query, {int page = 1}) async =>
+      const [];
+
+  @override
+  Future<List<SeerrRequest>> getRequests() async => const [];
 
   @override
   Future<Map<String, dynamic>> getMovie(int movieId) async => _movieDetails;

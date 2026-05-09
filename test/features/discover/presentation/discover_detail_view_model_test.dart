@@ -166,5 +166,30 @@ void main() {
 
       expect(viewModel.runtimeStr, '45min');
     });
+
+    test('parses season episodes when present', () {
+      final viewModel = DiscoverDetailViewModel.fromResponse({
+        'name': 'Episode Test Show',
+        'seasons': [
+          {
+            'id': 1,
+            'seasonNumber': 1,
+            'episodeCount': 1,
+            'episodes': [
+              {
+                'name': 'Pilot',
+                'seasonNumber': 1,
+                'episodeNumber': 1,
+                'airDate': '2024-01-01',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(viewModel.seasons, hasLength(1));
+      expect(viewModel.seasons.single.episodes, hasLength(1));
+      expect(viewModel.seasons.single.episodes.single.name, 'Pilot');
+    });
   });
 }

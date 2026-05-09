@@ -17,6 +17,10 @@ class DiscoverVideosButton extends StatelessWidget {
   static Widget iconOnly({Key? key, required List<RelatedVideo> videos}) =>
       _DiscoverVideosIconButton(key: key, videos: videos);
 
+  static void show(BuildContext context, List<RelatedVideo> videos) {
+    _showVideosSheet(context, videos);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FilledButton.icon(

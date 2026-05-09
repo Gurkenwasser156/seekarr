@@ -5,17 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seekarr/core/router.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/discover_detail_screen.dart';
-import 'package:seekarr/features/discover/presentation/discover_screen.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_screen.dart';
-import 'package:seekarr/features/movies/presentation/movies_screen.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
-import 'package:seekarr/features/music/presentation/music_screen.dart';
+import 'package:seekarr/features/search/presentation/search_screen.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
+import 'package:seekarr/features/services/presentation/service_all_screens.dart';
+import 'package:seekarr/features/services/presentation/services_screen.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/presentation/settings_appearance_screen.dart';
@@ -27,17 +26,25 @@ import '../test_helpers/model_builders.dart';
 
 void main() {
   group('routerProvider', () {
-    testWidgets('redirects invalid discover detail ids back to discover', (
+    testWidgets('starts on services', (tester) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      expect(router.state.uri.toString(), '/services');
+      expect(find.byType(ServicesScreen), findsOneWidget);
+    });
+
+    testWidgets('redirects invalid discover detail ids back to services', (
       tester,
     ) async {
       final container = await _pumpRouter(tester);
       final router = container.read(routerProvider);
 
-      router.go('/discover/movie/not-a-number');
+      router.go('/services/seerr/movie/not-a-number');
       await tester.pumpAndSettle();
 
-      expect(router.state.uri.toString(), '/discover');
-      expect(find.byType(DiscoverScreen), findsOneWidget);
+      expect(router.state.uri.toString(), '/services');
+      expect(find.byType(ServicesScreen), findsOneWidget);
       expect(find.byType(DiscoverDetailScreen), findsNothing);
     });
 
@@ -49,7 +56,7 @@ void main() {
         const encodedPosterUrl =
             'https%3A%2F%2Fcdn.example.com%2Fposter%20image.jpg';
 
-        router.go('/discover/movie/123?posterUrl=$encodedPosterUrl');
+        router.go('/services/seerr/movie/123?posterUrl=$encodedPosterUrl');
         await tester.pumpAndSettle();
 
         final screen = tester.widget<DiscoverDetailScreen>(
@@ -58,7 +65,7 @@ void main() {
 
         expect(
           router.state.uri.toString(),
-          '/discover/movie/123?posterUrl=$encodedPosterUrl',
+          '/services/seerr/movie/123?posterUrl=$encodedPosterUrl',
         );
         expect(screen.mediaId, 123);
         expect(screen.mediaType, 'movie');
@@ -76,7 +83,7 @@ void main() {
         final container = await _pumpRouter(tester);
         final router = container.read(routerProvider);
 
-        router.go('/movies/42');
+        router.go('/services/radarr/movie/42');
         await tester.pumpAndSettle();
 
         final movieScreen = tester.widget<MovieDetailScreen>(
@@ -86,7 +93,7 @@ void main() {
         expect(movieScreen.movieId, 42);
         expect(movieScreen.initialMovie, isNull);
 
-        router.go('/series/55');
+        router.go('/services/sonarr/series/55');
         await tester.pumpAndSettle();
 
         final seriesScreen = tester.widget<SeriesDetailScreen>(
@@ -96,7 +103,7 @@ void main() {
         expect(seriesScreen.seriesId, 55);
         expect(seriesScreen.initialSeries, isNull);
 
-        router.go('/music/9');
+        router.go('/services/lidarr/artist/9');
         await tester.pumpAndSettle();
 
         final musicScreen = tester.widget<MusicDetailScreen>(
@@ -108,17 +115,20 @@ void main() {
       },
     );
 
-    testWidgets('redirects invalid library detail ids back to movies', (
+    testWidgets('redirects invalid library detail ids back to services', (
       tester,
     ) async {
       final container = await _pumpRouter(tester);
       final router = container.read(routerProvider);
 
-      router.go('/movies/not-a-number', extra: buildMovie(id: 42));
+      router.go(
+        '/services/radarr/movie/not-a-number',
+        extra: buildMovie(id: 42),
+      );
       await tester.pumpAndSettle();
 
-      expect(router.state.uri.toString(), '/movies');
-      expect(find.byType(MoviesScreen), findsOneWidget);
+      expect(router.state.uri.toString(), '/services');
+      expect(find.byType(ServicesScreen), findsOneWidget);
       expect(find.byType(MovieDetailScreen), findsNothing);
     });
 
@@ -128,20 +138,20 @@ void main() {
         final container = await _pumpRouter(tester);
         final router = container.read(routerProvider);
 
-        router.go('/movies/42', extra: buildArtist(id: 9));
+        router.go('/services/radarr/movie/42', extra: buildArtist(id: 9));
         await tester.pumpAndSettle();
 
-        expect(router.state.uri.toString(), '/movies/42');
+        expect(router.state.uri.toString(), '/services/radarr/movie/42');
         var movieScreen = tester.widget<MovieDetailScreen>(
           find.byType(MovieDetailScreen),
         );
         expect(movieScreen.movieId, 42);
         expect(movieScreen.initialMovie, isNull);
 
-        router.go('/movies/42', extra: buildMovie(id: 7));
+        router.go('/services/radarr/movie/42', extra: buildMovie(id: 7));
         await tester.pumpAndSettle();
 
-        expect(router.state.uri.toString(), '/movies/42');
+        expect(router.state.uri.toString(), '/services/radarr/movie/42');
         movieScreen = tester.widget<MovieDetailScreen>(
           find.byType(MovieDetailScreen),
         );
@@ -184,18 +194,116 @@ void main() {
       expect(find.byType(SettingsServicesScreen), findsOneWidget);
     });
 
-    testWidgets('hidden tabs remain directly routable', (tester) async {
-      final container = await _pumpRouter(
-        tester,
-        settings: const SettingsModel(hiddenTabs: {NavTab.music}),
-      );
+    testWidgets('supports global search route', (tester) async {
+      final container = await _pumpRouter(tester);
       final router = container.read(routerProvider);
 
-      router.go('/music');
+      router.go('/search');
       await tester.pumpAndSettle();
 
-      expect(router.state.uri.toString(), '/music');
-      expect(find.byType(MusicScreen), findsOneWidget);
+      expect(router.state.uri.toString(), '/search');
+      expect(find.byType(SearchScreen), findsOneWidget);
+    });
+
+    testWidgets('supports service dashboard routes', (tester) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      for (final route in [
+        '/services/seerr',
+        '/services/radarr',
+        '/services/sonarr',
+        '/services/lidarr',
+      ]) {
+        router.go(route);
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.toString(), route);
+      }
+    });
+
+    testWidgets('supports service all-list routes', (tester) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      router.go('/services/seerr/requests');
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.toString(), '/services/seerr/requests');
+      expect(find.byType(ServiceAllRequestsScreen), findsOneWidget);
+
+      for (final entry in {
+        '/services/radarr/media': ServiceKey.radarr,
+        '/services/sonarr/media': ServiceKey.sonarr,
+        '/services/lidarr/media': ServiceKey.lidarr,
+      }.entries) {
+        router.go(entry.key);
+        await tester.pumpAndSettle();
+
+        final screen = tester.widget<ServiceAllMediaScreen>(
+          find.byType(ServiceAllMediaScreen),
+        );
+        expect(router.state.uri.toString(), entry.key);
+        expect(screen.service, entry.value);
+      }
+    });
+
+    testWidgets('legacy top-level routes redirect to services', (tester) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      for (final route in ['/discover', '/movies', '/series', '/music']) {
+        router.go(route);
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.toString(), '/services');
+        expect(find.byType(ServicesScreen), findsOneWidget);
+      }
+    });
+
+    testWidgets('legacy detail routes redirect to equivalent services routes', (
+      tester,
+    ) async {
+      final container = await _pumpRouter(tester);
+      final router = container.read(routerProvider);
+
+      const encodedPosterUrl =
+          'https%3A%2F%2Fcdn.example.com%2Fposter%20image.jpg';
+      router.go('/discover/movie/123?posterUrl=$encodedPosterUrl');
+      await tester.pumpAndSettle();
+
+      expect(
+        router.state.uri.toString(),
+        '/services/seerr/movie/123?posterUrl=$encodedPosterUrl',
+      );
+      expect(find.byType(DiscoverDetailScreen), findsOneWidget);
+
+      router.go('/movies/42?heroTag=legacy_movie');
+      await tester.pumpAndSettle();
+
+      expect(
+        router.state.uri.toString(),
+        '/services/radarr/movie/42?heroTag=legacy_movie',
+      );
+      expect(find.byType(MovieDetailScreen), findsOneWidget);
+
+      router.go('/series/55?heroTag=legacy_series');
+      await tester.pumpAndSettle();
+
+      expect(
+        router.state.uri.toString(),
+        '/services/sonarr/series/55?heroTag=legacy_series',
+      );
+      expect(find.byType(SeriesDetailScreen), findsOneWidget);
+
+      router.go('/music/9?heroTag=legacy_artist');
+      await tester.pumpAndSettle();
+
+      expect(
+        router.state.uri.toString(),
+        '/services/lidarr/artist/9?heroTag=legacy_artist',
+      );
+      expect(find.byType(MusicDetailScreen), findsOneWidget);
     });
   });
 }
