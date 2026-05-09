@@ -28,6 +28,7 @@ class MediaProfileSelector extends StatelessWidget {
   final bool enableHaptics;
 
   final bool _isSplit;
+  final bool _isIconOnly;
 
   const MediaProfileSelector({
     super.key,
@@ -36,7 +37,8 @@ class MediaProfileSelector extends StatelessWidget {
     required this.qualityProfiles,
     required this.onProfileSelected,
     this.enableHaptics = true,
-  }) : _isSplit = false;
+  }) : _isSplit = false,
+       _isIconOnly = false;
 
   /// Named constructor for split button variant.
   const MediaProfileSelector.split({
@@ -46,13 +48,34 @@ class MediaProfileSelector extends StatelessWidget {
     required this.qualityProfiles,
     required this.onProfileSelected,
     this.enableHaptics = true,
-  }) : _isSplit = true;
+  }) : _isSplit = true,
+       _isIconOnly = false;
+
+  const MediaProfileSelector.iconOnly({
+    super.key,
+    required this.currentProfileName,
+    required this.currentProfileId,
+    required this.qualityProfiles,
+    required this.onProfileSelected,
+    this.enableHaptics = true,
+  }) : _isSplit = false,
+       _isIconOnly = true;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (_isSplit) {
+    if (_isIconOnly) {
+      return OutlinedButton(
+        onPressed: () => _showProfileSelector(context),
+        style: HeaderActionRow.tonalIconButtonStyle(
+          foregroundColor: colorScheme.onSurfaceVariant,
+          backgroundColor: colorScheme.onSurface.withValues(alpha: 0.06),
+          borderColor: colorScheme.outlineVariant,
+        ),
+        child: const Icon(Icons.high_quality_rounded, size: 18),
+      );
+    } else if (_isSplit) {
       return FilledButton(
         onPressed: () => _showProfileSelector(context),
         style: HeaderActionRow.expandedButtonStyle(),

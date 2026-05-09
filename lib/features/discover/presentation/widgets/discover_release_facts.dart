@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
 
 class DiscoverReleaseInfoCard extends StatelessWidget {
   final List<MediaFact> releaseEntries;
   final String? emptyMessage;
-  final List<String> genresList;
   final List<String> studios;
   final List<String> directors;
   final List<String> writers;
@@ -16,7 +14,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
   const DiscoverReleaseInfoCard._({
     required this.releaseEntries,
     this.emptyMessage,
-    this.genresList = const [],
     this.studios = const [],
     this.directors = const [],
     this.writers = const [],
@@ -26,7 +23,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
   factory DiscoverReleaseInfoCard.movie({
     required List<MovieRelease> releases,
     required String region,
-    List<String> genresList = const [],
     List<String> studios = const [],
     List<String> directors = const [],
     List<String> writers = const [],
@@ -45,7 +41,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
       emptyMessage: entries.isEmpty
           ? 'Release info is not available in your region ($region).'
           : null,
-      genresList: genresList,
       studios: studios,
       directors: directors,
       writers: writers,
@@ -56,7 +51,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
     String? firstAirDate,
     String? lastAirDate,
     TvEpisodeSummary? nextEpisodeToAir,
-    List<String> genresList = const [],
     List<String> studios = const [],
     List<String> directors = const [],
     List<String> writers = const [],
@@ -86,7 +80,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
     return DiscoverReleaseInfoCard._(
       releaseEntries: entries,
       emptyMessage: entries.isEmpty ? 'No release info available.' : null,
-      genresList: genresList,
       studios: studios,
       directors: directors,
       writers: writers,
@@ -110,17 +103,6 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
               )
             : MediaFactsList(facts: releaseEntries),
       ),
-      if (genresList.isNotEmpty)
-        MediaInfoGroup(
-          title: 'Genre',
-          child: Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: genresList
-                .map((genre) => GenreChip(genre: genre))
-                .toList(growable: false),
-          ),
-        ),
       if (studios.isNotEmpty)
         MediaInfoGroup(
           title: 'Studios',
@@ -144,7 +126,13 @@ class DiscoverReleaseInfoCard extends StatelessWidget {
         ),
     ];
 
-    return MediaInfoCard(groups: sectionChildren);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const MediaDetailSectionHeader(title: 'Details'),
+        MediaInfoCard(groups: sectionChildren),
+      ],
+    );
   }
 }
 

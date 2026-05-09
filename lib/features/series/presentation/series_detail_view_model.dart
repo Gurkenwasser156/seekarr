@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
@@ -81,7 +80,42 @@ class SeriesDetailViewModel {
     if (runtimeStr != null) runtimeStr!,
   ].where((item) => item.isNotEmpty).toList(growable: false);
 
-  List<MediaInfoGroup> buildInfoGroups() {
+  List<MediaInfoGroup> buildInfoGroups([String? qualityProfileName]) {
+    if (qualityProfileName == null) {
+      return _buildLegacyInfoGroups();
+    }
+
+    final airDateFacts = _buildAirDateFacts();
+
+    return [
+      if (_hasText(status))
+        MediaInfoGroup(title: 'Status', child: Text(capitalizeFirst(status))),
+      if (episodeCount != null || episodeFileCount != null)
+        MediaInfoGroup(
+          title: 'Episodes',
+          child: Text('${episodeFileCount ?? 0} / ${episodeCount ?? 0}'),
+        ),
+      if (_hasText(network))
+        MediaInfoGroup(title: 'Network', child: Text(network!)),
+      if (_hasText(qualityProfileName))
+        MediaInfoGroup(title: 'Profile', child: Text(qualityProfileName)),
+      if (_hasText(seriesType))
+        MediaInfoGroup(
+          title: 'Series Type',
+          child: Text(capitalizeFirst(seriesType!)),
+        ),
+      if (_hasText(certification))
+        MediaInfoGroup(title: 'Certification', child: Text(certification!)),
+      if (airDateFacts.isNotEmpty)
+        ...airDateFacts.map(
+          (fact) => MediaInfoGroup(title: fact.label, child: Text(fact.value)),
+        ),
+      if (_hasText(originalLanguage))
+        MediaInfoGroup(title: 'Language', child: Text(originalLanguage!)),
+    ];
+  }
+
+  List<MediaInfoGroup> _buildLegacyInfoGroups() {
     final airDateFacts = _buildAirDateFacts();
 
     return [
@@ -106,8 +140,6 @@ class SeriesDetailViewModel {
         MediaInfoGroup(
           title: 'Genre',
           child: Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
             children: genres
                 .map((genre) => GenreChip(genre: genre))
                 .toList(growable: false),

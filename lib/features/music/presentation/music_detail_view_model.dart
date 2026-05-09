@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
@@ -56,7 +55,37 @@ class MusicDetailViewModel {
       ? '$trackCount ${trackCount == 1 ? 'Track' : 'Tracks'}'
       : null;
 
-  List<MediaInfoGroup> buildInfoGroups() {
+  List<MediaInfoGroup> buildInfoGroups([String? qualityProfileName]) {
+    if (qualityProfileName == null) {
+      return _buildLegacyInfoGroups();
+    }
+
+    return [
+      if (albumCountLabel != null)
+        MediaInfoGroup(title: 'Albums', child: Text(albumCount.toString())),
+      if (trackCountLabel != null)
+        MediaInfoGroup(title: 'Tracks', child: Text(trackCount.toString())),
+      if (_hasText(qualityProfileName))
+        MediaInfoGroup(title: 'Quality', child: Text(qualityProfileName)),
+      MediaInfoGroup(
+        title: 'Missing',
+        child: Text(
+          (trackCount - trackFileCount).clamp(0, trackCount).toString(),
+        ),
+      ),
+      if (_hasText(artistType))
+        MediaInfoGroup(
+          title: 'Artist Type',
+          child: Text(capitalizeFirst(artistType!)),
+        ),
+      if (_hasText(disambiguation))
+        MediaInfoGroup(title: 'Disambiguation', child: Text(disambiguation!)),
+      if (_hasText(path))
+        MediaInfoGroup(title: 'Library Path', child: Text(path!)),
+    ];
+  }
+
+  List<MediaInfoGroup> _buildLegacyInfoGroups() {
     return [
       if (_hasText(artistType))
         MediaInfoGroup(
@@ -69,8 +98,6 @@ class MusicDetailViewModel {
         MediaInfoGroup(
           title: 'Genre',
           child: Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
             children: genres
                 .map((genre) => GenreChip(genre: genre))
                 .toList(growable: false),

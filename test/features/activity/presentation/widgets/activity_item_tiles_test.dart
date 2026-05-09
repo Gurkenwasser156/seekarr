@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
+import 'package:seekarr/features/activity/presentation/activity_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_item_tiles.dart';
+import 'package:seekarr/features/movies/data/radarr_service.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
+
+import '../../../../test_helpers/fake_services.dart';
 
 void main() {
   group('QueueItemTile', () {
@@ -316,6 +322,62 @@ void main() {
 
       expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(find.textContaining('%'), findsNothing);
+    });
+  });
+
+  group('GlobalActivityItemTile', () {
+    testWidgets('shows search menu for searchable wanted items', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            radarrServiceProvider.overrideWith((ref) => FakeRadarrService()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: GlobalActivityItemTile(
+                item: GlobalActivityItem(
+                  kind: GlobalActivityKind.missing,
+                  service: ServiceKey.radarr,
+                  serviceType: ServiceType.movies,
+                  title: 'Cool Movie',
+                  subtitle: 'Radarr',
+                  status: 'Missing',
+                  raw: {'id': 42, 'title': 'Cool Movie'},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Cool Movie'), findsOneWidget);
+      expect(find.byType(MediaSearchPopupMenu), findsOneWidget);
+    });
+
+    testWidgets('hides search menu for requests', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: GlobalActivityItemTile(
+                item: GlobalActivityItem(
+                  kind: GlobalActivityKind.request,
+                  service: ServiceKey.seerr,
+                  serviceType: ServiceType.discover,
+                  title: 'Shogun',
+                  subtitle: 'sarah · Series',
+                  status: 'Approved',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Shogun'), findsOneWidget);
+      expect(find.byType(MediaSearchPopupMenu), findsNothing);
     });
   });
 }

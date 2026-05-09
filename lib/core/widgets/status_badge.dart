@@ -13,14 +13,20 @@ enum MediaStatus { available, partial, missing, downloading, queued, unknown }
 class StatusBadge extends StatelessWidget {
   final MediaStatus status;
   final bool compact;
+  final bool iconOnly;
   final _StatusConfig? configOverride;
 
-  const StatusBadge({super.key, required this.status, this.compact = false})
-    : configOverride = null;
+  const StatusBadge({
+    super.key,
+    required this.status,
+    this.compact = false,
+    this.iconOnly = false,
+  }) : configOverride = null;
 
   const StatusBadge._custom({
     required this.status,
     required this.compact,
+    required this.iconOnly,
     required this.configOverride,
   });
 
@@ -38,6 +44,7 @@ class StatusBadge extends StatelessWidget {
     int? totalCount,
     required String status,
     bool compact = false,
+    bool iconOnly = false,
   }) {
     if (hasFile == null && fileCount == null) {
       throw ArgumentError(
@@ -55,6 +62,7 @@ class StatusBadge extends StatelessWidget {
           normalizedStatus: normalizedStatus,
         ),
         compact: compact,
+        iconOnly: iconOnly,
       );
     }
 
@@ -65,6 +73,7 @@ class StatusBadge extends StatelessWidget {
           ? MediaStatus.available
           : _statusWithoutFiles(normalizedStatus),
       compact: compact,
+      iconOnly: iconOnly,
     );
   }
 
@@ -99,6 +108,7 @@ class StatusBadge extends StatelessWidget {
   factory StatusBadge.fromSeerr({
     required int? statusCode,
     bool compact = false,
+    bool iconOnly = false,
   }) {
     final seerrStatus = switch (statusCode) {
       null => (
@@ -162,6 +172,7 @@ class StatusBadge extends StatelessWidget {
     return StatusBadge._custom(
       status: seerrStatus.status,
       compact: compact,
+      iconOnly: iconOnly,
       configOverride: seerrStatus.config,
     );
   }
@@ -187,6 +198,23 @@ class StatusBadge extends StatelessWidget {
     final textColor = compact
         ? Colors.white
         : seekarrColors.statusBadgeForeground;
+
+    if (iconOnly) {
+      return Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: accentColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              spreadRadius: 1.5,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(

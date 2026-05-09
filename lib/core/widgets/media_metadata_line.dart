@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class MediaMetadataLine extends StatelessWidget {
   final List<String> items;
   final TextAlign textAlign;
+  final int? maxLines;
 
   const MediaMetadataLine({
     super.key,
     required this.items,
     this.textAlign = TextAlign.start,
+    this.maxLines,
   });
 
   @override
@@ -29,6 +31,8 @@ class MediaMetadataLine extends StatelessWidget {
       child: Text(
         joined,
         textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.ellipsis,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),

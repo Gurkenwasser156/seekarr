@@ -37,6 +37,15 @@ SonarrSeries _series() => buildSeries(
         'episodeCount': 7,
       },
     },
+    {
+      'seasonNumber': 2,
+      'monitored': true,
+      'statistics': {
+        'episodeFileCount': 0,
+        'totalEpisodeCount': 1,
+        'episodeCount': 1,
+      },
+    },
   ],
   statistics: const {
     'seasonCount': 1,
@@ -47,7 +56,10 @@ SonarrSeries _series() => buildSeries(
   certification: 'TV-MA',
 );
 
-List<SonarrEpisode> _episodes() => [buildEpisode(id: 101, title: 'Pilot')];
+List<SonarrEpisode> _episodes() => [
+  buildEpisode(id: 101, title: 'Pilot'),
+  buildEpisode(id: 201, seasonNumber: 2, title: 'Seven Thirty-Seven'),
+];
 
 void main() {
   group('SeriesDetailScreen', () {
@@ -96,12 +108,26 @@ void main() {
         detailBuilder: (ref, seriesId) async => _series(),
       );
       await tester.pumpAndSettle();
-      await _scrollUntilVisible(tester, find.text('Seasons'));
 
       expect(find.text('Breaking Bad'), findsAtLeastNWidgets(1));
+      expect(find.byType(MediaDetailHeroSummaryCard), findsOneWidget);
+      expect(find.byType(GenreChip), findsNWidgets(2));
+      expect(
+        find.descendant(
+          of: find.byType(MediaInfoCard),
+          matching: find.byType(GenreChip),
+        ),
+        findsNothing,
+      );
       expect(find.text('A chemistry teacher turns to crime.'), findsOneWidget);
+
+      await _scrollUntilVisible(tester, find.text('Where to Watch'));
+
+      expect(find.text('Where to Watch'), findsOneWidget);
       expect(find.text('Seasons'), findsOneWidget);
       expect(find.byType(SeriesSeasonsList), findsOneWidget);
+      expect(find.text('Cast'), findsOneWidget);
+      expect(find.text('Tags'), findsOneWidget);
       expect(find.byType(MediaInfoCard), findsOneWidget);
     });
 
@@ -129,7 +155,25 @@ void main() {
       await _scrollUntilVisible(tester, find.text('Season 1'));
 
       expect(find.text('Season 1'), findsOneWidget);
-      expect(find.textContaining('7 / 7'), findsOneWidget);
+      expect(find.text('7 / 7 Episodes'), findsOneWidget);
+    });
+
+    testWidgets('shows episodes for the selected season pill', (tester) async {
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) async => _series(),
+      );
+      await tester.pumpAndSettle();
+      await _scrollUntilVisible(tester, find.text('S2'));
+
+      expect(find.text('Pilot'), findsOneWidget);
+      expect(find.text('Seven Thirty-Seven'), findsNothing);
+
+      await tester.tap(find.text('S2'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Seven Thirty-Seven'), findsOneWidget);
+      expect(find.text('Pilot'), findsNothing);
     });
   });
 }

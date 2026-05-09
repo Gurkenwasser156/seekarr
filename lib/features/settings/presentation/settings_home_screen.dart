@@ -4,13 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
-import 'package:seekarr/core/widgets/section_header.dart';
 import 'package:seekarr/features/settings/data/service_connection_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
 import 'package:seekarr/features/settings/domain/regions.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
@@ -38,20 +37,27 @@ class SettingsHomeScreen extends ConsumerWidget {
       ..._buildServicesSection(context, ref, settings),
       const SizedBox(height: AppSpacing.lg),
       ..._buildAboutSection(context),
+      const SizedBox(height: AppSpacing.lg),
+      _SettingsFooter(),
     ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), elevation: 0),
       body: CustomScrollView(
         slivers: [
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.md,
-              bottomPadding,
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                bottomPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: content,
+              ),
             ),
-            sliver: SliverList(delegate: SliverChildListDelegate(content)),
           ),
         ],
       ),
@@ -62,30 +68,34 @@ class SettingsHomeScreen extends ConsumerWidget {
     BuildContext context,
     SettingsModel settings,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return [
-      const SectionHeader(title: 'General'),
+      const _SettingsSectionLabel('General'),
       const SizedBox(height: AppSpacing.sm),
-      SettingsCard(
-        leading: const Icon(Icons.language_rounded),
-        title: 'Region',
-        subtitle: _formatRegionLabel(settings.region),
-        onTap: () => context.push('/settings/region'),
-      ),
-      _sectionCard(
-        SettingsCard(
-          leading: const Icon(Icons.palette_rounded),
-          title: 'Appearance',
-          subtitle: settings.themeMode.label,
-          onTap: () => context.push('/settings/appearance'),
-        ),
-      ),
-      _sectionCard(
-        SettingsCard(
-          leading: const Icon(Icons.apps_rounded),
-          title: 'Services',
-          subtitle: _formatServicesVisibilityLabel(settings),
-          onTap: () => context.push('/settings/services'),
-        ),
+      SettingsGroupCard(
+        children: [
+          SettingsCard.grouped(
+            leading: const Icon(Icons.language_rounded),
+            title: 'Region',
+            subtitle: _formatRegionLabel(settings.region),
+            accentColor: AppColors.success,
+            onTap: () => context.push('/settings/region'),
+          ),
+          SettingsCard.grouped(
+            leading: const Icon(Icons.palette_rounded),
+            title: 'Appearance',
+            subtitle: settings.themeMode.label,
+            onTap: () => context.push('/settings/appearance'),
+          ),
+          SettingsCard.grouped(
+            leading: const Icon(Icons.apps_rounded),
+            title: 'Dashboard',
+            subtitle: 'All services',
+            accentColor: colorScheme.primary,
+            onTap: () => context.push('/settings/services'),
+          ),
+        ],
       ),
     ];
   }
@@ -96,25 +106,27 @@ class SettingsHomeScreen extends ConsumerWidget {
     SettingsModel settings,
   ) {
     return [
-      const SectionHeader(title: 'Services'),
+      const _SettingsSectionLabel('Services'),
       const SizedBox(height: AppSpacing.sm),
-      for (final service in ServiceKey.values)
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: SettingsCard(
-            leading: Icon(service.icon),
-            title: service.title,
-            subtitle: _getServiceSubtitle(settings, service),
-            subtitleLeading: _buildConnectionIndicator(
-              context,
-              ref,
-              settings,
-              service,
+      SettingsGroupCard(
+        children: [
+          for (final service in ServiceKey.values)
+            SettingsCard.grouped(
+              leading: Icon(service.icon),
+              title: service.title,
+              subtitle: _getServiceSubtitle(settings, service),
+              accentColor: service.accent,
+              subtitleLeading: _buildConnectionIndicator(
+                context,
+                ref,
+                settings,
+                service,
+              ),
+              onTap: () =>
+                  context.push('/settings/service/${service.routeParam}'),
             ),
-            onTap: () =>
-                context.push('/settings/service/${service.routeParam}'),
-          ),
-        ),
+        ],
+      ),
     ];
   }
 
@@ -151,7 +163,7 @@ class SettingsHomeScreen extends ConsumerWidget {
             return Icon(
               Icons.cloud_done_rounded,
               size: 16,
-              color: colorScheme.primary,
+              color: service.accent,
             );
           case ServiceConnectionStatus.disconnected:
             return disconnectedIndicator;
@@ -165,36 +177,34 @@ class SettingsHomeScreen extends ConsumerWidget {
   }
 
   List<Widget> _buildAboutSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return [
-      const SectionHeader(title: 'About'),
+      const _SettingsSectionLabel('About'),
       const SizedBox(height: AppSpacing.sm),
-      SettingsCard(
-        leading: const Icon(Icons.share_rounded),
-        title: 'Share App',
-        onTap: () => SnackBarHelper.info(context, 'Coming soon!'),
-      ),
-      _sectionCard(
-        SettingsCard(
-          leading: const Icon(Icons.code_rounded),
-          title: 'GitHub',
-          onTap: () => _openGitHub(context),
-        ),
-      ),
-      _sectionCard(
-        SettingsCard(
-          leading: const Icon(Icons.feedback_rounded),
-          title: 'Send Feedback',
-          onTap: () => _sendFeedback(context),
-        ),
+      SettingsGroupCard(
+        children: [
+          SettingsCard.grouped(
+            leading: const Icon(Icons.share_rounded),
+            title: 'Share App',
+            accentColor: AppColors.success,
+            onTap: () => SnackBarHelper.info(context, 'Coming soon!'),
+          ),
+          SettingsCard.grouped(
+            leading: const Icon(Icons.code_rounded),
+            title: 'GitHub',
+            accentColor: colorScheme.onSurfaceVariant,
+            onTap: () => _openGitHub(context),
+          ),
+          SettingsCard.grouped(
+            leading: const Icon(Icons.feedback_rounded),
+            title: 'Send Feedback',
+            accentColor: AppColors.warning,
+            onTap: () => _sendFeedback(context),
+          ),
+        ],
       ),
     ];
-  }
-
-  Widget _sectionCard(Widget child) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: child,
-    );
   }
 
   String _getServiceSubtitle(SettingsModel settings, ServiceKey service) {
@@ -206,19 +216,6 @@ class SettingsHomeScreen extends ConsumerWidget {
     final normalizedRegion = SettingsModel.normalizeRegion(region);
     final regionName = commonRegions[normalizedRegion] ?? normalizedRegion;
     return '$regionName ($normalizedRegion)';
-  }
-
-  String _formatServicesVisibilityLabel(SettingsModel settings) {
-    final hiddenTabs = NavTab.hideableValues
-        .where((tab) => !settings.isTabVisible(tab))
-        .map((tab) => tab.label)
-        .toList(growable: false);
-
-    if (hiddenTabs.isEmpty) {
-      return 'All visible';
-    }
-
-    return '${hiddenTabs.join(', ')} hidden';
   }
 
   Future<void> _openGitHub(BuildContext context) {
@@ -246,5 +243,41 @@ class SettingsHomeScreen extends ConsumerWidget {
     if (!launched && context.mounted) {
       SnackBarHelper.info(context, failureMessage);
     }
+  }
+}
+
+class _SettingsSectionLabel extends StatelessWidget {
+  final String title;
+
+  const _SettingsSectionLabel(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: Text(
+        title.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.7,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsFooter extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Seekarr v1.0.0',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'package:seekarr/core/app_animation.dart';
@@ -16,10 +18,14 @@ class FloatingNavDestination {
   /// The label for this destination.
   final String label;
 
+  /// Accent color used for the selected pill.
+  final Color accentColor;
+
   const FloatingNavDestination({
     required this.icon,
     required this.selectedIcon,
     required this.label,
+    required this.accentColor,
   });
 }
 
@@ -36,7 +42,7 @@ class FloatingNavBarMetrics {
   static const double topPadding = AppSpacing.sm; // 8dp
 
   /// Bottom padding below the nav bar (excluding safe area).
-  static const double bottomPadding = AppSpacing.md; // 12dp
+  static const double bottomPadding = AppSpacing.sm; // md=12dp
 
   /// Total height including top/bottom padding (excluding safe area).
   /// Use this value to add bottom padding to screen content.
@@ -53,15 +59,14 @@ class FloatingNavBarMetrics {
   }
 }
 
-/// A custom floating bottom navigation bar with rounded corners and modern styling.
+/// A custom floating bottom navigation bar with rounded corners and glass styling.
 ///
 /// Features:
 /// - Floating design with margins on all sides
 /// - Rounded corners using [AppRadius.xl]
-/// - Scale animation for selected item
+/// - Compact selected pill with per-destination accent color
 /// - Elastic drag animation (rubber band effect)
-/// - No background indicator (only icon color changes)
-/// - Subtle shadow for elevated appearance
+/// - Glass surface with backdrop blur
 ///
 /// Example usage:
 /// ```dart
@@ -73,6 +78,7 @@ class FloatingNavBarMetrics {
 ///       icon: Icons.home_outlined,
 ///       selectedIcon: Icons.home,
 ///       label: 'Home',
+///       accentColor: Colors.indigo,
 ///     ),
 ///   ],
 /// )
@@ -119,6 +125,10 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
 
   /// Controls how quickly resistance increases with distance.
   static const double _resistanceFalloff = 30.0;
+
+  static const double _barHorizontalPadding = 6.0;
+  static const double _barVerticalPadding = 6.0;
+  static const double _blurSigma = 24.0;
 
   @override
   void initState() {
@@ -191,6 +201,18 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final glassColor = colorScheme.surfaceContainer.withValues(
+      alpha: isDark ? 0.72 : 0.55,
+    );
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : colorScheme.outline.withValues(alpha: 0.85);
+    final selectedDestination =
+        widget.selectedIndex >= 0 &&
+            widget.selectedIndex < widget.destinations.length
+        ? widget.destinations[widget.selectedIndex]
+        : null;
 
     return GestureDetector(
       onPanUpdate: _onPanUpdate,
@@ -205,37 +227,74 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
           top: FloatingNavBarMetrics.topPadding,
         ),
         child: Transform.translate(
+          key: const ValueKey('floating-nav-drag-transform'),
           offset: _dragOffset,
-          child: Container(
-            height: FloatingNavBarMetrics.barHeight,
+          child: DecoratedBox(
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainer,
               borderRadius: AppRadius.borderRadiusXl,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
+                  blurRadius: 32,
+                  offset: const Offset(0, 8),
                   spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 4,
+                  color: Colors.white.withValues(alpha: isDark ? 0.07 : 0.55),
+                  blurRadius: 0,
                   offset: const Offset(0, 1),
-                  spreadRadius: 0,
                 ),
               ],
             ),
-            child: Row(
-              children: List.generate(widget.destinations.length, (index) {
-                return Expanded(
-                  child: _NavBarItem(
-                    destination: widget.destinations[index],
-                    isSelected: index == widget.selectedIndex,
-                    onTap: () => widget.onDestinationSelected(index),
+            child: ClipRRect(
+              borderRadius: AppRadius.borderRadiusXl,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: _blurSigma,
+                  sigmaY: _blurSigma,
+                ),
+                child: Container(
+                  height: FloatingNavBarMetrics.barHeight,
+                  decoration: BoxDecoration(
+                    color: glassColor,
+                    borderRadius: AppRadius.borderRadiusXl,
+                    border: Border.all(color: borderColor),
                   ),
-                );
-              }),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _barHorizontalPadding,
+                    vertical: _barVerticalPadding,
+                  ),
+                  child: SizedBox.expand(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (selectedDestination != null)
+                          IgnorePointer(
+                            child: _NavBarIndicator(
+                              selectedIndex: widget.selectedIndex,
+                              destinations: widget.destinations,
+                              selectedDestination: selectedDestination,
+                            ),
+                          ),
+                        Row(
+                          children: List.generate(widget.destinations.length, (
+                            index,
+                          ) {
+                            return Expanded(
+                              child: _NavBarItem(
+                                destination: widget.destinations[index],
+                                isSelected: index == widget.selectedIndex,
+                                onTap: () =>
+                                    widget.onDestinationSelected(index),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -244,7 +303,75 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
   }
 }
 
+class _NavBarIndicator extends StatelessWidget {
+  final int selectedIndex;
+  final List<FloatingNavDestination> destinations;
+  final FloatingNavDestination selectedDestination;
+
+  const _NavBarIndicator({
+    required this.selectedIndex,
+    required this.destinations,
+    required this.selectedDestination,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final accentColor = selectedDestination.accentColor;
+    final activeBackground = accentColor.withValues(
+      alpha: isDark ? 0.16 : 0.13,
+    );
+    final activeBorder = accentColor.withValues(alpha: 0.27);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth / destinations.length;
+        // Cap the pill width to the slot width so it never bleeds outside its
+        // slot and always aligns with the item content (which is also capped to
+        // slot_width by the Expanded + Center layout constraints).
+        final indicatorWidth = _NavBarItem.indicatorWidthFor(
+          selectedDestination,
+        ).clamp(0.0, itemWidth);
+        final left =
+            (itemWidth * selectedIndex) + ((itemWidth - indicatorWidth) / 2);
+
+        return Stack(
+          children: [
+            AnimatedPositioned(
+              duration: AppAnimation.durationSm,
+              curve: AppAnimation.emphasizedCurve,
+              left: left,
+              top: (constraints.maxHeight - _NavBarItem._pillHeight) / 2,
+              width: indicatorWidth,
+              height: _NavBarItem._pillHeight,
+              child: DecoratedBox(
+                key: const ValueKey('floating-nav-indicator'),
+                decoration: BoxDecoration(
+                  color: activeBackground,
+                  borderRadius: BorderRadius.circular(_NavBarItem.itemRadius),
+                  border: Border.all(color: activeBorder),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _NavBarItem extends StatelessWidget {
+  static const double _iconSize = 20.0;
+  static const double _itemHorizontalPadding = 14.0;
+  static const double itemRadius = 20.0;
+  static const double _labelGap = 6.0;
+  static const double _selectedLabelFontSize = 12.0;
+
+  /// Height of the animated selection pill — shorter than the full inner bar
+  /// height so the highlight feels proportionate rather than filling the bar.
+  static const double _pillHeight = 36.0;
+
   final FloatingNavDestination destination;
   final bool isSelected;
   final VoidCallback onTap;
@@ -255,60 +382,109 @@ class _NavBarItem extends StatelessWidget {
     required this.onTap,
   });
 
+  static double indicatorWidthFor(FloatingNavDestination destination) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: destination.label,
+        style: const TextStyle(
+          fontFamily: AppTheme.fontFamily,
+          fontSize: _selectedLabelFontSize,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.12,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+
+    return _itemHorizontalPadding * 2 + _iconSize + _labelGap + painter.width;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final accentColor = destination.accentColor;
 
-    final iconColor = isSelected
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant;
+    final itemColor = isSelected ? accentColor : colorScheme.onSurfaceVariant;
 
-    final labelColor = isSelected
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant;
-
-    final fontWeight = isSelected ? FontWeight.w600 : FontWeight.w500;
-
-    return InkWell(
+    return Semantics(
+      key: ValueKey('floating-nav-item-${destination.label.toLowerCase()}'),
+      button: true,
+      container: true,
+      excludeSemantics: true,
+      label: destination.label,
+      selected: isSelected,
+      enabled: true,
       onTap: onTap,
-      borderRadius: AppRadius.borderRadiusLg,
-      splashColor: colorScheme.primary.withValues(alpha: 0.1),
-      highlightColor: colorScheme.primary.withValues(alpha: 0.05),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon with scale animation
-          AnimatedScale(
-            scale: isSelected ? 1.15 : 1.0,
-            duration: AppAnimation.durationSm,
-            curve: AppAnimation.emphasizedCurve,
-            child: AnimatedSwitcher(
-              duration: AppAnimation.durationSm,
-              child: Icon(
-                isSelected ? destination.selectedIcon : destination.icon,
-                key: ValueKey(isSelected),
-                color: iconColor,
-                size: 24,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Center(
+            child: AnimatedScale(
+              scale: isSelected ? 1.02 : 1.0,
+              duration: AppAnimation.durationXs,
+              curve: AppAnimation.emphasizedCurve,
+              child: AnimatedContainer(
+                duration: AppAnimation.durationSm,
+                curve: AppAnimation.emphasizedCurve,
+                constraints: const BoxConstraints(minWidth: 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _itemHorizontalPadding,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(itemRadius),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: AppAnimation.durationSm,
+                      child: Icon(
+                        isSelected
+                            ? destination.selectedIcon
+                            : destination.icon,
+                        key: ValueKey(isSelected),
+                        color: itemColor,
+                        size: _iconSize,
+                      ),
+                    ),
+                    AnimatedSize(
+                      duration: AppAnimation.durationSm,
+                      curve: AppAnimation.emphasizedCurve,
+                      alignment: Alignment.centerLeft,
+                      child: isSelected
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: _labelGap),
+                              child: AnimatedDefaultTextStyle(
+                                duration: AppAnimation.durationSm,
+                                style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: _selectedLabelFontSize,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.12,
+                                  color: itemColor,
+                                ),
+                                child: Text(
+                                  destination.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 2),
-          // Label
-          AnimatedDefaultTextStyle(
-            duration: AppAnimation.durationSm,
-            style: TextStyle(
-              fontFamily: AppTheme.fontFamily,
-              fontSize: 11,
-              fontWeight: fontWeight,
-              color: labelColor,
-            ),
-            child: Text(
-              destination.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

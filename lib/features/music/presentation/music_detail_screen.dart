@@ -62,8 +62,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       baseUrl: settings.lidarrUrl,
       apiKey: settings.lidarrApiKey,
     );
-    final tags = _buildTags(viewModel);
-    final infoGroups = viewModel.buildInfoGroups();
+    final infoGroups = viewModel.buildInfoGroups(currentProfileName ?? '');
 
     return MediaDetailView(
       heroTag: widget.heroTag,
@@ -72,7 +71,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       backdropUrl: viewModel.backdropUrl,
       posterRow: (collapseFactor) =>
           _buildPosterRow(context, viewModel, collapseFactor),
-      contentSections: _buildContentSections(viewModel, tags, infoGroups),
+      contentSections: _buildContentSections(viewModel, infoGroups),
       slivers: [_buildAlbumsSliver(context, settings, albumsAsync)],
     );
   }
@@ -106,14 +105,27 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
         hasFile: viewModel.hasFiles,
         status: viewModel.status,
       ),
+      title: viewModel.title,
+      metadataItems: viewModel.metadataItems,
+      tags: _buildTags(viewModel),
+      circularPoster: true,
       posterCard: MediaPosterCard(
         heroTag: widget.heroTag,
         imageUrl: viewModel.posterUrl,
         imageHeaders: viewModel.posterHeaders,
         fallbackIcon: Icons.album_outlined,
+        circular: true,
       ),
-      actions: LibraryDetailActions(
-        collapseFactor: collapseFactor,
+    );
+  }
+
+  List<Widget> _buildContentSections(
+    MusicDetailViewModel viewModel,
+    List<MediaInfoGroup> infoGroups,
+  ) {
+    return [
+      LibraryDetailActions(
+        collapseFactor: 0,
         isSearching: _isSearching,
         isDeleting: _isDeleting,
         currentProfileName: currentProfileName,
@@ -125,41 +137,64 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
         onProfileSelected: _updateProfile,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
-    );
-  }
-
-  List<Widget> _buildContentSections(
-    MusicDetailViewModel viewModel,
-    List<Widget> tags,
-    List<MediaInfoGroup> infoGroups,
-  ) {
-    return [
-      MediaDetailTitleSection(title: viewModel.title),
-      if (tags.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.sm),
-        MediaDetailTagSection(tags: tags),
-      ],
-      if (viewModel.metadataItems.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.sm),
-        MediaMetadataLine(items: viewModel.metadataItems),
+      if (viewModel.overview.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailOverviewSection(overview: viewModel.overview),
+        ),
       ],
       if (viewModel.ratings.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: RatingChipsRow(ratings: viewModel.ratings),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: RatingChipsRow(ratings: viewModel.ratings),
+          ),
         ),
       ],
       if (infoGroups.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: MediaInfoCard(groups: infoGroups),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const MediaDetailSectionHeader(title: 'Details'),
+              SizedBox(
+                width: double.infinity,
+                child: MediaInfoCard(groups: infoGroups),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: AppSpacing.lg),
       ],
-      if (viewModel.overview.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        MediaDetailOverviewSection(overview: viewModel.overview),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Where to Watch',
+          message: 'Watch provider info is not available from Lidarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Cast',
+          message: 'Cast info is not available from Lidarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      if (viewModel.genres.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailTagsSection(tags: viewModel.genres),
+        ),
+        const SizedBox(height: AppSpacing.lg),
       ],
     ];
   }
@@ -171,12 +206,11 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
   ) {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Albums', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.lg),
+            const MediaDetailSectionHeader(title: 'Albums'),
             albumsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(AppSpacing.lg),

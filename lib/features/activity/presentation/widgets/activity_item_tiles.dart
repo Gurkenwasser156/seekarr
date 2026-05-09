@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
+import 'package:seekarr/core/utils/dynamic_map_utils.dart' as dynamic_utils;
+import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
 import 'package:seekarr/core/widgets/tag_chip.dart';
+import 'package:seekarr/features/activity/presentation/activity_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
 import 'package:seekarr/features/activity/presentation/widgets/activity_formatters.dart';
+import 'package:seekarr/features/activity/presentation/widgets/activity_tab_helpers.dart';
 import 'package:seekarr/features/activity/presentation/widgets/detail_sheets.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
 class QueueItemTile extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -26,7 +32,11 @@ class QueueItemTile extends StatelessWidget {
     final resolvedStatus = resolveQueueDisplayStatus(item);
     final title = stringOrNull(item['title']) ?? 'Unknown release';
     final subtitle = _buildMediaContext(serviceType, item);
-    final progress = _queueProgress(item);
+    final progress = dynamic_utils.queueProgress(
+      item,
+      parseStrings: false,
+      includeSizeLeftAlias: false,
+    );
     final chips = _buildQueueChips(item, colorScheme);
     final hasWarnings = extractStatusMessages(
       item['statusMessages'],
@@ -310,6 +320,188 @@ class WantedItemTile extends StatelessWidget {
   }
 }
 
+class GlobalActivityItemTile extends ConsumerWidget {
+  final GlobalActivityItem item;
+
+  const GlobalActivityItemTile({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final accent = item.service.accent;
+    final raw = item.raw;
+    final canSearch =
+        raw != null &&
+        (item.kind == GlobalActivityKind.missing ||
+            item.kind == GlobalActivityKind.cutoff) &&
+        extractWantedItemId(item.serviceType, raw) != null;
+    final icon = switch (item.kind) {
+      GlobalActivityKind.request => Icons.person_add_alt_1_rounded,
+      GlobalActivityKind.queue => Icons.downloading_rounded,
+      GlobalActivityKind.history => Icons.history_rounded,
+      GlobalActivityKind.blocklist => Icons.block_rounded,
+      GlobalActivityKind.missing => Icons.warning_amber_rounded,
+      GlobalActivityKind.cutoff => Icons.trending_up_rounded,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      child: AppCard.outlined(
+        onTap: item.raw == null ? null : () => _showDetails(context),
+        backgroundColor: colorScheme.surfaceContainer,
+        borderColor: colorScheme.outlineVariant,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 56,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: accent, size: 20),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (item.subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      item.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      TagChip(text: item.service.title, color: accent),
+                      TagChip(text: item.status, color: _statusColor(context)),
+                    ],
+                  ),
+                  if (item.progress != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: item.progress,
+                        minHeight: 4,
+                        color: accent,
+                        backgroundColor: colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (item.progress != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '${(item.progress! * 100).round()}%',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+            if (raw != null && canSearch) ...[
+              const SizedBox(width: AppSpacing.xs),
+              MediaSearchPopupMenu(
+                onAutoSearch: () => _runAutoSearch(context, ref, raw),
+                onInteractiveSearch: () =>
+                    _showInteractiveSearch(context, ref, raw),
+                iconSize: 18,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(BuildContext context) {
+    return switch (item.kind) {
+      GlobalActivityKind.queue => item.service.accent,
+      GlobalActivityKind.history => AppColors.success,
+      GlobalActivityKind.blocklist => Theme.of(context).colorScheme.error,
+      GlobalActivityKind.missing ||
+      GlobalActivityKind.cutoff => AppColors.warning,
+      GlobalActivityKind.request => item.service.accent,
+    };
+  }
+
+  void _showDetails(BuildContext context) {
+    final raw = item.raw;
+    if (raw == null) return;
+    switch (item.kind) {
+      case GlobalActivityKind.queue:
+        DetailSheets.showQueueDetail(context, raw);
+        break;
+      case GlobalActivityKind.history:
+        DetailSheets.showHistoryDetail(context, raw);
+        break;
+      case GlobalActivityKind.blocklist:
+        DetailSheets.showBlocklistDetail(context, raw);
+        break;
+      case GlobalActivityKind.missing:
+      case GlobalActivityKind.cutoff:
+        DetailSheets.showWantedDetail(context, raw, item.serviceType);
+        break;
+      case GlobalActivityKind.request:
+        break;
+    }
+  }
+
+  void _runAutoSearch(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> raw,
+  ) {
+    runWantedAutoSearch(
+      context,
+      ref.read(resolvedArrServiceProvider(item.serviceType)),
+      item.serviceType,
+      raw,
+    );
+  }
+
+  void _showInteractiveSearch(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> raw,
+  ) {
+    showWantedInteractiveSearch(
+      context,
+      ref.read(resolvedArrServiceProvider(item.serviceType)),
+      item.serviceType,
+      raw,
+      title: 'Releases for ${item.title}',
+    );
+  }
+}
+
 class _TileShell extends StatelessWidget {
   final VoidCallback onTap;
   final Widget child;
@@ -318,17 +510,19 @@ class _TileShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      child: AppCard.outlined(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          child: child,
-        ),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        borderColor: Theme.of(context).colorScheme.outlineVariant,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: child,
       ),
     );
   }
@@ -500,13 +694,6 @@ List<Widget> _buildWantedChips(
     if (showDateChip && date != null)
       TagChip(text: formatIsoDate(date), color: AppColors.info),
   ];
-}
-
-double? _queueProgress(Map<String, dynamic> item) {
-  final size = (item['size'] as num?)?.toDouble();
-  final sizeLeft = (item['sizeleft'] as num?)?.toDouble();
-  if (size == null || size <= 0 || sizeLeft == null) return null;
-  return (((size - sizeLeft) / size).clamp(0.0, 1.0) as num).toDouble();
 }
 
 String _historyTitle(Map<String, dynamic> item, ServiceType serviceType) {

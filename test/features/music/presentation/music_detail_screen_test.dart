@@ -82,11 +82,24 @@ void main() {
         detailBuilder: (ref, artistId) async => _artist(),
       );
       await tester.pumpAndSettle();
-      await _scrollUntilVisible(tester, find.text('Albums'));
 
       expect(find.text('Radiohead'), findsAtLeastNWidgets(1));
+      expect(find.byType(MediaDetailHeroSummaryCard), findsOneWidget);
       expect(find.text('An English rock band.'), findsOneWidget);
-      expect(find.text('Albums'), findsOneWidget);
+
+      await _scrollUntilVisible(tester, find.text('Where to Watch'));
+
+      expect(find.text('Where to Watch'), findsOneWidget);
+      expect(find.text('Cast'), findsOneWidget);
+      expect(find.text('Tags'), findsOneWidget);
+
+      await _scrollUntilVisible(
+        tester,
+        find.widgetWithText(MediaDetailSectionHeader, 'Albums'),
+      );
+
+      expect(find.byType(MusicAlbumsList), findsOneWidget);
+      expect(find.text('OK Computer'), findsOneWidget);
       expect(find.byType(MusicAlbumsList), findsOneWidget);
       expect(find.byType(MediaInfoCard), findsOneWidget);
     });
@@ -128,9 +141,15 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      await _scrollUntilVisible(tester, find.text('Albums'), settle: false);
 
       expect(find.text('Radiohead'), findsAtLeastNWidgets(1));
+
+      await _scrollUntilVisible(
+        tester,
+        find.widgetWithText(MediaDetailSectionHeader, 'Albums'),
+        settle: false,
+      );
+
       expect(find.byType(CircularProgressIndicator), findsWidgets);
     });
   });

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/theme.dart';
 
 /// A reusable, always-visible search bar widget for the top of screens.
 ///
@@ -91,10 +92,7 @@ class _SearchBarHeaderState extends State<SearchBarHeader> {
         autoFocus: widget.autofocus,
         leading: Padding(
           padding: const EdgeInsets.only(left: AppSpacing.sm),
-          child: Icon(
-            Icons.search_rounded,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          child: Icon(Icons.search_rounded, color: AppColors.seerr),
         ),
         trailing: [
           if (_hasText)
@@ -108,12 +106,14 @@ class _SearchBarHeaderState extends State<SearchBarHeader> {
             ),
         ],
         elevation: WidgetStateProperty.all(0),
-        backgroundColor: WidgetStateProperty.all(
-          colorScheme.surfaceContainerHighest,
-        ),
+        backgroundColor: WidgetStateProperty.all(colorScheme.surfaceContainer),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusXl),
+          RoundedRectangleBorder(
+            borderRadius: AppRadius.borderRadiusXl,
+            side: BorderSide(color: colorScheme.outlineVariant),
+          ),
         ),
+        constraints: const BoxConstraints(minHeight: 52),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         ),

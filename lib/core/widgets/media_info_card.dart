@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
-import 'package:seekarr/core/widgets/app_card.dart';
 
 class MediaInfoCard extends StatelessWidget {
   final List<MediaInfoGroup> groups;
@@ -14,16 +13,10 @@ class MediaInfoCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return AppCard.filled(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var index = 0; index < groups.length; index++) ...[
-            if (index > 0) const SizedBox(height: AppSpacing.lg),
-            _MediaInfoGroupView(group: groups[index]),
-          ],
-        ],
-      ),
+    return _InfoGrid(
+      cells: groups
+          .map((group) => _InfoGridCell(label: group.title, child: group.child))
+          .toList(growable: false),
     );
   }
 }
@@ -49,33 +42,92 @@ class MediaFactsList extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    return _InfoGrid(
+      cells: facts
+          .map(
+            (fact) => _InfoGridCell(
+              label: fact.label,
+              child: Text(
+                fact.value,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _InfoGrid extends StatelessWidget {
+  final List<_InfoGridCell> cells;
+
+  const _InfoGrid({required this.cells});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useSingleColumn = constraints.maxWidth < 320;
+
+        return Wrap(
+          spacing: AppSpacing.lg,
+          runSpacing: AppSpacing.sm,
+          children: cells
+              .map(
+                (cell) => SizedBox(
+                  width: useSingleColumn
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - AppSpacing.lg) / 2,
+                  child: cell,
+                ),
+              )
+              .toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _InfoGridCell extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _InfoGridCell({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        for (var index = 0; index < facts.length; index++) ...[
-          if (index > 0) const SizedBox(height: AppSpacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 96,
-                child: Text(
-                  facts[index].label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  facts[index].value,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
           ),
-        ],
+        ),
+        const SizedBox(height: 2),
+        DefaultTextStyle.merge(
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+            height: 1.3,
+          ),
+          child: child,
+        ),
       ],
     );
   }
@@ -86,27 +138,4 @@ class MediaFact {
   final String value;
 
   const MediaFact(this.label, this.value);
-}
-
-class _MediaInfoGroupView extends StatelessWidget {
-  final MediaInfoGroup group;
-
-  const _MediaInfoGroupView({required this.group});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          group.title,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        group.child,
-      ],
-    );
-  }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/widgets/media_detail_view.dart';
 
 /// A reusable widget to display file information (path and filename).
 ///
@@ -20,84 +20,90 @@ class FileInfoSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
-        borderRadius: AppRadius.borderRadiusMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.folder_rounded, size: 16, color: colorScheme.primary),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'File Information',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (path != null) ...[
-            _InfoRow(
-              label: 'Path',
-              value: path!,
-              icon: Icons.folder_outlined,
-              colorScheme: colorScheme,
-            ),
-          ],
-          if (filename != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            _InfoRow(
-              label: 'File',
-              value: filename!,
-              icon: Icons.description_outlined,
-              colorScheme: colorScheme,
-            ),
-          ],
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const MediaDetailSectionHeader(title: 'File'),
+        _InfoRow(
+          title: filename ?? 'Library path',
+          subtitle: path,
+          icon: Icons.storage_rounded,
+          colorScheme: colorScheme,
+          theme: theme,
+        ),
+      ],
     );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
+  final String title;
+  final String? subtitle;
   final IconData icon;
   final ColorScheme colorScheme;
+  final ThemeData theme;
 
   const _InfoRow({
-    required this.label,
-    required this.value,
+    required this.title,
     required this.icon,
     required this.colorScheme,
+    required this.theme,
+    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text(
-            value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 11,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 54,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            child: Icon(icon, size: 18, color: colorScheme.primary),
           ),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

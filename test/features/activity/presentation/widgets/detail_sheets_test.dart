@@ -6,7 +6,7 @@ import 'package:seekarr/features/activity/presentation/widgets/detail_sheets.dar
 
 void main() {
   group('DetailSheets', () {
-    testWidgets('showQueueDetail renders sections, messages, and footer', (
+    testWidgets('showQueueDetail renders sections and messages', (
       tester,
     ) async {
       await _pumpDetailSheet(
@@ -46,7 +46,7 @@ void main() {
       expect(find.text('qBittorrent'), findsOneWidget);
       expect(find.text('/downloads/movie'), findsOneWidget);
       expect(find.text('Import Warning: Needs manual import'), findsOneWidget);
-      expect(find.text('Manual Import'), findsOneWidget);
+      expect(find.text('Manual Import'), findsNothing);
     });
 
     testWidgets(

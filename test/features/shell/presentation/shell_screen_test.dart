@@ -6,8 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/shell/presentation/shell_screen.dart';
 
 void main() {
@@ -22,25 +20,31 @@ void main() {
   });
 
   group('ShellScreen', () {
-    testWidgets('renders the floating nav bar with five destinations', (
+    testWidgets('renders the floating nav bar with four destinations', (
       tester,
     ) async {
       await _pumpShell(tester);
 
       expect(find.byType(FloatingBottomNavBar), findsOneWidget);
-      expect(_navLabel('Discover'), findsOneWidget);
-      expect(_navLabel('Movies'), findsOneWidget);
-      expect(_navLabel('Series'), findsOneWidget);
-      expect(_navLabel('Music'), findsOneWidget);
-      expect(_navLabel('Settings'), findsOneWidget);
+      expect(_navItem('Services'), findsOneWidget);
+      expect(_navItem('Activity'), findsOneWidget);
+      expect(_navItem('Search'), findsOneWidget);
+      expect(_navItem('Settings'), findsOneWidget);
     });
 
-    testWidgets('selects Discover for the /discover route', (tester) async {
-      await _pumpShell(tester, initialLocation: '/discover');
+    testWidgets('selects Services for the /services route', (tester) async {
+      await _pumpShell(tester, initialLocation: '/services');
 
-      expect(find.text('DiscoverPage'), findsOneWidget);
-      expect(find.byIcon(Icons.explore), findsOneWidget);
-      expect(find.byIcon(Icons.explore_outlined), findsNothing);
+      expect(find.text('ServicesPage'), findsOneWidget);
+      expect(find.byIcon(Icons.view_list_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.view_list_outlined), findsNothing);
+    });
+
+    testWidgets('selects Services for legacy detail routes', (tester) async {
+      await _pumpShell(tester, initialLocation: '/services/radarr/movie/42');
+
+      expect(find.text('MovieDetailPage'), findsOneWidget);
+      expect(find.byIcon(Icons.view_list_rounded), findsOneWidget);
     });
 
     testWidgets('selects Settings for the /settings route', (tester) async {
@@ -51,71 +55,99 @@ void main() {
       expect(find.byIcon(Icons.settings_outlined), findsNothing);
     });
 
-    testWidgets('tapping Movies navigates to /movies', (tester) async {
-      final harness = await _pumpShell(tester);
-
-      await tester.tap(_navLabel('Movies'));
-      await tester.pumpAndSettle();
-
-      expect(harness.router.state.uri.path, '/movies');
-      expect(find.text('MoviesPage'), findsOneWidget);
-      expect(find.byIcon(Icons.movie), findsOneWidget);
-    });
-
-    testWidgets('tapping the current Discover tab triggers a refresh', (
+    testWidgets('does not select a tab for unmatched shell routes', (
       tester,
     ) async {
-      final harness = await _pumpShell(tester, initialLocation: '/discover');
+      await _pumpShell(tester, initialLocation: '/outside');
+
+      expect(find.text('OutsidePage'), findsOneWidget);
+      expect(find.byIcon(Icons.view_list_rounded), findsNothing);
+      expect(find.byIcon(Icons.monitor_heart_rounded), findsNothing);
+      expect(find.byIcon(Icons.search_rounded), findsNothing);
+      expect(find.byIcon(Icons.settings), findsNothing);
+    });
+
+    testWidgets('tapping Search navigates to /search', (tester) async {
+      final harness = await _pumpShell(tester);
+
+      await tester.tap(_navItem('Search'));
+      await tester.pumpAndSettle();
+
+      expect(harness.router.state.uri.path, '/search');
+      expect(find.text('SearchPage'), findsOneWidget);
+      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+    });
+
+    testWidgets('tapping the current Services tab triggers a refresh', (
+      tester,
+    ) async {
+      final harness = await _pumpShell(tester, initialLocation: '/services');
 
       expect(
         harness.container.read(
-          navigationRefreshProvider(NavigationSection.discover),
+          navigationRefreshProvider(NavigationSection.services),
         ),
         0,
       );
 
-      await tester.tap(_navLabel('Discover'));
+      await tester.tap(_navItem('Services'));
       await tester.pumpAndSettle();
 
-      expect(harness.router.state.uri.path, '/discover');
+      expect(harness.router.state.uri.path, '/services');
       expect(
         harness.container.read(
-          navigationRefreshProvider(NavigationSection.discover),
+          navigationRefreshProvider(NavigationSection.services),
         ),
         1,
       );
     });
+
+    testWidgets(
+      'tapping selected Services from a nested services route returns to root without refreshing',
+      (tester) async {
+        final harness = await _pumpShell(
+          tester,
+          initialLocation: '/services/radarr/movie/42',
+        );
+
+        await tester.tap(_navItem('Services'));
+        await tester.pumpAndSettle();
+
+        expect(harness.router.state.uri.path, '/services');
+        expect(find.text('ServicesPage'), findsOneWidget);
+        expect(
+          harness.container.read(
+            navigationRefreshProvider(NavigationSection.services),
+          ),
+          0,
+        );
+      },
+    );
 
     testWidgets('tapping the current Settings tab does not trigger refresh', (
       tester,
     ) async {
       final harness = await _pumpShell(tester, initialLocation: '/settings');
 
-      await tester.tap(_navLabel('Settings'));
+      await tester.tap(_navItem('Settings'));
       await tester.pumpAndSettle();
 
       expect(harness.router.state.uri.path, '/settings');
       expect(
         harness.container.read(
-          navigationRefreshProvider(NavigationSection.discover),
+          navigationRefreshProvider(NavigationSection.services),
         ),
         0,
       );
       expect(
         harness.container.read(
-          navigationRefreshProvider(NavigationSection.movies),
+          navigationRefreshProvider(NavigationSection.activity),
         ),
         0,
       );
       expect(
         harness.container.read(
-          navigationRefreshProvider(NavigationSection.series),
-        ),
-        0,
-      );
-      expect(
-        harness.container.read(
-          navigationRefreshProvider(NavigationSection.music),
+          navigationRefreshProvider(NavigationSection.search),
         ),
         0,
       );
@@ -125,12 +157,9 @@ void main() {
 
 Future<_ShellHarness> _pumpShell(
   WidgetTester tester, {
-  String initialLocation = '/discover',
-  SettingsModel settings = const SettingsModel(),
+  String initialLocation = '/services',
 }) async {
-  final container = ProviderContainer(
-    overrides: [currentSettingsProvider.overrideWith((ref) => settings)],
-  );
+  final container = ProviderContainer();
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [
@@ -138,24 +167,28 @@ Future<_ShellHarness> _pumpShell(
         builder: (context, state, child) => ShellScreen(child: child),
         routes: [
           GoRoute(
-            path: '/discover',
-            builder: (_, __) => const Scaffold(body: Text('DiscoverPage')),
+            path: '/services',
+            builder: (_, __) => const Scaffold(body: Text('ServicesPage')),
           ),
           GoRoute(
-            path: '/movies',
-            builder: (_, __) => const Scaffold(body: Text('MoviesPage')),
+            path: '/activity',
+            builder: (_, __) => const Scaffold(body: Text('ActivityPage')),
           ),
           GoRoute(
-            path: '/series',
-            builder: (_, __) => const Scaffold(body: Text('SeriesPage')),
+            path: '/search',
+            builder: (_, __) => const Scaffold(body: Text('SearchPage')),
           ),
           GoRoute(
-            path: '/music',
-            builder: (_, __) => const Scaffold(body: Text('MusicPage')),
+            path: '/services/radarr/movie/:id',
+            builder: (_, __) => const Scaffold(body: Text('MovieDetailPage')),
           ),
           GoRoute(
             path: '/settings',
             builder: (_, __) => const Scaffold(body: Text('SettingsPage')),
+          ),
+          GoRoute(
+            path: '/outside',
+            builder: (_, __) => const Scaffold(body: Text('OutsidePage')),
           ),
         ],
       ),
@@ -178,10 +211,10 @@ Future<_ShellHarness> _pumpShell(
   return _ShellHarness(container: container, router: router);
 }
 
-Finder _navLabel(String label) {
+Finder _navItem(String label) {
   return find.descendant(
     of: find.byType(FloatingBottomNavBar),
-    matching: find.text(label),
+    matching: find.byKey(ValueKey('floating-nav-item-${label.toLowerCase()}')),
   );
 }
 

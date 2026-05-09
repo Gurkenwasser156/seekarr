@@ -8,10 +8,6 @@ import 'package:seekarr/core/app_spacing.dart';
 /// Displays an [expanded] widget that fills remaining space, with an
 /// optional [trailing] widget (typically an icon-only button) on the right.
 class HeaderActionRow extends StatelessWidget {
-  static const _glowAlpha = 0.55;
-  static const _glowBlurRadius = 18.0;
-  static const _glowSpreadRadius = 2.0;
-
   /// The primary widget that fills available horizontal space.
   final Widget expanded;
 
@@ -20,8 +16,8 @@ class HeaderActionRow extends StatelessWidget {
 
   const HeaderActionRow({super.key, required this.expanded, this.trailing});
 
-  /// Standard height for header action buttons (matches M3 default).
-  static const buttonHeight = 35.0;
+  /// Standard height for prototype-style detail action buttons.
+  static const buttonHeight = 42.0;
 
   /// Shared rounded shape for all detail header action buttons.
   static final _buttonShape = RoundedRectangleBorder(
@@ -65,9 +61,37 @@ class HeaderActionRow extends StatelessWidget {
     Color? foregroundColor,
     Color? backgroundColor,
   }) => _filledButtonStyle(
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
     fixedSize: const Size(double.infinity, buttonHeight),
     foregroundColor: foregroundColor,
     backgroundColor: backgroundColor,
+  );
+
+  static ButtonStyle tonalIconButtonStyle({
+    required Color foregroundColor,
+    required Color backgroundColor,
+    required Color borderColor,
+  }) => OutlinedButton.styleFrom(
+    padding: EdgeInsets.zero,
+    minimumSize: const Size(buttonHeight, buttonHeight),
+    fixedSize: const Size(buttonHeight, buttonHeight),
+    foregroundColor: foregroundColor,
+    backgroundColor: backgroundColor,
+    side: BorderSide(color: borderColor),
+    shape: _buttonShape,
+  );
+
+  static ButtonStyle tonalExpandedButtonStyle({
+    required Color foregroundColor,
+    required Color backgroundColor,
+    required Color borderColor,
+  }) => OutlinedButton.styleFrom(
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+    fixedSize: const Size(double.infinity, buttonHeight),
+    foregroundColor: foregroundColor,
+    backgroundColor: backgroundColor,
+    side: BorderSide(color: borderColor),
+    shape: _buttonShape,
   );
 
   /// Wraps [child] in a glow effect container using [glowColor].
@@ -75,19 +99,7 @@ class HeaderActionRow extends StatelessWidget {
   /// Produces an Apple TV-style soft colored shadow behind the button.
   /// The glow [BorderRadius] matches [_buttonShape] (28dp).
   static Widget glowWrap({required Widget child, required Color glowColor}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.borderRadiusXl,
-        boxShadow: [
-          BoxShadow(
-            color: glowColor.withValues(alpha: _glowAlpha),
-            blurRadius: _glowBlurRadius,
-            spreadRadius: _glowSpreadRadius,
-          ),
-        ],
-      ),
-      child: child,
-    );
+    return child;
   }
 
   @override

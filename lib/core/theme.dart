@@ -25,43 +25,45 @@ TextStyle _inter({
 class AppColors {
   AppColors._();
 
-  // === PRIMARY (Indigo) ===
-  static const Color primary = Color(0xFF6366F1); // indigo-500
+  // === SERVICE ACCENTS ===
+  static const Color seerr = Color(0xFF6366F1);
+  static const Color radarr = Color(0xFFF59E0B);
+  static const Color sonarr = Color(0xFF8B5CF6);
+  static const Color lidarr = Color(0xFFEC4899);
+
+  // === PRIMARY (Seerr Indigo) ===
+  static const Color primary = seerr;
   static const Color primaryDark = Color(0xFF4F46E5); // indigo-600
   static const Color primaryLight = Color(0xFF818CF8); // indigo-400
   static const Color primaryLighter = Color(0xFFA5B4FC); // indigo-300
 
   // === DARK THEME SURFACES ===
-  static const Color surfaceDark = Color(0xFF111827); // gray-900
-  static const Color surfaceContainerDark = Color(0xFF1F2937); // gray-800
-  static const Color surfaceContainerHighDark = Color(0xFF374151); // gray-700
-  static const Color surfaceContainerHighestDark = Color(
-    0xFF4B5563,
-  ); // gray-600
+  static const Color surfaceDark = Color(0xFF0F1117);
+  static const Color surfaceContainerDark = Color(0xFF1C2130);
+  static const Color surfaceContainerHighDark = Color(0xFF252D3D);
+  static const Color surfaceContainerHighestDark = Color(0xFF2D3748);
 
   // === LIGHT THEME SURFACES ===
-  static const Color surfaceLight = Color(0xFFF9FAFB); // gray-50
-  static const Color surfaceContainerLight = Color(0xFFFFFFFF); // white
-  static const Color surfaceContainerHighLight = Color(0xFFF3F4F6); // gray-100
-  static const Color surfaceContainerHighestLight = Color(
-    0xFFE5E7EB,
-  ); // gray-200
+  static const Color surfaceLight = Color(0xFFF3F4F6);
+  static const Color surfaceContainerLight = Color(0xFFFFFFFF);
+  static const Color surfaceContainerHighLight = Color(0xFFF0F1F5);
+  static const Color surfaceContainerHighestLight = Color(0xFFE2E4EA);
 
   // === TEXT COLORS - DARK ===
-  static const Color onSurfaceDark = Color(0xFFF9FAFB); // gray-50
-  static const Color onSurfaceVariantDark = Color(0xFFD1D5DB); // gray-300
-  static const Color onSurfaceDimDark = Color(0xFF9CA3AF); // gray-400
+  static const Color onSurfaceDark = Color(0xFFF0F2F8);
+  static const Color onSurfaceVariantDark = Color(0xFF9CA3AF);
+  static const Color onSurfaceDimDark = Color(0xFF9CA3AF);
 
   // === TEXT COLORS - LIGHT ===
   static const Color onSurfaceLight = Color(0xFF111827); // gray-900
-  static const Color onSurfaceVariantLight = Color(0xFF4B5563); // gray-600
+  static const Color onSurfaceVariantLight = Color(0xFF6B7280); // gray-500
   static const Color onSurfaceDimLight = Color(0xFF6B7280); // gray-500
 
   // === OUTLINE / BORDER ===
-  static const Color outlineDark = Color(0xFF374151); // gray-700
-  static const Color outlineVariantDark = Color(0xFF4B5563); // gray-600
-  static const Color outlineLight = Color(0xFFE5E7EB); // gray-200
-  static const Color outlineVariantLight = Color(0xFFD1D5DB); // gray-300
+  static const Color outlineDark = Color(0xFF2D3748);
+  static const Color outlineVariantDark = Color(0xFF2D3748);
+  static const Color outlineLight = Color(0xFFE2E4EA);
+  static const Color outlineVariantLight = Color(0xFFE2E4EA);
 
   // === SEMANTIC COLORS ===
   static const Color success = Color(0xFF22C55E); // green-500
@@ -189,7 +191,7 @@ class AppTheme {
         titleTextStyle: _inter(
           color: colorScheme.onSurface,
           fontSize: 22,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
         ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
@@ -240,7 +242,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          textStyle: _inter(fontSize: 12, fontWeight: FontWeight.w400),
+          textStyle: _inter(fontSize: 14, fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(borderRadius: AppRadius.borderRadiusMd),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
@@ -395,7 +397,7 @@ class AppTheme {
   static final ColorScheme _lightColorScheme = ColorScheme(
     brightness: Brightness.light,
     // Primary
-    primary: AppColors.primaryDark,
+    primary: AppColors.primary,
     onPrimary: Colors.white,
     primaryContainer: AppColors.primaryLighter,
     onPrimaryContainer: AppColors.primaryDark,

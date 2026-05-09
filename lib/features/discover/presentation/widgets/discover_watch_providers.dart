@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/discover/domain/models/discover_detail_model.dart';
@@ -20,23 +19,20 @@ class DiscoverWatchProviders extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final mutedTextStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: colorScheme.onSurfaceVariant,
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Where to Watch', style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.sm),
-        AppCard.filled(
-          child: providers == null
-              ? Text(
-                  'Watch provider info is not available in your region ($region).',
-                  style: mutedTextStyle,
-                )
-              : _ProvidersContent(providers: providers!),
-        ),
+        const MediaDetailSectionHeader(title: 'Where to Watch'),
+        if (providers == null)
+          Text(
+            'Watch provider info is not available in your region ($region).',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          _ProvidersContent(providers: providers!),
       ],
     );
   }
@@ -65,15 +61,15 @@ class _ProvidersContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (providers.flatrate.isNotEmpty) ...[
-          Text('Stream', style: theme.textTheme.labelLarge),
-          const SizedBox(height: AppSpacing.sm),
+          _ProviderGroupLabel(label: 'Stream'),
+          const SizedBox(height: AppSpacing.xs),
           _WatchProviderRow(entries: providers.flatrate),
         ],
         if (providers.flatrate.isNotEmpty && providers.buy.isNotEmpty)
-          const SizedBox(height: AppSpacing.lg),
-        if (providers.buy.isNotEmpty) ...[
-          Text('Buy', style: theme.textTheme.labelLarge),
           const SizedBox(height: AppSpacing.sm),
+        if (providers.buy.isNotEmpty) ...[
+          _ProviderGroupLabel(label: 'Buy / Rent'),
+          const SizedBox(height: AppSpacing.xs),
           _WatchProviderRow(entries: providers.buy),
         ],
       ],
@@ -89,12 +85,12 @@ class _WatchProviderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 88,
+      height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: entries.length,
         separatorBuilder: (context, index) =>
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) =>
             _WatchProviderTile(entry: entries[index]),
       ),
@@ -113,40 +109,66 @@ class _WatchProviderTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final logoPath = entry.logoPath;
 
-    return SizedBox(
-      width: 60,
-      child: Column(
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ClipRRect(
-            borderRadius: AppRadius.borderRadiusSm,
-            child: Container(
-              width: 40,
-              height: 40,
-              color: colorScheme.surfaceContainerHighest,
+          SizedBox.square(
+            dimension: 18,
+            child: ClipOval(
               child: logoPath != null && logoPath.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: 'https://image.tmdb.org/t/p/w92$logoPath',
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Icon(
                         Icons.play_circle_outline,
+                        size: 16,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     )
                   : Icon(
                       Icons.play_circle_outline,
+                      size: 16,
                       color: colorScheme.onSurfaceVariant,
                     ),
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             entry.name,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProviderGroupLabel extends StatelessWidget {
+  final String label;
+
+  const _ProviderGroupLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
       ),
     );
   }

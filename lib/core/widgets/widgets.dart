@@ -16,6 +16,8 @@ export 'section_header.dart';
 export 'media_grid.dart';
 export 'media_browse_scaffold.dart';
 export 'media_detail_view.dart';
+export 'media_detail_sections.dart';
+export 'media_detail_hero_summary.dart';
 export 'media_detail_poster_row.dart';
 export 'media_poster_card.dart';
 export 'media_info_card.dart';

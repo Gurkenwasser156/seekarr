@@ -25,7 +25,8 @@ class TagChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: effectiveColor.withValues(alpha: 0.12),
-        borderRadius: AppRadius.borderRadiusSm,
+        borderRadius: AppRadius.borderRadiusFull,
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -63,8 +64,9 @@ class GenreChip extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: colorScheme.surfaceContainer,
         borderRadius: AppRadius.borderRadiusFull,
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Text(
         genre,

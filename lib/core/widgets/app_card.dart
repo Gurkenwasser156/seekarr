@@ -12,6 +12,9 @@ enum AppCardVariant {
 
   /// Elevated card with shadow
   elevated,
+
+  /// Outlined card using the default surface container and subtle outline
+  surfaceOutlined,
 }
 
 /// A versatile card component following Material Design 3 guidelines.
@@ -37,6 +40,9 @@ class AppCard extends StatelessWidget {
   /// Optional custom background color
   final Color? backgroundColor;
 
+  /// Optional custom outline color for outlined cards.
+  final Color? borderColor;
+
   const AppCard({
     super.key,
     required this.child,
@@ -45,6 +51,7 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.borderRadius,
     this.backgroundColor,
+    this.borderColor,
   });
 
   /// Creates a filled card (default)
@@ -55,6 +62,7 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.borderRadius,
     this.backgroundColor,
+    this.borderColor,
   }) : variant = AppCardVariant.filled;
 
   /// Creates an outlined card
@@ -65,7 +73,19 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.borderRadius,
     this.backgroundColor,
+    this.borderColor,
   }) : variant = AppCardVariant.outlined;
+
+  /// Creates the common app surface card with an outline.
+  const AppCard.surfaceOutlined({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.padding,
+    this.borderRadius,
+    this.backgroundColor,
+    this.borderColor,
+  }) : variant = AppCardVariant.surfaceOutlined;
 
   /// Creates an elevated card with shadow
   const AppCard.elevated({
@@ -75,6 +95,7 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.borderRadius,
     this.backgroundColor,
+    this.borderColor,
   }) : variant = AppCardVariant.elevated;
 
   @override
@@ -96,7 +117,7 @@ class AppCard extends StatelessWidget {
         break;
       case AppCardVariant.outlined:
         bgColor = backgroundColor ?? Colors.transparent;
-        border = Border.all(color: colorScheme.outline);
+        border = Border.all(color: borderColor ?? colorScheme.outline);
         shadows = null;
         break;
       case AppCardVariant.elevated:
@@ -115,14 +136,27 @@ class AppCard extends StatelessWidget {
           ),
         ];
         break;
+      case AppCardVariant.surfaceOutlined:
+        bgColor = backgroundColor ?? colorScheme.surfaceContainer;
+        border = Border.all(color: borderColor ?? colorScheme.outlineVariant);
+        shadows = null;
+        break;
     }
 
     if (onTap != null) {
       // Place background on Material so InkWell ripple paints on top.
       final shape = RoundedRectangleBorder(
         borderRadius: effectiveBorderRadius,
-        side: variant == AppCardVariant.outlined
-            ? BorderSide(color: colorScheme.outline)
+        side:
+            variant == AppCardVariant.outlined ||
+                variant == AppCardVariant.surfaceOutlined
+            ? BorderSide(
+                color:
+                    borderColor ??
+                    (variant == AppCardVariant.surfaceOutlined
+                        ? colorScheme.outlineVariant
+                        : colorScheme.outline),
+              )
             : BorderSide.none,
       );
 
@@ -174,6 +208,15 @@ class SettingsCard extends StatelessWidget {
   /// Callback when tapped
   final VoidCallback? onTap;
 
+  /// Accent color used by the leading icon container.
+  final Color? accentColor;
+
+  /// Optional subtitle color override.
+  final Color? subtitleColor;
+
+  /// Whether this row is rendered inside a [SettingsGroupCard].
+  final bool grouped;
+
   const SettingsCard({
     super.key,
     this.leading,
@@ -182,73 +225,146 @@ class SettingsCard extends StatelessWidget {
     this.subtitleLeading,
     this.trailing,
     this.onTap,
-  });
+    this.accentColor,
+    this.subtitleColor,
+  }) : grouped = false;
+
+  const SettingsCard.grouped({
+    super.key,
+    this.leading,
+    required this.title,
+    this.subtitle,
+    this.subtitleLeading,
+    this.trailing,
+    this.onTap,
+    this.accentColor,
+    this.subtitleColor,
+  }) : grouped = true;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final effectiveAccentColor = accentColor ?? colorScheme.primary;
 
-    return AppCard.filled(
-      onTap: onTap,
+    final row = Row(
+      children: [
+        if (leading != null) ...[
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: effectiveAccentColor.withValues(alpha: 0.14),
+              borderRadius: AppRadius.borderRadiusSm,
+            ),
+            child: IconTheme(
+              data: IconThemeData(color: effectiveAccentColor, size: 20),
+              child: Center(child: leading!),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (subtitleLeading != null) ...[
+                      subtitleLeading!,
+                      const SizedBox(width: AppSpacing.xs),
+                    ],
+                    Flexible(
+                      child: Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: subtitleColor ?? colorScheme.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (trailing != null) ...[
+          const SizedBox(width: AppSpacing.sm),
+          trailing!,
+        ] else if (onTap != null) ...[
+          Icon(
+            Icons.chevron_right_rounded,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ],
+    );
+
+    final paddedRow = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        children: [
-          if (leading != null) ...[
-            IconTheme(
-              data: IconThemeData(color: colorScheme.primary, size: 24),
-              child: leading!,
-            ),
-            const SizedBox(width: AppSpacing.lg),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+      child: row,
+    );
+
+    if (grouped) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(onTap: onTap, child: paddedRow),
+      );
+    }
+
+    return AppCard.filled(
+      onTap: onTap,
+      padding: EdgeInsets.zero,
+      child: paddedRow,
+    );
+  }
+}
+
+class SettingsGroupCard extends StatelessWidget {
+  final List<Widget> children;
+
+  const SettingsGroupCard({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AppCard.outlined(
+      padding: EdgeInsets.zero,
+      backgroundColor: colorScheme.surfaceContainer,
+      borderColor: colorScheme.outlineVariant,
+      borderRadius: AppRadius.borderRadiusLg,
+      child: ClipRRect(
+        borderRadius: AppRadius.borderRadiusLg,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var index = 0; index < children.length; index++) ...[
+              if (index > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: AppSpacing.lg + 36 + AppSpacing.lg,
+                  color: colorScheme.outlineVariant,
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (subtitleLeading != null) ...[
-                        subtitleLeading!,
-                        const SizedBox(width: AppSpacing.xs),
-                      ],
-                      Flexible(
-                        child: Text(
-                          subtitle!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: AppSpacing.sm),
-            trailing!,
-          ] else if (onTap != null) ...[
-            Icon(
-              Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant,
-            ),
+              children[index],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

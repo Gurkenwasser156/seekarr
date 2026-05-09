@@ -60,7 +60,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       baseUrl: settings.radarrUrl,
       apiKey: settings.radarrApiKey,
     );
-    final infoGroups = viewModel.buildInfoGroups();
+    final infoGroups = viewModel.buildInfoGroups(currentProfileName ?? '');
 
     return MediaDetailView(
       heroTag: widget.heroTag,
@@ -91,14 +91,27 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
         hasFile: viewModel.hasFile,
         status: viewModel.status,
       ),
+      title: viewModel.title,
+      metadataItems: viewModel.metadataItems,
+      tags: _buildSummaryTags(viewModel),
       posterCard: MediaPosterCard(
         heroTag: widget.heroTag,
         imageUrl: viewModel.posterUrl,
         imageHeaders: viewModel.posterHeaders,
         fallbackIcon: Icons.movie_outlined,
       ),
-      actions: LibraryDetailActions(
-        collapseFactor: collapseFactor,
+    );
+  }
+
+  List<Widget> _buildContentSections(
+    MovieDetailViewModel viewModel,
+    List<MediaInfoGroup> infoGroups,
+  ) {
+    final detailInfoGroups = _detailInfoGroups(infoGroups);
+
+    return [
+      LibraryDetailActions(
+        collapseFactor: 0,
         isSearching: _isSearching,
         isDeleting: _isDeleting,
         currentProfileName: currentProfileName,
@@ -110,43 +123,86 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
         onProfileSelected: _updateProfile,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
-    );
-  }
-
-  List<Widget> _buildContentSections(
-    MovieDetailViewModel viewModel,
-    List<MediaInfoGroup> infoGroups,
-  ) {
-    return [
-      MediaDetailTitleSection(title: viewModel.title),
-      if (viewModel.metadataItems.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.sm),
-        MediaMetadataLine(items: viewModel.metadataItems),
+      if (viewModel.overview.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailOverviewSection(overview: viewModel.overview),
+        ),
       ],
       if (viewModel.ratings.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: RatingChipsRow(ratings: viewModel.ratings),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: RatingChipsRow(ratings: viewModel.ratings),
+          ),
         ),
-      ],
-      if (infoGroups.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: MediaInfoCard(groups: infoGroups),
-        ),
-      ],
-      if (viewModel.overview.isNotEmpty) ...[
-        const SizedBox(height: AppSpacing.xl),
-        MediaDetailOverviewSection(overview: viewModel.overview),
       ],
       if (viewModel.hasFile && viewModel.path != null) ...[
-        const SizedBox(height: AppSpacing.xl),
-        FileInfoSection(path: viewModel.path, filename: viewModel.filename),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: FileInfoSection(
+            path: viewModel.path,
+            filename: viewModel.filename,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+      ],
+      if (detailInfoGroups.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const MediaDetailSectionHeader(title: 'Details'),
+              SizedBox(
+                width: double.infinity,
+                child: MediaInfoCard(groups: detailInfoGroups),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+      ],
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Where to Watch',
+          message: 'Watch provider info is not available from Radarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: MediaDetailUnavailableSection(
+          title: 'Cast',
+          message: 'Cast info is not available from Radarr details.',
+        ),
+      ),
+      const SizedBox(height: AppSpacing.lg),
+      if (viewModel.genres.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: MediaDetailTagsSection(tags: viewModel.genres),
+        ),
+        const SizedBox(height: AppSpacing.lg),
       ],
     ];
   }
+
+  List<Widget> _buildSummaryTags(MovieDetailViewModel viewModel) {
+    return viewModel.genres
+        .map((genre) => GenreChip(genre: genre))
+        .toList(growable: false);
+  }
+
+  List<MediaInfoGroup> _detailInfoGroups(List<MediaInfoGroup> infoGroups) =>
+      infoGroups;
 
   Future<void> _updateProfile(int profileId) async {
     try {

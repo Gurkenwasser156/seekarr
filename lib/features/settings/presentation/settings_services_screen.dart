@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/domain/nav_tab.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 const _servicesScreenDescription =
-    'Choose which services appear in the navigation bar. Discover and '
-    'Settings are always visible.';
+    'Configure connections for Seerr, Radarr, Sonarr, and Lidarr. The main '
+    'navigation now always uses Services, Activity, Search, and Settings.';
 
 class SettingsServicesScreen extends ConsumerWidget {
   const SettingsServicesScreen({super.key});
@@ -21,47 +23,40 @@ class SettingsServicesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Services')),
       body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          AppCard.outlined(
+            backgroundColor: theme.colorScheme.surfaceContainer,
+            borderColor: theme.colorScheme.outlineVariant,
             child: Text(
               _servicesScreenDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
           ),
-          const Divider(height: 1),
-          ...NavTab.hideableValues.map((tab) {
-            return SwitchListTile(
-              secondary: Icon(tab.icon),
-              title: Text(tab.label),
-              value: settings.isTabVisible(tab),
-              onChanged: (isVisible) =>
-                  _updateTabVisibility(ref, settings, tab, isVisible),
-            );
-          }),
+          const SizedBox(height: AppSpacing.xl),
+          SettingsGroupCard(
+            children: [
+              for (final service in ServiceKey.values)
+                SettingsCard.grouped(
+                  leading: Icon(service.icon),
+                  title: service.title,
+                  subtitle: _serviceSubtitle(settings, service),
+                  accentColor: service.accent,
+                  onTap: () =>
+                      context.push('/settings/service/${service.routeParam}'),
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _updateTabVisibility(
-    WidgetRef ref,
-    SettingsModel settings,
-    NavTab tab,
-    bool isVisible,
-  ) async {
-    final updatedHiddenTabs = <NavTab>{...settings.hiddenTabs};
-
-    if (isVisible) {
-      updatedHiddenTabs.remove(tab);
-    } else {
-      updatedHiddenTabs.add(tab);
-    }
-
-    await ref
-        .read(settingsProvider.notifier)
-        .updateSettings(settings.copyWith(hiddenTabs: updatedHiddenTabs));
+  String _serviceSubtitle(SettingsModel settings, ServiceKey service) {
+    final url = settings.urlFor(service);
+    return url.isEmpty ? 'Not configured' : service.extractHost(url) ?? url;
   }
 }
