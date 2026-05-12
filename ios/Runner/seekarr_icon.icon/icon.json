@@ -1,16 +1,18 @@
 {
   "fill" : {
-    "solid" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+    "solid" : "display-p3:0.03922,0.11765,0.22353,1.00000"
   },
   "groups" : [
     {
-      "hidden" : false,
       "layers" : [
         {
-          "image-name" : "seekarr_icon.png",
-          "name" : "seekarr_icon",
+          "blend-mode" : "normal",
+          "fill" : "automatic",
+          "glass" : false,
+          "image-name" : "seekarr_icon_fg.png",
+          "name" : "seekarr_icon_fg",
           "position" : {
-            "scale" : 0.72,
+            "scale" : 0.85,
             "translation-in-points" : [
               0,
               0
@@ -18,7 +20,6 @@
           }
         }
       ],
-      "lighting" : "individual",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
