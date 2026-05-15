@@ -240,11 +240,11 @@ void main() {
         router.go(entry.key);
         await tester.pumpAndSettle();
 
-        final screen = tester.widget<ServiceAllMediaScreen>(
-          find.byType(ServiceAllMediaScreen),
+        expect(
+          router.state.uri.toString(),
+          '/services/${entry.value.routeParam}',
         );
-        expect(router.state.uri.toString(), entry.key);
-        expect(screen.service, entry.value);
+        expect(find.byType(ServiceAllRequestsScreen), findsNothing);
       }
     });
 

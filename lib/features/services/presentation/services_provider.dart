@@ -135,6 +135,85 @@ final servicesMoviesProvider = moviesProvider;
 final servicesSeriesProvider = seriesProvider;
 final servicesMusicProvider = musicProvider;
 
+final radarrQueuedMovieIdsProvider = FutureProvider<Set<int>>((ref) async {
+  return _loadQueuedIds(
+    () => ref.watch(radarrServiceProvider).getQueue(),
+    (item) => intOrNull(mapOrNull(item['movie'])?['id'] ?? item['movieId']),
+  );
+});
+
+final sonarrQueuedSeriesIdsProvider = FutureProvider<Set<int>>((ref) async {
+  return _loadQueuedIds(
+    () => ref.watch(sonarrServiceProvider).getQueue(),
+    (item) => intOrNull(mapOrNull(item['series'])?['id'] ?? item['seriesId']),
+  );
+});
+
+final lidarrQueuedArtistIdsProvider = FutureProvider<Set<int>>((ref) async {
+  final service = ref.watch(lidarrServiceProvider);
+
+  try {
+    final queueItems = (await service.getQueue())
+        .whereType<Map>()
+        .map(stringKeyMap)
+        .toList(growable: false);
+    final artistIds = <int>{};
+    final unresolvedAlbumIds = <int>{};
+
+    for (final item in queueItems) {
+      final artistId = intOrNull(
+        mapOrNull(item['artist'])?['id'] ??
+            mapOrNull(item['album'])?['artistId'] ??
+            item['artistId'],
+      );
+      if (artistId != null && artistId > 0) {
+        artistIds.add(artistId);
+      }
+
+      final albumId = intOrNull(
+        mapOrNull(item['album'])?['id'] ?? item['albumId'],
+      );
+      if (albumId != null && albumId > 0) {
+        unresolvedAlbumIds.add(albumId);
+      }
+    }
+
+    if (unresolvedAlbumIds.isEmpty) {
+      return artistIds;
+    }
+
+    final artists = await service.getArtists();
+    for (final artist in artists) {
+      if (unresolvedAlbumIds.isEmpty) {
+        break;
+      }
+      if (artist.albumCount <= 0) {
+        continue;
+      }
+
+      try {
+        final albums = await service.getAlbums(artist.id);
+        final matchedAlbumIds = albums
+            .where((album) => unresolvedAlbumIds.contains(album.id))
+            .map((album) => album.id)
+            .toSet();
+        if (matchedAlbumIds.isEmpty) {
+          continue;
+        }
+
+        artistIds.add(artist.id);
+        unresolvedAlbumIds.removeAll(matchedAlbumIds);
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return artistIds;
+  } catch (_) {
+    return const <int>{};
+  }
+});
+
 final servicesQueueProvider = FutureProvider<List<ServiceQueueItem>>((
   ref,
 ) async {
@@ -160,6 +239,23 @@ class ServiceQueueItem {
     required this.progress,
     required this.warning,
   });
+}
+
+Future<Set<int>> _loadQueuedIds(
+  Future<List<dynamic>> Function() loadItems,
+  int? Function(Map<String, dynamic> item) idExtractor,
+) async {
+  try {
+    return (await loadItems())
+        .whereType<Map>()
+        .map(stringKeyMap)
+        .map(idExtractor)
+        .whereType<int>()
+        .where((id) => id > 0)
+        .toSet();
+  } catch (_) {
+    return const <int>{};
+  }
 }
 
 Future<List<ServiceQueueItem>> _loadServiceQueueItems(

@@ -165,8 +165,10 @@ GoRoute _moviesRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        builder: (context, state) =>
-            const ServiceAllMediaScreen(service: ServiceKey.radarr),
+        redirect: (context, state) => _preserveQuery(
+          state.uri,
+          '/services/radarr',
+        ),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'movie/:id',
@@ -214,8 +216,10 @@ GoRoute _seriesRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        builder: (context, state) =>
-            const ServiceAllMediaScreen(service: ServiceKey.sonarr),
+        redirect: (context, state) => _preserveQuery(
+          state.uri,
+          '/services/sonarr',
+        ),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'series/:id',
@@ -263,8 +267,10 @@ GoRoute _musicRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        builder: (context, state) =>
-            const ServiceAllMediaScreen(service: ServiceKey.lidarr),
+        redirect: (context, state) => _preserveQuery(
+          state.uri,
+          '/services/lidarr',
+        ),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'artist/:id',

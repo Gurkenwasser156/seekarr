@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
+import 'package:seekarr/features/music/data/lidarr_service.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
+import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/services/domain/service_summary.dart';
 import 'package:seekarr/features/services/presentation/services_provider.dart';
@@ -159,12 +162,81 @@ void main() {
       expect(items.single.title, 'Shogun');
     });
   });
+
+  group('queued membership providers', () {
+    test('extracts queued movie ids from Radarr queue items', () async {
+      final container = _container(
+        radarrService: _QueueRadarrService([
+          {
+            'movie': {'id': 10, 'title': 'Dune'},
+          },
+          {'movieId': 11},
+          {'movieId': 0},
+          'ignored',
+        ]),
+      );
+
+      final ids = await container.read(radarrQueuedMovieIdsProvider.future);
+
+      expect(ids, {10, 11});
+    });
+
+    test('extracts queued series ids from Sonarr queue items', () async {
+      final container = _container(
+        sonarrService: _QueueSonarrService([
+          {
+            'series': {'id': 20, 'title': 'The Boys'},
+          },
+          {'seriesId': 21},
+          {'seriesId': -1},
+        ]),
+      );
+
+      final ids = await container.read(sonarrQueuedSeriesIdsProvider.future);
+
+      expect(ids, {20, 21});
+    });
+
+    test('resolves queued Lidarr artists from direct and album matches', () async {
+      final container = _container(
+        lidarrService: _QueueLidarrService(
+          items: [
+            {
+              'artist': {'id': 30, 'artistName': 'Direct Artist'},
+            },
+            {'albumId': 40},
+          ],
+          artists: [
+            buildArtist(
+              id: 31,
+              artistName: 'Album Match',
+              statistics: const {'albumCount': 1},
+            ),
+            buildArtist(
+              id: 32,
+              artistName: 'Other Artist',
+              statistics: const {'albumCount': 1},
+            ),
+          ],
+          albumsByArtist: {
+            31: [buildAlbum(id: 40, title: 'Brat')],
+            32: [buildAlbum(id: 99, title: 'Other Album')],
+          },
+        ),
+      );
+
+      final ids = await container.read(lidarrQueuedArtistIdsProvider.future);
+
+      expect(ids, {30, 31});
+    });
+  });
 }
 
 ProviderContainer _container({
   SettingsModel settings = const SettingsModel(),
   RadarrService? radarrService,
   SonarrService? sonarrService,
+  LidarrService? lidarrService,
   ApiClient? statusClient,
 }) {
   final container = ProviderContainer(
@@ -181,6 +253,9 @@ ProviderContainer _container({
       ),
       sonarrServiceProvider.overrideWith(
         (ref) => sonarrService ?? FakeSonarrService(),
+      ),
+      lidarrServiceProvider.overrideWith(
+        (ref) => lidarrService ?? FakeLidarrService(),
       ),
     ],
   );
@@ -230,6 +305,30 @@ class _QueueSonarrService extends FakeSonarrService {
   Future<List<dynamic>> getQueue({
     Map<String, dynamic>? queryParameters,
   }) async => items;
+}
+
+class _QueueLidarrService extends FakeLidarrService {
+  _QueueLidarrService({
+    required this.items,
+    required this.artists,
+    required this.albumsByArtist,
+  });
+
+  final List<dynamic> items;
+  final List<LidarrArtist> artists;
+  final Map<int, List<LidarrAlbum>> albumsByArtist;
+
+  @override
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => items;
+
+  @override
+  Future<List<LidarrArtist>> getArtists() async => artists;
+
+  @override
+  Future<List<LidarrAlbum>> getAlbums(int artistId) async =>
+      albumsByArtist[artistId] ?? const [];
 }
 
 class _StatusClient extends ApiClient {

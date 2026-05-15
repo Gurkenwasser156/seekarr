@@ -11,7 +11,7 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 final testSearchQueryProvider = StateProvider<String>((ref) => '');
 final testLibraryProvider = FutureProvider<List<String>>(
-  (ref) async => ['Item A', 'Item B'],
+  (ref) async => ['Alpha', 'Beta'],
 );
 final testSearchResultsProvider = FutureProvider<List<String>?>(
   (ref) async => null,
@@ -37,11 +37,27 @@ void main() {
       expect(find.byIcon(Icons.history), findsOneWidget);
     });
 
-    testWidgets('shows library content by default', (tester) async {
+    testWidgets('shows grouped browse content and filters by default', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.byType(MediaGrid<String>), findsOneWidget);
+      expect(find.byType(MediaGrid<String>), findsNothing);
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Available'), findsOneWidget);
+      expect(find.text('Missing'), findsOneWidget);
+      expect(find.text('In Queue'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('media-browse-section-A')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('media-browse-section-B')),
+        findsOneWidget,
+      );
+      expect(find.text('Alpha'), findsOneWidget);
+      expect(find.text('Beta'), findsOneWidget);
     });
 
     testWidgets('shows back arrow when searching', (tester) async {
@@ -94,6 +110,7 @@ void main() {
             libraryProvider: libraryProvider,
             searchQueryProvider: searchQueryProvider,
             searchResultsProvider: searchResultsProvider,
+            titleExtractor: (item) => item,
             onItemTap: (_, item, heroTag) {
               tappedItem = item;
               tappedHeroTag = heroTag;
@@ -102,7 +119,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(_gridItemGestureDetectorFinder());
+        await tester.tap(find.text('Library Item'));
         await tester.pump();
 
         expect(tappedItem, 'Library Item');
@@ -124,6 +141,88 @@ void main() {
         expect(tappedHeroTag, contains('test_search_'));
       },
     );
+
+    testWidgets('filters grouped browse content by availability', (tester) async {
+      final libraryProvider = FutureProvider<List<String>>(
+        (ref) async => ['Available Item', 'Missing Item'],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentSettingsProvider.overrideWith((ref) => const SettingsModel()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _buildCustomTestApp(
+          container: container,
+          libraryProvider: libraryProvider,
+          searchQueryProvider: testSearchQueryProvider,
+          searchResultsProvider: testSearchResultsProvider,
+          titleExtractor: (item) => item,
+          statusExtractor: (item) => switch (item) {
+            'Available Item' => const MediaAvailabilityInfo(
+              hasFile: true,
+              status: 'available',
+            ),
+            _ => const MediaAvailabilityInfo(hasFile: false, status: 'missing'),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Available'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Available Item'), findsOneWidget);
+      expect(find.text('Missing Item'), findsNothing);
+
+      await tester.tap(find.text('Missing'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Available Item'), findsNothing);
+      expect(find.text('Missing Item'), findsOneWidget);
+    });
+
+    testWidgets('filters grouped browse content by queued override status', (
+      tester,
+    ) async {
+      final libraryProvider = FutureProvider<List<String>>(
+        (ref) async => ['Queued Item', 'Available Item'],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentSettingsProvider.overrideWith((ref) => const SettingsModel()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _buildCustomTestApp(
+          container: container,
+          libraryProvider: libraryProvider,
+          searchQueryProvider: testSearchQueryProvider,
+          searchResultsProvider: testSearchResultsProvider,
+          titleExtractor: (item) => item,
+          statusExtractor: (item) => switch (item) {
+            'Available Item' => const MediaAvailabilityInfo(
+              hasFile: true,
+              status: 'available',
+            ),
+            _ => const MediaAvailabilityInfo(hasFile: false, status: 'missing'),
+          },
+          browseStatusExtractor: (item) =>
+              item == 'Queued Item' ? MediaStatus.queued : null,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('In Queue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Queued Item'), findsOneWidget);
+      expect(find.text('Available Item'), findsNothing);
+    });
 
     testWidgets('shows empty search state when search returns no results', (
       tester,
@@ -237,6 +336,8 @@ Widget _buildTestScaffold() {
     libraryProvider: testLibraryProvider,
     searchQueryProvider: testSearchQueryProvider,
     searchResultsProvider: testSearchResultsProvider,
+    titleExtractor: (item) => item,
+    subtitleExtractor: (_) => '',
     imagesExtractor: (_) => null,
     idExtractor: (item) => item.hashCode,
     settingsSelector: (settings) => (settings.radarrUrl, settings.radarrApiKey),
@@ -249,6 +350,10 @@ Widget _buildCustomTestApp({
   required FutureProvider<List<String>> libraryProvider,
   required StateProvider<String> searchQueryProvider,
   required FutureProvider<List<String>?> searchResultsProvider,
+  String Function(String item)? titleExtractor,
+  String Function(String item)? subtitleExtractor,
+  StatusExtractor<String>? statusExtractor,
+  MediaBrowseStatusExtractor<String>? browseStatusExtractor,
   void Function(BuildContext context, String item, String heroTag)? onItemTap,
 }) {
   return UncontrolledProviderScope(
@@ -265,8 +370,12 @@ Widget _buildCustomTestApp({
         libraryProvider: libraryProvider,
         searchQueryProvider: searchQueryProvider,
         searchResultsProvider: searchResultsProvider,
+        titleExtractor: titleExtractor ?? (item) => item,
+        subtitleExtractor: subtitleExtractor ?? (_) => '',
         imagesExtractor: (_) => null,
         idExtractor: (item) => item.hashCode,
+        statusExtractor: statusExtractor,
+        browseStatusExtractor: browseStatusExtractor,
         settingsSelector: (settings) =>
             (settings.radarrUrl, settings.radarrApiKey),
         onItemTap: onItemTap ?? (_, __, ___) {},
