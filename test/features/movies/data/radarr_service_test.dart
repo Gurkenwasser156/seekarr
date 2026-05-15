@@ -1,11 +1,56 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 
+import '../../../test_helpers/fake_api_client.dart';
+
 void main() {
   group('RadarrService', () {
+    test('getQueue requests embedded movie data', () async {
+      final client = FakeApiClient()
+        ..getResponseData = {
+          'records': [
+            {'id': 1, 'title': 'Queued'},
+          ],
+        };
+      final service = RadarrService(client);
+
+      final items = await service.getQueue();
+
+      expect(items, hasLength(1));
+      expect(
+        client.lastGetPath,
+        '/api/${ArrServiceConfig.radarr.apiVersion}/queue',
+      );
+      expect(client.lastGetQueryParameters, const {'includeMovie': true});
+    });
+
+    test('getHistory requests embedded movie data', () async {
+      final client = FakeApiClient()
+        ..getResponseData = {
+          'records': [
+            {'id': 1, 'sourceTitle': 'Imported.Release'},
+          ],
+        };
+      final service = RadarrService(client);
+
+      final items = await service.getHistory();
+
+      expect(items, hasLength(1));
+      expect(
+        client.lastGetPath,
+        '/api/${ArrServiceConfig.radarr.apiVersion}/history',
+      );
+      expect(client.lastGetQueryParameters, {
+        'page': 1,
+        'pageSize': 20,
+        'includeMovie': true,
+      });
+    });
+
     group('getMovieByTmdbId', () {
       test('finds movie when TMDB ID matches', () async {
         final service = _TestRadarrService([

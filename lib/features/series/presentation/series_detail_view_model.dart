@@ -13,6 +13,8 @@ class SeriesDetailViewModel {
   final String? backdropUrl;
   final String status;
   final bool hasFiles;
+  final bool isInLibrary;
+  final bool isMonitored;
   final int? episodeFileCount;
   final String year;
   final String? runtimeStr;
@@ -38,6 +40,8 @@ class SeriesDetailViewModel {
     this.backdropUrl,
     required this.status,
     required this.hasFiles,
+    required this.isInLibrary,
+    required this.isMonitored,
     this.episodeFileCount,
     required this.year,
     this.runtimeStr,
@@ -178,6 +182,7 @@ class SeriesDetailViewModel {
     final episodeFileCount = (stats?['episodeFileCount'] as num?)?.toInt();
     final seasonCount = (stats?['seasonCount'] as num?)?.toInt();
     final episodeCount = (stats?['episodeCount'] as num?)?.toInt();
+    final isInLibrary = series.id > 0 && series.path?.isNotEmpty == true;
 
     return SeriesDetailViewModel(
       title: series.title,
@@ -189,6 +194,8 @@ class SeriesDetailViewModel {
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: series.status,
       hasFiles: (episodeFileCount ?? 0) > 0,
+      isInLibrary: isInLibrary,
+      isMonitored: series.monitored,
       episodeFileCount: episodeFileCount,
       year: series.year > 0 ? series.year.toString() : '',
       runtimeStr: series.runtime > 0 ? '${series.runtime} min' : null,

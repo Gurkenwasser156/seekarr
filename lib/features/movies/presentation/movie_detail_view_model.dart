@@ -13,6 +13,8 @@ class MovieDetailViewModel {
   final String? backdropUrl;
   final String status;
   final bool hasFile;
+  final bool isInLibrary;
+  final bool isMonitored;
   final String year;
   final String? runtimeStr;
   final String? studio;
@@ -35,6 +37,8 @@ class MovieDetailViewModel {
     this.backdropUrl,
     required this.status,
     required this.hasFile,
+    required this.isInLibrary,
+    required this.isMonitored,
     required this.year,
     this.runtimeStr,
     this.studio,
@@ -109,7 +113,11 @@ class MovieDetailViewModel {
   }
 
   List<MediaInfoGroup> _buildFileFacts(String? qualityProfileName) => [
-    if (hasFile) const MediaInfoGroup(title: 'Monitored', child: Text('Yes')),
+    if (isInLibrary)
+      MediaInfoGroup(
+        title: 'Monitored',
+        child: Text(isMonitored ? 'Yes' : 'No'),
+      ),
     if (_hasText(qualityProfileName))
       MediaInfoGroup(title: 'Profile', child: Text(qualityProfileName!)),
   ];
@@ -141,6 +149,7 @@ class MovieDetailViewModel {
       coverTypes: const ['fanart'],
     );
     final moviePath = movie.path;
+    final isInLibrary = movie.id > 0 && moviePath?.isNotEmpty == true;
 
     return MovieDetailViewModel(
       title: movie.title,
@@ -152,6 +161,8 @@ class MovieDetailViewModel {
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: movie.status,
       hasFile: movie.hasFile,
+      isInLibrary: isInLibrary,
+      isMonitored: movie.monitored,
       year: movie.year > 0 ? movie.year.toString() : '',
       runtimeStr: movie.runtime > 0 ? '${movie.runtime} min' : null,
       studio: movie.studio,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
+import 'package:seekarr/core/utils/arr_activity_display.dart';
 import 'package:seekarr/core/utils/dynamic_map_utils.dart' as dynamic_utils;
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/media_search_popup_menu.dart';
@@ -29,18 +30,18 @@ class QueueItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final resolvedStatus = resolveQueueDisplayStatus(item);
-    final title = stringOrNull(item['title']) ?? 'Unknown release';
-    final subtitle = _buildMediaContext(serviceType, item);
+    final resolvedStatus = resolveQueueDisplayStatus(
+      item,
+      includeWarningSuffix: false,
+    );
+    final title = _queueTitle(item, serviceType);
+    final subtitle = _queueSubtitle(item, serviceType);
     final progress = dynamic_utils.queueProgress(
       item,
       parseStrings: false,
       includeSizeLeftAlias: false,
     );
     final chips = _buildQueueChips(item, colorScheme);
-    final hasWarnings = extractStatusMessages(
-      item['statusMessages'],
-    ).isNotEmpty;
     final showInlineProgress =
         progress != null && resolvedStatus.badge == MediaStatus.downloading;
     final inlineStatus = showInlineProgress
@@ -67,47 +68,24 @@ class QueueItemTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (subtitle != null) ...[
-                          Text(
-                            '$subtitle ·',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                    if (subtitle != null) _SubtitleText(text: subtitle),
+                    _SubtitleText(text: inlineStatus),
+                    if (showInlineProgress)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: SizedBox(
+                          width: 96,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              minHeight: 6,
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest,
                             ),
-                          ),
-                        ],
-                        Text(
-                          inlineStatus,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (hasWarnings) ...[
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            size: 16,
-                            color: colorScheme.error,
-                          ),
-                        ],
-                        if (showInlineProgress)
-                          SizedBox(
-                            width: 64,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: progress,
-                                minHeight: 6,
-                                backgroundColor:
-                                    colorScheme.surfaceContainerHighest,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
@@ -136,11 +114,7 @@ class HistoryItemTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final eventType = stringOrNull(item['eventType']) ?? 'unknown';
     final title = _historyTitle(item, serviceType);
-    final subtitle = _buildMediaContext(
-      serviceType,
-      item,
-      includePrimaryTitle: false,
-    );
+    final subtitle = _historySubtitle(item, serviceType);
     final metadata = joinActivityParts([
       formatDateOnly(stringOrNull(item['date'])),
       _historySizeLabel(item),
@@ -209,7 +183,7 @@ class BlocklistItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final subtitle = _buildMediaContext(serviceType, item);
+    final subtitle = _blocklistSubtitle(item, serviceType);
     final chips = _buildBlocklistChips(item, colorScheme);
     final reason = _blocklistReason(item);
 
@@ -219,7 +193,7 @@ class BlocklistItemTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _TitleRow(
-            title: stringOrNull(item['sourceTitle']) ?? 'Unknown release',
+            title: _blocklistTitle(item, serviceType),
             titleStyle: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -399,6 +373,12 @@ class GlobalActivityItemTile extends ConsumerWidget {
                     children: [
                       TagChip(text: item.service.title, color: accent),
                       TagChip(text: item.status, color: _statusColor(context)),
+                      if (item.warning != null)
+                        TagChip(
+                          text: 'Warning',
+                          color: colorScheme.error,
+                          icon: Icons.warning_amber_rounded,
+                        ),
                     ],
                   ),
                   if (item.progress != null) ...[
@@ -624,8 +604,15 @@ List<Widget> _buildQueueChips(
   final quality = extractQualityName(item);
   final protocol = stringOrNull(item['protocol']);
   final downloadClient = stringOrNull(item['downloadClient']);
+  final hasWarning = arrQueueHasWarning(item);
 
   return [
+    if (hasWarning)
+      TagChip(
+        text: 'Warning',
+        color: colorScheme.error,
+        icon: Icons.warning_amber_rounded,
+      ),
     if (quality != null) TagChip(text: quality),
     if (protocol != null) TagChip(text: protocol, color: AppColors.info),
     if (downloadClient != null)
@@ -697,11 +684,9 @@ List<Widget> _buildWantedChips(
 }
 
 String _historyTitle(Map<String, dynamic> item, ServiceType serviceType) {
-  final sourceTitle = stringOrNull(item['sourceTitle']) ?? 'Unknown release';
-  if (serviceType != ServiceType.movies) return sourceTitle;
-
-  final year = intOrNull(asActivityMap(item['movie'])?['year'] ?? item['year']);
-  return year == null ? sourceTitle : '$sourceTitle ($year)';
+  return arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+      stringOrNull(item['sourceTitle']) ??
+      'Unknown release';
 }
 
 String? _historyEpisodeCode(Map<String, dynamic> item) {
@@ -744,47 +729,96 @@ String? _historySizeLabel(Map<String, dynamic> item) {
   return size == '—' ? null : size;
 }
 
-String? _buildMediaContext(
-  ServiceType serviceType,
-  Map<String, dynamic> item, {
-  bool includePrimaryTitle = true,
-}) {
-  switch (serviceType) {
-    case ServiceType.series:
-      final series = asActivityMap(item['series']);
-      final episode = asActivityMap(item['episode']);
-      final episodeCode = formatEpisodeCode(
-        intOrNull(episode?['seasonNumber'] ?? item['seasonNumber']),
-        intOrNull(episode?['episodeNumber'] ?? item['episodeNumber']),
-      );
-      final episodeTitle = stringOrNull(episode?['title']);
-      final primaryTitle = includePrimaryTitle
-          ? stringOrNull(item['title'])
-          : null;
+String _queueTitle(Map<String, dynamic> item, ServiceType serviceType) {
+  return switch (serviceType) {
+    ServiceType.movies =>
+      arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+          arrReleaseTitle(item) ??
+          'Unknown release',
+    ServiceType.series || ServiceType.music =>
+      arrPrimaryMediaTitle(item) ?? arrReleaseTitle(item) ?? 'Unknown release',
+    ServiceType.discover => arrReleaseTitle(item) ?? 'Unknown release',
+  };
+}
 
-      final line = joinActivityParts([
-        stringOrNull(series?['title'] ?? item['seriesTitle']),
-        episodeCode,
-        if (episodeTitle != null && episodeTitle != primaryTitle) episodeTitle,
-      ]);
-      return line.isEmpty ? null : line;
-    case ServiceType.movies:
-      final movie = asActivityMap(item['movie']);
-      final title = stringOrNull(movie?['title'] ?? item['title']);
-      final year = intOrNull(movie?['year'] ?? item['year']);
-      if (title == null) return null;
-      return year == null ? title : '$title ($year)';
-    case ServiceType.music:
-      final artist = asActivityMap(item['artist']);
-      final album = asActivityMap(item['album']);
-      final line = joinActivityParts([
-        stringOrNull(artist?['artistName']),
-        stringOrNull(album?['title']),
-      ]);
-      return line.isEmpty ? null : line;
-    case ServiceType.discover:
-      return null;
-  }
+String? _queueSubtitle(Map<String, dynamic> item, ServiceType serviceType) {
+  final release = arrReleaseTitle(item);
+  final title = _queueTitle(item, serviceType);
+  final uniqueRelease = release == title ? null : release;
+
+  return switch (serviceType) {
+    ServiceType.series => _joinSecondaryParts([
+      arrEpisodeCode(item),
+      arrEpisodeTitle(item),
+      uniqueRelease,
+    ]),
+    ServiceType.movies => _joinSecondaryParts([uniqueRelease]),
+    ServiceType.music => _joinSecondaryParts([
+      arrArtistName(item),
+      uniqueRelease,
+    ]),
+    ServiceType.discover => null,
+  };
+}
+
+String? _historySubtitle(Map<String, dynamic> item, ServiceType serviceType) {
+  final release = stringOrNull(item['sourceTitle']);
+  final title = _historyTitle(item, serviceType);
+  final uniqueRelease = release == title ? null : release;
+
+  return switch (serviceType) {
+    ServiceType.series => _joinSecondaryParts([
+      arrEpisodeCode(item),
+      arrEpisodeTitle(item),
+      uniqueRelease,
+    ]),
+    ServiceType.movies => _joinSecondaryParts([uniqueRelease]),
+    ServiceType.music => _joinSecondaryParts([
+      arrArtistName(item),
+      uniqueRelease,
+    ]),
+    ServiceType.discover => null,
+  };
+}
+
+String _blocklistTitle(Map<String, dynamic> item, ServiceType serviceType) {
+  return switch (serviceType) {
+    ServiceType.movies =>
+      arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+          stringOrNull(item['sourceTitle']) ??
+          'Unknown release',
+    ServiceType.series || ServiceType.music =>
+      arrPrimaryMediaTitle(item) ??
+          stringOrNull(item['sourceTitle']) ??
+          'Unknown release',
+    ServiceType.discover =>
+      stringOrNull(item['sourceTitle']) ?? 'Unknown release',
+  };
+}
+
+String? _blocklistSubtitle(Map<String, dynamic> item, ServiceType serviceType) {
+  final release = stringOrNull(item['sourceTitle']);
+  final title = _blocklistTitle(item, serviceType);
+  final uniqueRelease = release == title ? null : release;
+
+  return switch (serviceType) {
+    ServiceType.series => _joinSecondaryParts([
+      arrEpisodeCode(item),
+      arrEpisodeTitle(item),
+      uniqueRelease,
+    ]),
+    ServiceType.movies => _joinSecondaryParts([uniqueRelease]),
+    ServiceType.music => _joinSecondaryParts([
+      arrArtistName(item),
+      uniqueRelease,
+    ]),
+    ServiceType.discover => null,
+  };
+}
+
+String? _joinSecondaryParts(List<String?> parts) {
+  final line = joinDisplayParts(parts);
+  return line.isEmpty ? null : line;
 }
 
 String _wantedTitle(Map<String, dynamic> item, ServiceType serviceType) {

@@ -30,6 +30,18 @@ class SonarrService with ArrActivityMixin {
 
   SonarrService(this.client);
 
+  @override
+  Future<List<dynamic>> getQueue({Map<String, dynamic>? queryParameters}) {
+    return super.getQueue(
+      queryParameters: {
+        'includeSeries': true,
+        'includeEpisode': true,
+        'includeUnknownSeriesItems': true,
+        ...?queryParameters,
+      },
+    );
+  }
+
   /// Fetches all series from Sonarr.
   Future<List<SonarrSeries>> getSeries() async {
     return fetchAllItems('series', SonarrSeries.fromJson);
@@ -43,6 +55,34 @@ class SonarrService with ArrActivityMixin {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return super.getHistory(
+      page: page,
+      pageSize: pageSize,
+      queryParameters: {
+        'includeSeries': true,
+        'includeEpisode': true,
+        ...?queryParameters,
+      },
+    );
+  }
+
+  @override
+  Future<List<dynamic>> getAllHistory({Map<String, dynamic>? queryParameters}) {
+    return super.getAllHistory(
+      queryParameters: {
+        'includeSeries': true,
+        'includeEpisode': true,
+        ...?queryParameters,
+      },
+    );
   }
 
   /// Triggers an automatic search for the given series ID (entire series).
@@ -135,6 +175,11 @@ class SonarrService with ArrActivityMixin {
   /// Updates a series's quality profile.
   Future<void> updateSeriesProfile(int seriesId, int qualityProfileId) async {
     await updateItemProfile('series', seriesId, qualityProfileId);
+  }
+
+  /// Updates a series's monitored state.
+  Future<void> updateSeriesMonitored(int seriesId, bool monitored) async {
+    await updateItemMonitored('series', seriesId, monitored);
   }
 
   /// Deletes a series from Sonarr.

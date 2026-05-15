@@ -17,14 +17,23 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 import '../../../test_helpers/fake_services.dart';
 import '../../../test_helpers/model_builders.dart';
 
-LidarrArtist _artist() => buildArtist(
+LidarrArtist _artist({
+  int id = 1,
+  bool monitored = true,
+  String? path,
+  Map<String, dynamic>? statistics,
+}) => buildArtist(
+  id: id,
   artistName: 'Radiohead',
   overview: 'An English rock band.',
-  statistics: const {'albumCount': 9, 'trackCount': 120, 'trackFileCount': 100},
+  monitored: monitored,
+  statistics:
+      statistics ??
+      const {'albumCount': 9, 'trackCount': 120, 'trackFileCount': 100},
   genres: const ['Rock', 'Alternative'],
   artistType: 'Group',
   disambiguation: 'UK band',
-  path: '/music/Radiohead',
+  path: path ?? '/music/Radiohead',
 );
 
 List<LidarrAlbum> _albums() => [
@@ -152,6 +161,100 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsWidgets);
     });
+
+    testWidgets('shows add artist action and hides albums for lookup miss', (
+      tester,
+    ) async {
+      var requestedArtist = false;
+      var requestedAlbums = false;
+
+      await _pumpMusicDetail(
+        tester,
+        artistId: 0,
+        detailBuilder: (ref, artistId) async {
+          requestedArtist = true;
+          return null;
+        },
+        albumsBuilder: (ref, artistId) async {
+          requestedAlbums = true;
+          return const [];
+        },
+        initialArtist: _artist(
+          id: 0,
+          monitored: false,
+          path: null,
+          statistics: const {
+            'albumCount': 0,
+            'trackCount': 0,
+            'trackFileCount': 0,
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestedArtist, isFalse);
+      expect(requestedAlbums, isFalse);
+      expect(find.text('Add Artist'), findsOneWidget);
+      expect(find.text('Interactive'), findsNothing);
+      expect(
+        find.widgetWithText(MediaDetailSectionHeader, 'Albums'),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('Add Artist'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Add Artist is not available yet from this view.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows monitor action for unmonitored library artists', (
+      tester,
+    ) async {
+      final lidarrService = _TrackingLidarrService();
+
+      await _pumpMusicDetail(
+        tester,
+        detailBuilder: (ref, artistId) async => _artist(monitored: false),
+        lidarrService: lidarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Monitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Monitor'));
+      await tester.pumpAndSettle();
+
+      expect(lidarrService.updatedArtistId, 1);
+      expect(lidarrService.updatedMonitored, isTrue);
+      expect(find.text('Artist monitored'), findsOneWidget);
+    });
+
+    testWidgets('shows unmonitor action for monitored library artists', (
+      tester,
+    ) async {
+      final lidarrService = _TrackingLidarrService();
+
+      await _pumpMusicDetail(
+        tester,
+        detailBuilder: (ref, artistId) async => _artist(),
+        lidarrService: lidarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unmonitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Unmonitor'));
+      await tester.pumpAndSettle();
+
+      expect(lidarrService.updatedArtistId, 1);
+      expect(lidarrService.updatedMonitored, isFalse);
+      expect(find.text('Artist unmonitored'), findsOneWidget);
+    });
   });
 }
 
@@ -178,6 +281,8 @@ Future<void> _pumpMusicDetail(
   detailBuilder,
   FutureOr<List<LidarrAlbum>> Function(Ref ref, int artistId)? albumsBuilder,
   LidarrArtist? initialArtist,
+  int artistId = 1,
+  LidarrService? lidarrService,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -192,15 +297,30 @@ Future<void> _pumpMusicDetail(
         musicAlbumsProvider.overrideWith(
           albumsBuilder ?? (ref, artistId) async => _albums(),
         ),
-        lidarrServiceProvider.overrideWith((ref) => FakeLidarrService()),
+        lidarrServiceProvider.overrideWith(
+          (ref) => lidarrService ?? FakeLidarrService(),
+        ),
       ],
       child: MaterialApp(
-        home: MusicDetailScreen(
-          artistId: 1,
-          heroTag: 'music-1',
-          initialArtist: initialArtist,
+        home: Scaffold(
+          body: MusicDetailScreen(
+            artistId: artistId,
+            heroTag: 'music-1',
+            initialArtist: initialArtist,
+          ),
         ),
       ),
     ),
   );
+}
+
+class _TrackingLidarrService extends FakeLidarrService {
+  int? updatedArtistId;
+  bool? updatedMonitored;
+
+  @override
+  Future<void> updateArtistMonitored(int artistId, bool monitored) async {
+    updatedArtistId = artistId;
+    updatedMonitored = monitored;
+  }
 }

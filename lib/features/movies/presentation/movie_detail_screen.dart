@@ -35,11 +35,14 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     with QualityProfileMixin<MovieDetailScreen> {
   bool _isSearching = false;
   bool _isDeleting = false;
+  bool _isUpdatingMonitoredState = false;
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(currentSettingsProvider);
-    final movieAsync = ref.watch(movieDetailProvider(widget.movieId));
+    final movieAsync = widget.movieId > 0
+        ? ref.watch(movieDetailProvider(widget.movieId))
+        : const AsyncData<RadarrMovie?>(null);
     final movie = movieAsync.asData?.value ?? widget.initialMovie;
 
     if (movie == null) {
@@ -69,11 +72,19 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
       backdropUrl: viewModel.backdropUrl,
       posterRow: (collapseFactor) =>
           _buildPosterRow(context, viewModel, collapseFactor),
-      contentSections: _buildContentSections(viewModel, infoGroups),
+      contentSections: _buildContentSections(
+        viewModel,
+        infoGroups,
+        movie.id > 0 ? movie.id : widget.movieId,
+      ),
     );
   }
 
   void _syncQualityProfiles(RadarrMovie movie) {
+    if (movie.id <= 0 || movie.path?.isNotEmpty != true) {
+      return;
+    }
+
     ensureQualityProfiles(
       profileId: movie.qualityProfileId,
       fetchProfiles: () => ref.read(radarrServiceProvider).getQualityProfiles(),
@@ -106,17 +117,27 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
   List<Widget> _buildContentSections(
     MovieDetailViewModel viewModel,
     List<MediaInfoGroup> infoGroups,
+    int movieId,
   ) {
     final detailInfoGroups = _detailInfoGroups(infoGroups);
 
     return [
       LibraryDetailActions(
         collapseFactor: 0,
+        isInLibrary: viewModel.isInLibrary,
+        isMonitored: viewModel.isMonitored,
+        addLabel: 'Add Movie',
         isSearching: _isSearching,
         isDeleting: _isDeleting,
+        isUpdatingMonitoredState: _isUpdatingMonitoredState,
         currentProfileName: currentProfileName,
         currentProfileId: currentProfileId,
         qualityProfiles: qualityProfiles,
+        onPrimaryAction: () => _handlePrimaryAction(
+          context,
+          viewModel: viewModel,
+          movieId: movieId,
+        ),
         onInteractiveSearch: () =>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
@@ -203,6 +224,50 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
 
   List<MediaInfoGroup> _detailInfoGroups(List<MediaInfoGroup> infoGroups) =>
       infoGroups;
+
+  Future<void> _handlePrimaryAction(
+    BuildContext context, {
+    required MovieDetailViewModel viewModel,
+    required int movieId,
+  }) async {
+    if (!viewModel.isInLibrary || movieId <= 0) {
+      SnackBarHelper.info(
+        context,
+        'Add Movie is not available yet from this view.',
+      );
+      return;
+    }
+
+    await _updateMonitoredState(
+      context,
+      movieId: movieId,
+      monitored: !viewModel.isMonitored,
+    );
+  }
+
+  Future<void> _updateMonitoredState(
+    BuildContext context, {
+    required int movieId,
+    required bool monitored,
+  }) async {
+    setState(() => _isUpdatingMonitoredState = true);
+    try {
+      final radarrService = ref.read(radarrServiceProvider);
+      await radarrService.updateMovieMonitored(movieId, monitored);
+      if (!mounted) return;
+      ref.invalidate(movieDetailProvider(movieId));
+      ref.invalidate(moviesProvider);
+      SnackBarHelper.success(
+        context,
+        monitored ? 'Movie monitored' : 'Movie unmonitored',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarHelper.error(context, 'Failed to update monitoring: $e');
+    } finally {
+      if (mounted) setState(() => _isUpdatingMonitoredState = false);
+    }
+  }
 
   Future<void> _updateProfile(int profileId) async {
     try {

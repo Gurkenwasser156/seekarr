@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/arr_activity_display.dart';
 import 'package:seekarr/core/utils/sheet_utils.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
@@ -22,9 +23,14 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
+    final title =
+        arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+        arrReleaseTitle(item) ??
+        'Queue Item';
     return _show(
       context: context,
-      title: stringOrNull(item['title']) ?? 'Queue Item',
+      title: title,
+      subtitle: _detailHeaderSubtitle(title, arrReleaseTitle(item)),
       sections: _buildQueueSections(item),
     );
   }
@@ -33,9 +39,14 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
+    final title =
+        arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+        arrReleaseTitle(item) ??
+        'History Item';
     return _show(
       context: context,
-      title: stringOrNull(item['sourceTitle']) ?? 'History Item',
+      title: title,
+      subtitle: _detailHeaderSubtitle(title, arrReleaseTitle(item)),
       sections: _buildHistorySections(item),
     );
   }
@@ -44,9 +55,14 @@ class DetailSheets {
     BuildContext context,
     Map<String, dynamic> item,
   ) {
+    final title =
+        arrPrimaryMediaTitle(item, includeMovieYear: true) ??
+        arrReleaseTitle(item) ??
+        'Blocklist Item';
     return _show(
       context: context,
-      title: stringOrNull(item['sourceTitle']) ?? 'Blocklist Item',
+      title: title,
+      subtitle: _detailHeaderSubtitle(title, arrReleaseTitle(item)),
       sections: _buildBlocklistSections(item),
     );
   }
@@ -67,6 +83,7 @@ class DetailSheets {
     required BuildContext context,
     required String title,
     required List<_DetailSection> sections,
+    String? subtitle,
     Widget? footer,
   }) {
     return SheetUtils.showSeekarrModalSheet<void>(
@@ -114,13 +131,29 @@ class DetailSheets {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (subtitle != null && subtitle.isNotEmpty) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  subtitle,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         IconButton(
@@ -468,4 +501,9 @@ List<_DetailField> _mapEntriesToFields(
       .map((entry) => _detailField(humanizeCamelCase(entry.key), entry.value))
       .whereType<_DetailField>()
       .toList(growable: false);
+}
+
+String? _detailHeaderSubtitle(String title, String? releaseTitle) {
+  if (releaseTitle == null || releaseTitle == title) return null;
+  return releaseTitle;
 }

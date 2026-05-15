@@ -243,13 +243,17 @@ class _FakeRadarrActivityService extends RadarrService {
   int qualityProfileCalls = 0;
 
   @override
-  Future<List<dynamic>> getQueue() async {
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async {
     queueCalls++;
     return queueItems;
   }
 
   @override
-  Future<List<dynamic>> getAllHistory() async {
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async {
     historyCalls++;
     return historyItems;
   }

@@ -5,6 +5,10 @@ import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 
 final movieDetailProvider = FutureProvider.autoDispose
     .family<RadarrMovie?, int>((ref, movieId) async {
+      if (movieId <= 0) {
+        return null;
+      }
+
       final service = ref.watch(radarrServiceProvider);
       return service.getMovie(movieId);
     });

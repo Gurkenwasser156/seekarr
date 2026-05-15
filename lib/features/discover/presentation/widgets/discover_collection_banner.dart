@@ -21,49 +21,46 @@ class DiscoverCollectionBanner extends StatelessWidget {
       size: 'w780',
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const MediaDetailSectionHeader(title: 'Collection'),
-          ClipRRect(
-            borderRadius: AppRadius.borderRadiusMd,
-            child: SizedBox(
-              height: 82,
-              width: double.infinity,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (backdropUrl.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: backdropUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) =>
-                          Container(color: colorScheme.surfaceContainerHigh),
-                    )
-                  else
-                    Container(color: colorScheme.surfaceContainerHigh),
-                  Container(color: Colors.black.withValues(alpha: 0.58)),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        'Part of ${collection.name}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const MediaDetailSectionHeader(title: 'Collection'),
+        ClipRRect(
+          borderRadius: AppRadius.borderRadiusMd,
+          child: SizedBox(
+            height: 82,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (backdropUrl.isNotEmpty)
+                  CachedNetworkImage(
+                    imageUrl: backdropUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) =>
+                        Container(color: colorScheme.surfaceContainerHigh),
+                  )
+                else
+                  Container(color: colorScheme.surfaceContainerHigh),
+                Container(color: Colors.black.withValues(alpha: 0.58)),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Text(
+                      'Part of ${collection.name}',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

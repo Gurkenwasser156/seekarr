@@ -102,17 +102,81 @@ body {
 
 /* Screen picker (outer) */
 .screen-nav {
-  display: flex; flex-wrap: wrap; gap: 4px;
-  margin-bottom: 20px; width: 100%; max-width: 880px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 880px;
+}
+.screen-nav-group {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-radius: 18px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.screen-nav-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.screen-nav-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--fg);
+}
+.screen-nav-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.screen-nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .screen-tab {
-  padding: 6px 13px; border-radius: 9px;
-  font-size: 11px; font-weight: 600;
+  --tab-accent: var(--seerr);
+  padding: 8px 11px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--surface); color: var(--muted);
+  background: var(--surface);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   transition: all .15s;
+  text-align: left;
 }
-.screen-tab.active { background: var(--seerr); border-color: var(--seerr); color: #fff; }
+.screen-tab:hover {
+  border-color: color-mix(in srgb, var(--tab-accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--tab-accent) 10%, var(--surface));
+}
+.screen-tab.active {
+  background: color-mix(in srgb, var(--tab-accent) 18%, var(--surface));
+  border-color: var(--tab-accent);
+  color: var(--fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tab-accent) 25%, transparent);
+}
+.screen-tab-label {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: inherit;
+}
+.screen-tab-note {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
 
 /* Phone frames */
 .frames {
@@ -657,24 +721,7 @@ pre {
     </div>
   </div>
 
-  <div class="screen-nav" id="screenNav">
-    <button class="screen-tab active" onclick="setScreen('services')">Services Home</button>
-    <button class="screen-tab" onclick="setScreen('service-detail')">Service Detail</button>
-    <button class="screen-tab" onclick="setScreen('detail-movie')">Movie Detail</button>
-    <button class="screen-tab" onclick="setScreen('detail-series')">Series Detail</button>
-    <button class="screen-tab" onclick="setScreen('artist-detail')">Artist Detail</button>
-    <button class="screen-tab" onclick="setScreen('all-requests')">All Requests</button>
-    <button class="screen-tab" onclick="setScreen('all-movies')">All Movies</button>
-    <button class="screen-tab" onclick="setScreen('all-media')">All Media</button>
-    <button class="screen-tab" onclick="setScreen('search')">Search</button>
-    <button class="screen-tab" onclick="setScreen('activity')">Activity</button>
-    <button class="screen-tab" onclick="setScreen('import-browse')">Import: Browse</button>
-    <button class="screen-tab" onclick="setScreen('import-folder')">Import: Folder</button>
-    <button class="screen-tab" onclick="setScreen('import-match')">Import: Match</button>
-    <button class="screen-tab" onclick="setScreen('import-progress')">Import: Progress</button>
-    <button class="screen-tab" onclick="setScreen('notifications')">Notifications</button>
-    <button class="screen-tab" onclick="setScreen('settings')">Settings</button>
-  </div>
+  <div class="screen-nav" id="screenNav"></div>
 
   <div class="frames">
     <div class="frame-wrap">
@@ -1797,6 +1844,77 @@ let currentScreen = 'services';
 let currentService = 'seerr';  // used by service picker overlay
 let importService  = 'radarr'; // service selected in import picker
 let isDark = true;
+let selectedMedia = null;
+
+const SCREEN_NAV_GROUPS = [
+  {
+    title: 'Overview',
+    presets: [
+      { id:'overview-services', label:'Services Home', screen:'services', accent:'#6366f1' },
+      { id:'overview-search', label:'Global Search', screen:'search', accent:'#22c55e' },
+      { id:'overview-activity', label:'Activity', screen:'activity', accent:'#f97316' },
+      { id:'overview-notifications', label:'Notifications', screen:'notifications', accent:'#64748b' },
+      { id:'overview-settings', label:'Settings', screen:'settings', accent:'#94a3b8' },
+    ],
+  },
+  {
+    title: 'Seerr',
+    presets: [
+      { id:'seerr-service', label:'Service Detail', screen:'service-detail', service:'seerr', accent:'#6366f1' },
+      { id:'seerr-movie', label:'Movie Detail', screen:'detail-movie', service:'seerr', accent:'#6366f1' },
+      { id:'seerr-series', label:'Series Detail', screen:'detail-series', service:'seerr', accent:'#6366f1' },
+      { id:'seerr-requests', label:'All Requests', screen:'all-requests', service:'seerr', accent:'#6366f1' },
+      { id:'seerr-movies', label:'Trending Movies', screen:'all-movies', service:'seerr', accent:'#6366f1' },
+    ],
+  },
+  {
+    title: 'Radarr',
+    presets: [
+      { id:'radarr-service', label:'Service Detail', screen:'service-detail', service:'radarr', accent:'#f59e0b' },
+      { id:'radarr-detail-lib', label:'Movie Detail', note:'In library', screen:'detail-movie', service:'radarr', accent:'#f59e0b', defaultVariant:true },
+      { id:'radarr-detail-miss', label:'Movie Detail', note:'Not in library', screen:'detail-movie', service:'radarr', accent:'#f59e0b', media:{ title:'Kingdom of the Apes', sub:'2024 · No file found', status:'MISS', inLibrary:false, emoji:'🔫' } },
+      { id:'radarr-all', label:'All Movies', screen:'all-movies', service:'radarr', accent:'#f59e0b' },
+    ],
+  },
+  {
+    title: 'Sonarr',
+    presets: [
+      { id:'sonarr-service', label:'Service Detail', screen:'service-detail', service:'sonarr', accent:'#8b5cf6' },
+      { id:'sonarr-detail-lib', label:'Series Detail', note:'In library', screen:'detail-series', service:'sonarr', accent:'#8b5cf6', defaultVariant:true },
+      { id:'sonarr-detail-miss', label:'Series Detail', note:'Not in library', screen:'detail-series', service:'sonarr', accent:'#8b5cf6', media:{ title:'Severance', sub:'S02 · Jan 2025 · Upcoming', status:'DL', inLibrary:false, emoji:'📡' } },
+      { id:'sonarr-all', label:'All Series', screen:'all-media', service:'sonarr', accent:'#8b5cf6' },
+    ],
+  },
+  {
+    title: 'Lidarr',
+    presets: [
+      { id:'lidarr-service', label:'Service Detail', screen:'service-detail', service:'lidarr', accent:'#ec4899' },
+      { id:'lidarr-detail-lib', label:'Artist Detail', note:'In library', screen:'detail-movie', service:'lidarr', accent:'#ec4899', defaultVariant:true },
+      { id:'lidarr-detail-miss', label:'Artist Detail', note:'Not in library', screen:'detail-movie', service:'lidarr', accent:'#ec4899', media:{ title:'Fontaines D.C.', sub:'ROMEO · 2024 · Pending', status:'DL', inLibrary:false, emoji:'🎸' } },
+      { id:'lidarr-all', label:'All Artists', screen:'all-media', service:'lidarr', accent:'#ec4899' },
+    ],
+  },
+  {
+    title: 'Import Flow',
+    presets: [
+      { id:'import-radarr-browse', label:'Browse', note:'Radarr', screen:'import-browse', importService:'radarr', accent:'#f59e0b' },
+      { id:'import-radarr-folder', label:'Folder', note:'Radarr', screen:'import-folder', importService:'radarr', accent:'#f59e0b' },
+      { id:'import-radarr-match', label:'Match', note:'Radarr', screen:'import-match', importService:'radarr', accent:'#f59e0b' },
+      { id:'import-radarr-progress', label:'Progress', note:'Radarr', screen:'import-progress', importService:'radarr', accent:'#f59e0b' },
+      { id:'import-sonarr-browse', label:'Browse', note:'Sonarr', screen:'import-browse', importService:'sonarr', accent:'#8b5cf6' },
+      { id:'import-sonarr-folder', label:'Folder', note:'Sonarr', screen:'import-folder', importService:'sonarr', accent:'#8b5cf6' },
+      { id:'import-sonarr-match', label:'Match', note:'Sonarr', screen:'import-match', importService:'sonarr', accent:'#8b5cf6' },
+      { id:'import-sonarr-progress', label:'Progress', note:'Sonarr', screen:'import-progress', importService:'sonarr', accent:'#8b5cf6' },
+      { id:'import-lidarr-browse', label:'Browse', note:'Lidarr', screen:'import-browse', importService:'lidarr', accent:'#ec4899' },
+      { id:'import-lidarr-folder', label:'Folder', note:'Lidarr', screen:'import-folder', importService:'lidarr', accent:'#ec4899' },
+      { id:'import-lidarr-match', label:'Match', note:'Lidarr', screen:'import-match', importService:'lidarr', accent:'#ec4899' },
+      { id:'import-lidarr-progress', label:'Progress', note:'Lidarr', screen:'import-progress', importService:'lidarr', accent:'#ec4899' },
+    ],
+  },
+];
+
+const SCREEN_PRESETS = SCREEN_NAV_GROUPS.flatMap(group => group.presets);
+const SCREEN_PRESET_INDEX = Object.fromEntries(SCREEN_PRESETS.map(preset => [preset.id, preset]));
 
 /* ── CSS variable helpers ─────────────────────────────────── */
 function tok(el, name) {
@@ -1873,6 +1991,13 @@ function showImportPicker(e) {
 function icon(d, size=20, col='currentColor', sw=2) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 }
+function odSlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'item';
+}
 const ICONS = {
   bell:     'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
   filter:   'M4 6h16M7 12h10M10 18h4',
@@ -1894,7 +2019,7 @@ function serviceSearchBar(accent, placeholder) {
   const bg = isDark ? '#1c2130' : '#fff';
   const bdr = isDark ? '#2d3748' : '#e2e4ea';
   const m = isDark ? '#9ca3af' : '#6b7280';
-  return `<div style="padding:0 16px 14px">
+  return `<div data-od-id="service-search-${odSlug(placeholder)}" style="padding:0 16px 14px">
     <div style="height:48px;border-radius:24px;background:${bg};border:1px solid ${bdr};display:flex;align-items:center;padding:0 14px;gap:10px;color:${m}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <span style="font-size:13px;color:${m};flex:1">${placeholder}</span>
@@ -1906,13 +2031,13 @@ function serviceSearchBar(accent, placeholder) {
 function statChip(val, lbl, col) {
   const bg = isDark ? '#1c2130' : '#fff';
   const bdr = isDark ? '#2d3748' : '#e2e4ea';
-  return `<div class="stat-chip" style="background:${bg};border-color:${bdr}">
+  return `<div class="stat-chip" data-od-id="stat-chip-${odSlug(lbl)}" style="background:${bg};border-color:${bdr}">
     <span class="stat-val" style="color:${col}">${val}</span>
     <span class="stat-lbl" style="color:${isDark?'#9ca3af':'#6b7280'}">${lbl}</span>
   </div>`;
 }
 function secHdr(title, link='') {
-  return `<div class="sec-hdr">
+  return `<div class="sec-hdr" data-od-id="section-header-${odSlug(title || 'untitled')}">
     <span class="sec-title" style="color:${tok(null,'--fg')}">${title}</span>
     ${link ? `<span class="sec-link">${link}</span>` : ''}
   </div>`;
@@ -1923,7 +2048,7 @@ function poster(emoji, title, sub, badge, btype, accent, onclick='') {
   const mt = isDark ? '#9ca3af' : '#6b7280';
   // badge='' means no badge (requestable / unknown); dot-only, no text
   const badgeHtml = badge ? `<span class="p-badge ${btype}" title="${badge}"></span>` : '';
-  return `<div class="poster-card" ${onclick?`onclick="${onclick}"`:''}> 
+  return `<div class="poster-card" data-od-id="poster-${odSlug(title)}" ${onclick?`onclick="${onclick}"`:''}> 
     <div class="poster-img" style="background:${grad}">
       <span>${emoji}</span>
       ${badgeHtml}
@@ -1938,7 +2063,7 @@ function queueItem(emoji, title, meta, pct, accent, onclick='') {
   const tBg  = isDark ? '#252d3d' : '#f0f1f5';
   const fg   = isDark ? '#f0f2f8' : '#111827';
   const muted= isDark ? '#9ca3af' : '#6b7280';
-  return `<div class="list-item" style="background:${bg};border-color:${bdr}" ${onclick?`onclick="${onclick}"`:''}> 
+  return `<div class="list-item" data-od-id="list-item-${odSlug(title)}" style="background:${bg};border-color:${bdr}" ${onclick?`onclick="${onclick}"`:''}> 
     <div class="li-thumb" style="background:${tBg}">${emoji}</div>
     <div class="li-body">
       <div class="li-title" style="color:${fg}">${title}</div>
@@ -1949,12 +2074,99 @@ function queueItem(emoji, title, meta, pct, accent, onclick='') {
   </div>`;
 }
 
+function jsQuote(value) {
+  return JSON.stringify(String(value)).slice(1, -1).replace(/'/g, "\\'");
+}
+
+function mediaDetailActionRow(accent, fg, surface, bdr, addLabel, inLibrary, primaryLabel, manageTitle) {
+  if (!inLibrary) {
+    return `<div data-od-id="detail-action-row-add-${odSlug(addLabel)}" style="padding:12px 16px 8px">
+      <button style="width:100%;height:46px;border:none;border-radius:23px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px ${accent}44">
+        ${icon(ICONS.add,14,'#fff',2.5)}
+        <span>${addLabel}</span>
+      </button>
+    </div>`;
+  }
+
+  return `<div class="action-row" data-od-id="detail-action-row-manage-${odSlug(primaryLabel)}" style="padding:12px 16px 8px;display:flex">
+    <button class="btn-fill" style="flex:1;background:${accent};color:#fff;border:none;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:800;box-shadow:0 8px 24px ${accent}44;cursor:pointer">
+      ${icon(ICONS.check,15,'#fff',2.8)}
+      <span>${primaryLabel}</span>
+    </button>
+  </div>`;
+}
+
+function openMediaDetail(service, screen, media) {
+  selectedMedia = { service, ...media };
+  setScreen(screen);
+}
+
+function mediaDetailClick(service, screen, media) {
+  return `openMediaDetail('${jsQuote(service)}','${jsQuote(screen)}',{ title:'${jsQuote(media.title)}', sub:'${jsQuote(media.sub)}', status:'${jsQuote(media.status)}', inLibrary:${media.inLibrary ? 'true' : 'false'}, emoji:'${jsQuote(media.emoji)}' })`;
+}
+
+function isPresetActive(preset) {
+  if (preset.screen !== currentScreen) return false;
+  if (preset.service && preset.service !== currentService) return false;
+  if (preset.importService && preset.importService !== importService) return false;
+  if (!preset.media) return true;
+
+  if (!selectedMedia || selectedMedia.service !== preset.service) {
+    return Boolean(preset.defaultVariant);
+  }
+
+  return selectedMedia.title === preset.media.title && selectedMedia.inLibrary === preset.media.inLibrary;
+}
+
+function renderScreenNav() {
+  const root = document.getElementById('screenNav');
+  if (!root) return;
+
+  root.innerHTML = SCREEN_NAV_GROUPS.map(group => `
+    <section class="screen-nav-group" data-od-id="screen-nav-group-${odSlug(group.title)}">
+      <div class="screen-nav-head">
+        <div class="screen-nav-title">${group.title}</div>
+        <div class="screen-nav-count">${group.presets.length} screens</div>
+      </div>
+      <div class="screen-nav-row">
+        ${group.presets.map(preset => `
+          <button
+            class="screen-tab ${isPresetActive(preset) ? 'active' : ''}"
+            data-od-id="screen-preset-${preset.id}"
+            style="--tab-accent:${preset.accent || '#6366f1'}"
+            onclick="applyScreenPreset('${preset.id}')"
+          >
+            <span class="screen-tab-label">${preset.label}</span>
+            ${preset.note ? `<span class="screen-tab-note">${preset.note}</span>` : ''}
+          </button>
+        `).join('')}
+      </div>
+    </section>
+  `).join('');
+}
+
+function applyScreenPreset(id) {
+  const preset = SCREEN_PRESET_INDEX[id];
+  if (!preset) return;
+
+  document.querySelectorAll('[id^=svc-picker-]').forEach(el => el.style.display = 'none');
+
+  if (preset.service) currentService = preset.service;
+  if (preset.importService) importService = preset.importService;
+
+  selectedMedia = preset.media ? { service: preset.service, ...preset.media } : null;
+  currentScreen = preset.screen;
+  renderAll();
+  renderScreenNav();
+}
+
 /* ─── Seerr Home ─── */
 function screenSeerr() {
   const fg = tok(null,'--fg'), muted = tok(null,'--muted');
   return `
+  <div data-od-id="screen-content-seerr-home">
   ${secHdr('')}
-  <div class="appbar">
+  <div class="appbar" data-od-id="seerr-home-appbar">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;flex-shrink:0"></div>
       <span class="appbar-title" style="color:${fg}">Seerr</span>
@@ -1962,7 +2174,7 @@ function screenSeerr() {
     <div class="appbar-actions">
     </div>
   </div>
-  <div class="stats-row">
+  <div class="stats-row" data-od-id="seerr-home-stats">
     ${statChip('34','Pending','#6366f1')}
     ${statChip('12','Approved','#22c55e')}
     ${statChip('7','Available','#22c55e')}
@@ -1970,37 +2182,38 @@ function screenSeerr() {
   </div>
   ${serviceSearchBar('#6366f1','Search movies, TV shows…')}
   ${secHdr('Trending Movies','<span onclick="setScreen(\'all-movies\')" style="cursor:pointer">See all</span>')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="seerr-home-trending-movies">
     ${poster('🎬','Dune: Part Two','2024','AVAIL','ok','#6366f1',"setScreen('detail-movie')")}
     ${poster('🌌','Alien: Romulus','2024','PROC','proc','#6366f1',"setScreen('detail-movie')")}
     ${poster('🦸','Inside Out 2','2024','AVAIL','ok','#6366f1',"setScreen('detail-movie')")}
     ${poster('🔫','Kingdom of the Apes','2024','','','#6366f1',"setScreen('detail-movie')")}
   </div>
   ${secHdr('Trending TV','See all')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="seerr-home-trending-tv">
     ${poster('👁','The Boys S4','2024','AVAIL','ok','#6366f1',"setScreen('detail-series')")}
     ${poster('🐉','House of the Dragon S2','2024','PART','part','#6366f1',"setScreen('detail-series')")}
     ${poster('🤖','Fallout','2024','AVAIL','ok','#6366f1',"setScreen('detail-series')")}
   </div>
   ${secHdr('Recent Requests','<span onclick="setScreen(\'all-requests\')" style="cursor:pointer">See all</span>')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="seerr-home-recent-requests">
     ${queueItem('🎬','A Quiet Place: Day One','Requested by sarah · Movie · Pending',null,'#6366f1',"setScreen('detail-movie')")}
     ${queueItem('📺','Shogun (2024)','Requested by james · Series · Approved',null,'#6366f1',"setScreen('detail-series')")}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Radarr Home ─── */
 function screenRadarr() {
   const fg = tok(null,'--fg');
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-radarr-home">
+  <div class="appbar" data-od-id="radarr-home-appbar">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
       <span class="appbar-title" style="color:${fg}">Radarr</span>
     </div>
     <div class="appbar-actions"><button class="icon-btn" style="color:${fg}">${icon(ICONS.filter,20,fg)}</button></div>
   </div>
-  <div class="stats-row">
+  <div class="stats-row" data-od-id="radarr-home-stats">
     ${statChip('847','Movies','#f59e0b')}
     ${statChip('12','Queue','#f59e0b')}
     ${statChip('4','Missing','#ef4444')}
@@ -2008,35 +2221,36 @@ function screenRadarr() {
   </div>
   ${serviceSearchBar('#f59e0b','Search movies…')}
   ${secHdr('Recently Added','<span onclick="setScreen(\'all-media\')" style="cursor:pointer">See all</span>')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="radarr-home-recently-added">
     ${poster('🎬','Dune: Part Two','UHD Blu-ray','AVAIL','ok','#f59e0b',"setScreen('detail-movie')")}
     ${poster('🌿','Civil War','WEBRip','AVAIL','ok','#f59e0b',"setScreen('detail-movie')")}
     ${poster('👾','Monkey Man','WEB-DL','AVAIL','ok','#f59e0b',"setScreen('detail-movie')")}
     ${poster('🚀','Furiosa','In queue','DL','dl','#f59e0b',"setScreen('detail-movie')")}
   </div>
   ${secHdr('Download Queue')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="radarr-home-download-queue">
     ${queueItem('🚀','Furiosa: A Mad Max Saga','Furiosa.2024.2160p.UHD.BluRay · 78.3 GB',63,'#f59e0b')}
     ${queueItem('🦸','Inside Out 2','InsideOut2.2024.1080p.WEB-DL · 14.1 GB',28,'#f59e0b')}
   </div>
   ${secHdr('Missing')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="radarr-home-missing-list">
     ${queueItem('🔫','Kingdom of the Planet of the Apes','No file found · Monitored',null,'#ef4444')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Sonarr Home ─── */
 function screenSonarr() {
   const fg = tok(null,'--fg');
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-sonarr-home">
+  <div class="appbar" data-od-id="sonarr-home-appbar">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0"></div>
       <span class="appbar-title" style="color:${fg}">Sonarr</span>
     </div>
     <div class="appbar-actions"><button class="icon-btn" style="color:${fg}">${icon(ICONS.filter,20,fg)}</button></div>
   </div>
-  <div class="stats-row">
+  <div class="stats-row" data-od-id="sonarr-home-stats">
     ${statChip('204','Series','#8b5cf6')}
     ${statChip('6','Queue','#8b5cf6')}
     ${statChip('18','Upcoming','#8b5cf6')}
@@ -2044,31 +2258,32 @@ function screenSonarr() {
   </div>
   ${serviceSearchBar('#8b5cf6','Search series…')}
   ${secHdr('Airing This Week','<span onclick="setScreen(\'all-media\')" style="cursor:pointer">See all</span>')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="sonarr-home-airing-week">
     ${poster('👁','The Boys','Thu · Prime','AVAIL','ok','#8b5cf6',"setScreen('detail-series')")}
     ${poster('🐉','House of the Dragon','Sun · HBO','PART','part','#8b5cf6',"setScreen('detail-series')")}
     ${poster('🤖','Fallout','Available','AVAIL','ok','#8b5cf6',"setScreen('detail-series')")}
     ${poster('⚔️','Shogun','Fri · FX','DL','dl','#8b5cf6',"setScreen('detail-series')")}
   </div>
   ${secHdr('Download Queue')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="sonarr-home-download-queue">
     ${queueItem('🐉','House of the Dragon · S02E03','HotD.S02E03.1080p.MAX.WEB-DL · 4.2 GB',84,'#8b5cf6')}
     ${queueItem('⚔️','Shogun · S01E08','Shogun.S01E08.1080p.Hulu.WEB-DL · 3.8 GB',41,'#8b5cf6')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Lidarr Home ─── */
 function screenLidarr() {
   const fg = tok(null,'--fg');
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-lidarr-home">
+  <div class="appbar" data-od-id="lidarr-home-appbar">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:#ec4899;flex-shrink:0"></div>
       <span class="appbar-title" style="color:${fg}">Lidarr</span>
     </div>
     <div class="appbar-actions"><button class="icon-btn" style="color:${fg}">${icon(ICONS.filter,20,fg)}</button></div>
   </div>
-  <div class="stats-row">
+  <div class="stats-row" data-od-id="lidarr-home-stats">
     ${statChip('312','Artists','#ec4899')}
     ${statChip('2841','Albums','#ec4899')}
     ${statChip('9','Queue','#ec4899')}
@@ -2076,21 +2291,21 @@ function screenLidarr() {
   </div>
   ${serviceSearchBar('#ec4899','Search artists, albums…')}
   ${secHdr('Recently Added','<span onclick="setScreen(\'all-media\')" style="cursor:pointer">See all</span>')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="lidarr-home-recently-added">
     ${poster('🎵','Charli XCX','Brat · 2024','AVAIL','ok','#ec4899',"setScreen('artist-detail')")}
     ${poster('🎧','Sabrina Carpenter','Short n Sweet','AVAIL','ok','#ec4899',"setScreen('artist-detail')")}
     ${poster('🎤','Billie Eilish','HIT ME HARD','AVAIL','ok','#ec4899',"setScreen('artist-detail')")}
     ${poster('🎸','Fontaines D.C.','ROMEO','DL','dl','#ec4899',"setScreen('artist-detail')")}
   </div>
   ${secHdr('Download Queue')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="lidarr-home-download-queue">
     ${queueItem('🎵','Charli XCX — Brat (Deluxe)','Charli.XCX-Brat.Deluxe.2024.FLAC · 1.2 GB',77,'#ec4899')}
     ${queueItem('🎸','Fontaines D.C. — ROMEO','Fontaines.DC-ROMEO.2024.FLAC · 890 MB',34,'#ec4899')}
   </div>
   ${secHdr('Missing / Cutoff')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="lidarr-home-missing-cutoff">
     ${queueItem('🎙','Taylor Swift — The Tortured Poets Department','Missing FLAC version · Monitored',null,'#ef4444')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Movie Detail ─── */
@@ -2142,7 +2357,8 @@ function screenDetailMovie() {
   }
 
   return `
-  <div class="detail-hero">
+  <div data-od-id="screen-content-seerr-movie-detail">
+  <div class="detail-hero" data-od-id="seerr-movie-detail-hero">
     <div class="hero-bg">🎬</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
@@ -2177,10 +2393,10 @@ function screenDetailMovie() {
   </div>
 
   <!-- Overview -->
-  <div class="detail-overview" style="color:${muted}">Paul Atreides unites with the Fremen on a path of revenge against those who destroyed his family. Facing a choice between love and the fate of the known universe, he must prevent a terrible future only he can foresee.</div>
+  <div class="detail-overview" data-od-id="seerr-movie-detail-overview" style="color:${muted}">Paul Atreides unites with the Fremen on a path of revenge against those who destroyed his family. Facing a choice between love and the fate of the known universe, he must prevent a terrible future only he can foresee.</div>
 
   <!-- Ratings -->
-  <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
+  <div data-od-id="seerr-movie-detail-ratings" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
     ${ratingChip('IMDb','8.5','#f59e0b')}
     ${ratingChip('TMDb','83%','#22c55e')}
     ${ratingChip('RT','91%','#ef4444')}
@@ -2190,7 +2406,7 @@ function screenDetailMovie() {
 
   <!-- Info grid: release dates, studio, crew -->
   ${secHdr('Details')}
-  <div class="info-grid">
+  <div class="info-grid" data-od-id="seerr-movie-detail-info-grid">
     <div class="info-cell">
       <span class="info-lbl" style="color:${muted}">Theatrical</span>
       <span class="info-val" style="color:${fg}">Mar 1, 2024</span>
@@ -2219,14 +2435,14 @@ function screenDetailMovie() {
 
   <!-- Where to Watch -->
   ${secHdr('Where to Watch')}
-  ${wtwGroups(
+  <div data-od-id="seerr-movie-detail-watch-providers">${wtwGroups(
     [['🎬','Theaters'],['📺','Max'],['🎥','Prime Video'],['✨','Disney+']],
     [['🍎','iTunes'],['▶️','Google Play'],['🎞️','Vudu'],['💿','Blu-ray']]
-  )}
+  )}</div>
 
   <!-- Tags -->
   ${secHdr('Tags')}
-  <div class="tag-row">
+  <div class="tag-row" data-od-id="seerr-movie-detail-tags">
     ${['science-fiction','desert-planet','chosen-one','war','politics','epic'].map(t =>
       `<span class="tag-pill" style="color:${muted};border-color:${bdr};background:${surface}">${t}</span>`
     ).join('')}
@@ -2234,7 +2450,7 @@ function screenDetailMovie() {
 
   <!-- Cast -->
   ${secHdr('Cast')}
-  <div class="cast-row">
+  <div class="cast-row" data-od-id="seerr-movie-detail-cast">
     ${castCard('👨','Timothée Chalamet','Paul Atreides')}
     ${castCard('👩','Zendaya','Chani')}
     ${castCard('👩‍🦰','Rebecca Ferguson','Lady Jessica')}
@@ -2245,7 +2461,7 @@ function screenDetailMovie() {
 
   <!-- Collection -->
   ${secHdr('Collection')}
-  <div class="collection-card" style="background:${surface};border-color:${bdr}">
+  <div class="collection-card" data-od-id="seerr-movie-detail-collection" style="background:${surface};border-color:${bdr}">
     <div class="collection-poster" style="background:${surface2}">🏜️</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:12px;font-weight:700;color:${fg}">Dune Collection</div>
@@ -2256,7 +2472,7 @@ function screenDetailMovie() {
       </div>
     </div>
     <span style="color:${muted}">${icon(ICONS.chevron,16,muted)}</span>
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Series Detail (Seerr) ─── */
@@ -2296,7 +2512,8 @@ function screenDetailSeries() {
   ];
 
   return `
-  <div class="detail-hero">
+  <div data-od-id="screen-content-seerr-series-detail">
+  <div class="detail-hero" data-od-id="seerr-series-detail-hero">
     <div class="hero-bg">🐉</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
@@ -2328,9 +2545,9 @@ function screenDetailSeries() {
     <button class="btn-tonal" title="Manage series" style="border-color:${bdr};background:${surface};color:${fg}">${icoWrench}</button>
   </div>
 
-  <div class="detail-overview" style="color:${muted}">An internal succession war within House Targaryen 172 years before the birth of Daenerys. Fire and blood await.</div>
+  <div class="detail-overview" data-od-id="seerr-series-detail-overview" style="color:${muted}">An internal succession war within House Targaryen 172 years before the birth of Daenerys. Fire and blood await.</div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
+  <div data-od-id="seerr-series-detail-ratings" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
     ${ratingChip('IMDb','8.4','#f59e0b')}
     ${ratingChip('TMDb','80%','#22c55e')}
     ${ratingChip('RT','87%','#ef4444')}
@@ -2339,7 +2556,7 @@ function screenDetailSeries() {
   </div>
 
   ${secHdr('Details')}
-  <div class="info-grid">
+  <div class="info-grid" data-od-id="seerr-series-detail-info-grid">
     <div class="info-cell">
       <span class="info-lbl" style="color:${muted}">First Aired</span>
       <span class="info-val" style="color:${fg}">Aug 21, 2022</span>
@@ -2367,7 +2584,7 @@ function screenDetailSeries() {
   </div>
 
   ${secHdr('Where to Watch')}
-  <div class="wtw-groups">
+  <div class="wtw-groups" data-od-id="seerr-series-detail-watch-providers">
     <div>
       <div class="wtw-group-label" style="color:${muted}">Stream</div>
       <div class="wtw-row">
@@ -2386,11 +2603,11 @@ function screenDetailSeries() {
   </div>
 
   ${secHdr('Season 2')}
-  <div class="season-row">
+  <div class="season-row" data-od-id="seerr-series-detail-season-switcher">
     <button class="season-chip" style="color:${muted};border-color:${bdr}">Season 1</button>
     <button class="season-chip" style="color:#fff;border-color:${accent};background:${accent}">Season 2</button>
   </div>
-  <div class="ep-list">
+  <div class="ep-list" data-od-id="seerr-series-detail-episodes">
     ${episodes.map(([n,t,m,c])=>`
     <div class="ep-item" style="background:${epBg};border-color:${bdr}">
       <span class="ep-num" style="color:${muted}">${n}</span>
@@ -2400,7 +2617,7 @@ function screenDetailSeries() {
   </div>
 
   ${secHdr('Cast')}
-  <div class="cast-row">
+  <div class="cast-row" data-od-id="seerr-series-detail-cast">
     ${castCard('👩','Emma D\'Arcy','Rhaenyra')}
     ${castCard('👨','Matt Smith','Daemon')}
     ${castCard('👨‍🦳','Paddy Considine','Viserys')}
@@ -2409,11 +2626,11 @@ function screenDetailSeries() {
   </div>
 
   ${secHdr('Tags')}
-  <div class="tag-row">
+  <div class="tag-row" data-od-id="seerr-series-detail-tags">
     ${['dragons','medieval','royalty','war','fantasy','HBO'].map(t =>
       `<span class="tag-pill" style="color:${muted};border-color:${bdr};background:${surface}">${t}</span>`
     ).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Radarr Movie Detail ─── */
@@ -2425,6 +2642,11 @@ function screenDetailRadarr() {
   const fg      = tok(null,'--fg');
   const muted   = tok(null,'--muted');
   const accent  = '#f59e0b';
+  const media   = selectedMedia?.service === 'radarr'
+    ? selectedMedia
+    : { title:'Dune: Part Two', sub:'2024 · 2h 46m', status:'AVAIL', inLibrary:true, emoji:'🎬' };
+  const badgeClass = media.inLibrary ? 'ok' : 'mis';
+  const badgeLabel = media.inLibrary ? 'AVAILABLE' : 'NOT IN LIBRARY';
 
   // Icon helpers
   const icoSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
@@ -2459,8 +2681,9 @@ function screenDetailRadarr() {
   }
 
   return `
-  <div class="detail-hero">
-    <div class="hero-bg">🎬</div>
+  <div data-od-id="screen-content-radarr-movie-detail">
+  <div class="detail-hero" data-od-id="radarr-movie-detail-hero">
+    <div class="hero-bg">${media.emoji}</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
       <button onclick="setScreen('service-detail')" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -2469,12 +2692,12 @@ function screenDetailRadarr() {
     </div>
     <div class="hero-content">
       <div style="flex-shrink:0">
-        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45)">🎬</div>
+        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45)">${media.emoji}</div>
       </div>
       <div style="flex:1;min-width:0">
-        <span class="d-badge ok">AVAILABLE</span>
-        <div class="detail-title" style="color:${fg}">Dune: Part Two</div>
-        <div class="detail-year" style="color:${muted}">2024 · 2h 46m</div>
+        <span class="d-badge ${badgeClass}">${badgeLabel}</span>
+        <div class="detail-title" style="color:${fg}">${media.title}</div>
+        <div class="detail-year" style="color:${muted}">${media.sub}</div>
         <div class="genre-row">
           <span class="genre-chip" style="color:${muted};border-color:${bdr};background:${surface}">Sci-Fi</span>
           <span class="genre-chip" style="color:${muted};border-color:${bdr};background:${surface}">Epic</span>
@@ -2483,20 +2706,21 @@ function screenDetailRadarr() {
     </div>
   </div>
 
-  <!-- Action row: icon buttons -->
-  <div style="padding:12px 16px;display:flex;justify-content:space-around;align-items:flex-start">
+  ${mediaDetailActionRow(accent, fg, surface, bdr, 'Add Movie', media.inLibrary, 'Monitored', 'Manage movie')}
+
+  ${media.inLibrary ? `<div data-od-id="radarr-movie-detail-management-actions" style="padding:4px 16px 12px;display:flex;justify-content:space-around;align-items:flex-start">
     ${iconBtn(icoSearch,'Interactive')}
     ${iconBtn(icoAutoSearch,'Auto Search')}
     ${iconBtn(icoProfile,'Profile')}
     ${iconBtn(icoImport,'Import')}
     ${iconBtn(icoTrash,'Delete',true)}
-  </div>
+  </div>` : ''}
 
   <!-- Overview -->
-  <div class="detail-overview" style="color:${muted}">Paul Atreides unites with the Fremen on a path of revenge against those who destroyed his family.</div>
+  <div class="detail-overview" data-od-id="radarr-movie-detail-overview" style="color:${muted}">Paul Atreides unites with the Fremen on a path of revenge against those who destroyed his family.</div>
 
   <!-- Multi-source ratings -->
-  <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
+  <div data-od-id="radarr-movie-detail-ratings" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
     ${ratingChip('IMDb','8.5','#f59e0b')}
     ${ratingChip('TMDb','83%','#22c55e')}
     ${ratingChip('RT','91%','#ef4444')}
@@ -2506,23 +2730,23 @@ function screenDetailRadarr() {
 
   <!-- File info -->
   ${secHdr('File')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="radarr-movie-detail-file-card">
     ${queueItem('💾','Dune.Part.Two.2024.2160p.UHD.BluRay.mkv','78.3 GB · H.265 · DTS-X 7.1 · English',null,accent)}
   </div>
 
   <!-- Details grid -->
   ${secHdr('Details')}
-  <div class="info-grid">
+  <div class="info-grid" data-od-id="radarr-movie-detail-info-grid">
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Quality</span><span class="info-val" style="color:${fg}">4K UHD HDR</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Profile</span><span class="info-val" style="color:${fg}">Any · Remux-1080p+</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Director</span><span class="info-val" style="color:${fg}">Denis Villeneuve</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Studio</span><span class="info-val" style="color:${fg}">Legendary / WB</span></div>
-    <div class="info-cell"><span class="info-lbl" style="color:${muted}">Monitored</span><span class="info-val" style="color:#22c55e">Yes</span></div>
+    <div class="info-cell"><span class="info-lbl" style="color:${muted}">Monitored</span><span class="info-val" style="color:${media.inLibrary ? '#22c55e' : '#ef4444'}">${media.inLibrary ? 'Yes' : 'No'}</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Phys. Release</span><span class="info-val" style="color:${fg}">May 21, 2024</span></div>
   </div>
 
   ${secHdr('Where to Watch')}
-  <div class="wtw-groups">
+  <div class="wtw-groups" data-od-id="radarr-movie-detail-watch-providers">
     <div>
       <div class="wtw-group-label" style="color:${muted}">Stream</div>
       <div class="wtw-row">
@@ -2543,20 +2767,20 @@ function screenDetailRadarr() {
   </div>
 
   ${secHdr('Tags')}
-  <div class="tag-row">
+  <div class="tag-row" data-od-id="radarr-movie-detail-tags">
     ${['sci-fi','epic','desert','award-winner','UHD'].map(t =>
       `<span class="tag-pill" style="color:${muted};border-color:${bdr};background:${surface}">${t}</span>`
     ).join('')}
   </div>
 
   ${secHdr('Cast')}
-  <div class="cast-row">
+  <div class="cast-row" data-od-id="radarr-movie-detail-cast">
     ${castCard('👨','T. Chalamet','Paul')}
     ${castCard('👩','Zendaya','Chani')}
     ${castCard('👩‍🦰','R. Ferguson','Jessica')}
     ${castCard('🧔','Josh Brolin','Gurney')}
     ${castCard('👴','Stellan S.','Baron')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Sonarr Series Detail ─── */
@@ -2569,6 +2793,11 @@ function screenDetailSonarr() {
   const muted   = tok(null,'--muted');
   const accent  = '#8b5cf6';
   const epBg    = isDark ? '#1c2130' : '#fff';
+  const media   = selectedMedia?.service === 'sonarr'
+    ? selectedMedia
+    : { title:'House of the Dragon', sub:'2022-present · 2 seasons', status:'PART', inLibrary:true, emoji:'🐉' };
+  const badgeClass = media.inLibrary ? (media.status === 'PART' ? 'part' : 'ok') : 'mis';
+  const badgeLabel = media.inLibrary ? (media.status === 'PART' ? 'PARTIAL' : 'MONITORED') : 'NOT IN LIBRARY';
 
   const icoSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
   const icoAutoSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v3l2 2"/></svg>`;
@@ -2606,8 +2835,9 @@ function screenDetailSonarr() {
   ];
 
   return `
-  <div class="detail-hero">
-    <div class="hero-bg">🐉</div>
+  <div data-od-id="screen-content-sonarr-series-detail">
+  <div class="detail-hero" data-od-id="sonarr-series-detail-hero">
+    <div class="hero-bg">${media.emoji}</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
       <button onclick="setScreen('service-detail')" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -2616,12 +2846,12 @@ function screenDetailSonarr() {
     </div>
     <div class="hero-content">
       <div style="flex-shrink:0">
-        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45)">🐉</div>
+        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45)">${media.emoji}</div>
       </div>
       <div style="flex:1;min-width:0">
-        <span class="d-badge part">PARTIAL</span>
-        <div class="detail-title" style="color:${fg}">House of the Dragon</div>
-        <div class="detail-year" style="color:${muted}">2022–present · 2 seasons</div>
+        <span class="d-badge ${badgeClass}">${badgeLabel}</span>
+        <div class="detail-title" style="color:${fg}">${media.title}</div>
+        <div class="detail-year" style="color:${muted}">${media.sub}</div>
         <div class="genre-row">
           <span class="genre-chip" style="color:${muted};border-color:${bdr};background:${surface}">Fantasy</span>
           <span class="genre-chip" style="color:${muted};border-color:${bdr};background:${surface}">Drama</span>
@@ -2630,17 +2860,19 @@ function screenDetailSonarr() {
     </div>
   </div>
 
-  <div style="padding:12px 16px;display:flex;justify-content:space-around;align-items:flex-start">
+  ${mediaDetailActionRow(accent, fg, surface, bdr, 'Add Series', media.inLibrary, 'Monitored', 'Manage series')}
+
+  ${media.inLibrary ? `<div data-od-id="sonarr-series-detail-management-actions" style="padding:4px 16px 12px;display:flex;justify-content:space-around;align-items:flex-start">
     ${iconBtn(icoSearch,'Interactive')}
     ${iconBtn(icoAutoSearch,'Auto Search')}
     ${iconBtn(icoProfile,'Profile')}
     ${iconBtn(icoImport,'Import')}
     ${iconBtn(icoTrash,'Delete',true)}
-  </div>
+  </div>` : ''}
 
-  <div class="detail-overview" style="color:${muted}">An internal succession war within House Targaryen 172 years before the birth of Daenerys.</div>
+  <div class="detail-overview" data-od-id="sonarr-series-detail-overview" style="color:${muted}">An internal succession war within House Targaryen 172 years before the birth of Daenerys.</div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
+  <div data-od-id="sonarr-series-detail-ratings" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
     ${ratingChip('IMDb','8.4','#f59e0b')}
     ${ratingChip('TMDb','80%','#22c55e')}
     ${ratingChip('RT','87%','#ef4444')}
@@ -2649,17 +2881,17 @@ function screenDetailSonarr() {
   </div>
 
   ${secHdr('Details')}
-  <div class="info-grid">
+  <div class="info-grid" data-od-id="sonarr-series-detail-info-grid">
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Status</span><span class="info-val" style="color:#f59e0b">Airing</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Episodes</span><span class="info-val" style="color:${fg}">17 / 18</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Network</span><span class="info-val" style="color:${fg}">HBO / Max</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Profile</span><span class="info-val" style="color:${fg}">HD Bluray+</span></div>
     <div class="info-cell"><span class="info-lbl" style="color:${muted}">Creator</span><span class="info-val" style="color:${fg}">Ryan Condal</span></div>
-    <div class="info-cell"><span class="info-lbl" style="color:${muted}">Monitored</span><span class="info-val" style="color:#22c55e">Yes</span></div>
+    <div class="info-cell"><span class="info-lbl" style="color:${muted}">Monitored</span><span class="info-val" style="color:${media.inLibrary ? '#22c55e' : '#ef4444'}">${media.inLibrary ? 'Yes' : 'No'}</span></div>
   </div>
 
   ${secHdr('Where to Watch')}
-  <div class="wtw-groups">
+  <div class="wtw-groups" data-od-id="sonarr-series-detail-watch-providers">
     <div>
       <div class="wtw-group-label" style="color:${muted}">Stream</div>
       <div class="wtw-row">
@@ -2678,11 +2910,11 @@ function screenDetailSonarr() {
   </div>
 
   ${secHdr('Season 2')}
-  <div class="season-row">
+  <div class="season-row" data-od-id="sonarr-series-detail-season-switcher">
     <button class="season-chip" style="color:${muted};border-color:${bdr}">Season 1</button>
     <button class="season-chip" style="color:#fff;border-color:${accent};background:${accent}">Season 2</button>
   </div>
-  <div class="ep-list">
+  <div class="ep-list" data-od-id="sonarr-series-detail-episodes">
     ${episodes.map(([n,t,m,c])=>`
     <div class="ep-item" style="background:${epBg};border-color:${bdr}">
       <span class="ep-num" style="color:${muted}">${n}</span>
@@ -2692,7 +2924,7 @@ function screenDetailSonarr() {
   </div>
 
   ${secHdr('Cast')}
-  <div class="cast-row">
+  <div class="cast-row" data-od-id="sonarr-series-detail-cast">
     ${castCard('👩','Emma D\'Arcy','Rhaenyra')}
     ${castCard('👨','Matt Smith','Daemon')}
     ${castCard('👨‍🦳','Paddy C.','Viserys')}
@@ -2701,11 +2933,11 @@ function screenDetailSonarr() {
   </div>
 
   ${secHdr('Tags')}
-  <div class="tag-row">
+  <div class="tag-row" data-od-id="sonarr-series-detail-tags">
     ${['dragons','medieval','royalty','war','fantasy','HBO'].map(t =>
       `<span class="tag-pill" style="color:${muted};border-color:${bdr};background:${surface}">${t}</span>`
     ).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Lidarr Artist / Album Detail ─── */
@@ -2717,6 +2949,11 @@ function screenDetailLidarr() {
   const fg      = tok(null,'--fg');
   const muted   = tok(null,'--muted');
   const accent  = '#ec4899';
+  const media   = selectedMedia?.service === 'lidarr'
+    ? selectedMedia
+    : { title:'Charli XCX', sub:'Pop · Hyperpop · UK', status:'AVAIL', inLibrary:true, emoji:'🎵' };
+  const badgeClass = media.inLibrary ? (media.status === 'PART' ? 'part' : 'ok') : 'mis';
+  const badgeLabel = media.inLibrary ? (media.status === 'PART' ? 'PARTIAL' : 'AVAILABLE') : 'NOT IN LIBRARY';
 
   const icoSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
   const icoAutoSearch = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v3l2 2"/></svg>`;
@@ -2751,8 +2988,9 @@ function screenDetailLidarr() {
   ];
 
   return `
-  <div class="detail-hero">
-    <div class="hero-bg">🎵</div>
+  <div data-od-id="screen-content-lidarr-artist-detail-variant">
+  <div class="detail-hero" data-od-id="lidarr-artist-detail-hero">
+    <div class="hero-bg">${media.emoji}</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
       <button onclick="setScreen('service-detail')" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -2761,12 +2999,12 @@ function screenDetailLidarr() {
     </div>
     <div class="hero-content">
       <div style="flex-shrink:0">
-        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45);border-radius:50%;width:80px;height:80px">🎵</div>
+        <div class="detail-poster" style="background:${surface};box-shadow:0 4px 18px rgba(0,0,0,.45);border-radius:50%;width:80px;height:80px">${media.emoji}</div>
       </div>
       <div style="flex:1;min-width:0">
-        <span class="d-badge ok">AVAILABLE</span>
-        <div class="detail-title" style="color:${fg}">Charli XCX</div>
-        <div class="detail-year" style="color:${muted}">Pop · Hyperpop · UK</div>
+        <span class="d-badge ${badgeClass}">${badgeLabel}</span>
+        <div class="detail-title" style="color:${fg}">${media.title}</div>
+        <div class="detail-year" style="color:${muted}">${media.sub}</div>
         <div class="genre-row">
           <span class="genre-chip" style="color:${accent};border-color:${accent}44;background:${accent}15">Hyperpop</span>
           <span class="genre-chip" style="color:${muted};border-color:${bdr};background:${surface}">Dance</span>
@@ -2775,7 +3013,7 @@ function screenDetailLidarr() {
     </div>
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
+  <div data-od-id="lidarr-artist-detail-stats" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px">
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px">
       <span style="font-size:14px;font-weight:800;color:${accent};font-family:var(--font-mono)">6</span>
       <span style="font-size:9px;color:${muted};font-weight:600">Albums</span>
@@ -2794,16 +3032,18 @@ function screenDetailLidarr() {
     </div>
   </div>
 
-  <div style="padding:12px 16px;display:flex;justify-content:space-around;align-items:flex-start">
+  ${mediaDetailActionRow(accent, fg, surface, bdr, 'Add Artist', media.inLibrary, 'Monitored', 'Manage artist')}
+
+  ${media.inLibrary ? `<div data-od-id="lidarr-artist-detail-management-actions" style="padding:4px 16px 12px;display:flex;justify-content:space-around;align-items:flex-start">
     ${iconBtn(icoSearch,'Interactive')}
     ${iconBtn(icoAutoSearch,'Auto Search')}
     ${iconBtn(icoProfile,'Profile')}
     ${iconBtn(icoImport,'Import')}
     ${iconBtn(icoTrash,'Delete',true)}
-  </div>
+  </div>` : ''}
 
   ${secHdr('Brat — Tracklist')}
-  <div class="ep-list">
+  <div class="ep-list" data-od-id="lidarr-artist-detail-tracklist">
     ${tracks.map(([n,t,dur])=>`
     <div class="ep-item" style="background:${surface};border-color:${bdr}">
       <span class="ep-num" style="color:${muted}">${n}</span>
@@ -2814,16 +3054,16 @@ function screenDetailLidarr() {
   </div>
 
   ${secHdr('Discography')}
-  <div class="poster-row">
+  <div class="poster-row" data-od-id="lidarr-artist-detail-discography">
     ${albums.map(a => poster(a.e, a.title, a.year, a.status, a.bt, accent)).join('')}
   </div>
 
   ${secHdr('Tags')}
-  <div class="tag-row">
+  <div class="tag-row" data-od-id="lidarr-artist-detail-tags">
     ${['pop','hyperpop','electronic','UK','brat'].map(t =>
       `<span class="tag-pill" style="color:${muted};border-color:${bdr};background:${surface}">${t}</span>`
     ).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Search ─── */
@@ -2914,14 +3154,15 @@ function screenSearch() {
   </div>`;
 
   return `
-  <div class="appbar"><span class="appbar-title" style="color:${fg}">Search</span></div>
-  <div class="search-wrap">
+  <div data-od-id="screen-content-search">
+  <div class="appbar" data-od-id="search-appbar"><span class="appbar-title" style="color:${fg}">Search</span></div>
+  <div class="search-wrap" data-od-id="search-input-wrap">
     <div class="searchbar" style="background:${bg};border-color:${bdr};color:${muted}">
       ${icon('M11 5a8 8 0 1 0 0 16A8 8 0 0 0 11 5zm10 10-4.35-4.35',18,'#6366f1')}
       <span style="flex:1;font-size:14px;color:${fg};opacity:.55">Movies, shows, artists…</span>
     </div>
   </div>
-  <div class="chip-row">
+  <div class="chip-row" data-od-id="search-service-filters">
     <button class="filter-chip on" style="background:#6366f1;border-color:#6366f1;color:#fff">All services</button>
     <button class="filter-chip" style="background:rgba(99,102,241,.1);border-color:transparent;color:#6366f1">Seerr</button>
     <button class="filter-chip" style="background:rgba(245,158,11,.1);border-color:transparent;color:#f59e0b">Radarr</button>
@@ -2929,14 +3170,14 @@ function screenSearch() {
     <button class="filter-chip" style="background:rgba(236,72,153,.1);border-color:transparent;color:#ec4899">Lidarr</button>
   </div>
   <div style="height:1px;background:${bdr};margin:0 16px 4px"></div>
-  ${seerrSection}
+  <div data-od-id="search-results-seerr">${seerrSection}</div>
   <div style="height:1px;background:${bdr};margin:0 16px 4px"></div>
-  ${radarrSection}
+  <div data-od-id="search-results-radarr">${radarrSection}</div>
   <div style="height:1px;background:${bdr};margin:0 16px 4px"></div>
-  ${sonarrSection}
+  <div data-od-id="search-results-sonarr">${sonarrSection}</div>
   <div style="height:1px;background:${bdr};margin:0 16px 4px"></div>
-  ${lidarrSection}
-  <div style="height:20px"></div>`;
+  <div data-od-id="search-results-lidarr">${lidarrSection}</div>
+  <div style="height:20px"></div></div>`;
 }
 
 /* ─── Activity (tabbed) ─── */
@@ -3108,14 +3349,15 @@ function screenActivity() {
   }[activityTab] || '';
 
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-activity">
+  <div class="appbar" data-od-id="activity-appbar">
     <span class="appbar-title" style="color:${fg}">Activity</span>
     <button title="Manual import" onclick="showImportPicker(event)" style="width:34px;height:34px;border-radius:50%;background:${isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.05)'};border:1px solid ${bdr};display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:auto">
       ${icon('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',18,muted)}
     </button>
   </div>
-  ${tabBar}
-  ${tabContent}`;
+  <div data-od-id="activity-tab-bar">${tabBar}</div>
+  <div data-od-id="activity-tab-content-${activityTab}">${tabContent}</div></div>`;
 }
 
 /* ─── Notifications ─── */
@@ -3134,11 +3376,12 @@ function screenNotifications() {
     { unread:false, e:'💾', t:'Storage warning — Radarr at 87%',        m:'Consider cleaning up or expanding your Radarr volume.',       time:'2 days ago · Radarr' },
   ];
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-notifications">
+  <div class="appbar" data-od-id="notifications-appbar">
     <span class="appbar-title" style="color:${fg}">Notifications</span>
     <button style="border:none;background:none;font-size:12px;color:#6366f1;font-weight:700;font-family:var(--font);cursor:pointer">Mark all read</button>
   </div>
-  <div class="notif-list">
+  <div class="notif-list" data-od-id="notifications-list">
     ${notifs.map(n=>`
     <div class="notif-card${n.unread?' unread':''}" style="background:${bg};border-color:${bdr}">
       <div class="notif-icon" style="background:${iconBg}">${n.e}</div>
@@ -3148,7 +3391,7 @@ function screenNotifications() {
         <div class="notif-time" style="color:${muted}">${n.time}</div>
       </div>
     </div>`).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Settings ─── */
@@ -3217,18 +3460,19 @@ function screenSettings() {
   const svgFeedback= `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 
   return `
-  <div class="appbar"><span class="appbar-title" style="color:${fg}">Settings</span></div>
-  <div class="settings-section">
+  <div data-od-id="screen-content-settings">
+  <div class="appbar" data-od-id="settings-appbar"><span class="appbar-title" style="color:${fg}">Settings</span></div>
+  <div class="settings-section" data-od-id="settings-sections">
 
     <div class="settings-group-lbl" style="color:${muted}">General</div>
-    <div class="settings-card" style="background:${bg};border-color:${bdr}">
+    <div class="settings-card" data-od-id="settings-general-group" style="background:${bg};border-color:${bdr}">
       ${chevronRow(svgGlobe,   'Region',        'Italy (IT)',   '',     '#22c55e')}
       ${chevronRow(svgPalette, 'Appearance',    'Dark mode',    '',     '#6366f1')}
       ${chevronRow(svgGrid,    'Dashboard',     'All services', '',     '#8b5cf6')}
     </div>
 
     <div class="settings-group-lbl" style="color:${muted}">Services</div>
-    <div class="settings-card" style="background:${bg};border-color:${bdr}">
+    <div class="settings-card" data-od-id="settings-services-group" style="background:${bg};border-color:${bdr}">
       ${svcRow(svgSeerr,  'Seerr',  'jseerr.matthosting.cc',  '#6366f1')}
       ${svcRow(svgRadarr, 'Radarr', 'radarr.matthosting.cc',  '#f59e0b')}
       ${svcRow(svgSonarr, 'Sonarr', 'sonarr.matthosting.cc',  '#8b5cf6')}
@@ -3236,14 +3480,14 @@ function screenSettings() {
     </div>
 
     <div class="settings-group-lbl" style="color:${muted}">About</div>
-    <div class="settings-card" style="background:${bg};border-color:${bdr}">
+    <div class="settings-card" data-od-id="settings-about-group" style="background:${bg};border-color:${bdr}">
       ${chevronRow(svgShare,    'Share App',     '',  '',  '#22c55e')}
       ${chevronRow(svgCode,     'GitHub',        '',  '',  '#6b7280')}
       ${chevronRow(svgFeedback, 'Send Feedback', '',  '',  '#f59e0b')}
     </div>
 
     <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:${muted}">Seekarr v1.0.0 · Built with ❤️</div>
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── Services Home (aggregate dashboard) ─── */
@@ -3347,7 +3591,8 @@ function screenServicesHome() {
     </div>`).join('');
 
   return `
-  <div class="appbar">
+  <div data-od-id="screen-content-services-home">
+  <div class="appbar" data-od-id="services-home-appbar">
     <span class="appbar-title" style="color:${fg}">Services</span>
     <div class="appbar-actions">
       <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px" title="3 online, 1 offline"></div>
@@ -3355,30 +3600,30 @@ function screenServicesHome() {
   </div>
 
   <!-- Service status grid -->
-  <div style="padding:0 16px 4px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+  <div data-od-id="services-home-status-grid" style="padding:0 16px 4px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
     ${svcCards}
   </div>
 
   <!-- Trending (Seerr) -->
   ${secHdr('Trending','<span onclick="switchService(\'seerr\')" style="cursor:pointer;color:var(--seerr)">Seerr →</span>')}
-  <div class="poster-row">${trending}</div>
+  <div class="poster-row" data-od-id="services-home-trending">${trending}</div>
 
   <!-- Recent Requests -->
   ${secHdr('Recent Requests','<span onclick="switchService(\'seerr\')" style="cursor:pointer;color:var(--seerr)">See all →</span>')}
-  <div class="list-gap">${requests}</div>
+  <div class="list-gap" data-od-id="services-home-recent-requests">${requests}</div>
 
   <!-- Recently Added — Movies -->
   ${secHdr('Recently Added · Movies','<span onclick="switchService(\'radarr\')" style="cursor:pointer;color:var(--radarr)">Radarr →</span>')}
-  <div class="poster-row">${radarrAdded}</div>
+  <div class="poster-row" data-od-id="services-home-radarr-added">${radarrAdded}</div>
 
   <!-- Recently Added — Series -->
   ${secHdr('Recently Added · Series','<span onclick="switchService(\'sonarr\')" style="cursor:pointer;color:var(--sonarr)">Sonarr →</span>')}
-  <div class="poster-row">${sonarrAdded}</div>
+  <div class="poster-row" data-od-id="services-home-sonarr-added">${sonarrAdded}</div>
 
   <!-- Download Queue -->
   ${secHdr('Downloading','<span onclick="switchService(\'radarr\')" style="cursor:pointer;color:var(--radarr)">Queue →</span>')}
-  <div class="list-gap">${queue}</div>
-  <div style="height:8px"></div>`;
+  <div class="list-gap" data-od-id="services-home-download-queue">${queue}</div>
+  <div style="height:8px"></div></div>`;
 }
 
 /* ─── Service picker overlay ─── */
@@ -3415,10 +3660,7 @@ function switchService(id) {
   // Close all pickers
   document.querySelectorAll('[id^=svc-picker-]').forEach(el => el.style.display = 'none');
   renderAll();
-  document.querySelectorAll('.screen-tab').forEach(btn => {
-    const oc = btn.getAttribute('onclick') || '';
-    btn.classList.toggle('active', oc.includes("'service-detail'"));
-  });
+  renderScreenNav();
 }
 
 /* ─── Service detail (delegates to current service screen) ─── */
@@ -3452,7 +3694,8 @@ function screenServiceDetail() {
   const phoneId = isDark ? 'dark' : 'light';
   const backArrow = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${muted}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`;
   return `
-  <div class="appbar" style="position:relative">
+  <div data-od-id="screen-content-service-detail-${svc.id}">
+  <div class="appbar" data-od-id="service-detail-appbar-${svc.id}" style="position:relative">
     <div style="display:flex;align-items:center;gap:2px">
       <button onclick="setScreen('services')" style="background:none;border:none;padding:4px 6px 4px 0;cursor:pointer;display:flex;align-items:center">${backArrow}</button>
       <button onclick="renderServicePicker('${phoneId}')" style="display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;padding:0">
@@ -3465,7 +3708,7 @@ function screenServiceDetail() {
       <button class="icon-btn" onclick="setScreen('activity')" style="color:${fg}">${icon('M22 12h-4l-3 9L9 3l-3 9H2',20,svc.accent)}</button>
     </div>
   </div>
-  ${strippedContent}`;
+  ${strippedContent}</div>`;
 }
 
 /* ─── All Requests (Seerr) ─── */
@@ -3520,21 +3763,22 @@ function screenAllRequests() {
   ];
 
   return `
-  <div class="appbar" style="gap:8px">
+  <div data-od-id="screen-content-all-requests">
+  <div class="appbar" data-od-id="all-requests-appbar" style="gap:8px">
     <button onclick="setScreen('service-detail')" style="background:none;border:none;color:${muted};display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;padding:0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${muted}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <span class="appbar-title" style="color:${fg}">All Requests</span>
   </div>
-  <div class="chip-row">
+  <div class="chip-row" data-od-id="all-requests-filters">
     <button class="filter-chip on" style="background:${accent};border-color:${accent};color:#fff">All</button>
     <button class="filter-chip" style="background:rgba(245,158,11,.1);border-color:transparent;color:#f59e0b">Pending</button>
     <button class="filter-chip" style="background:rgba(34,197,94,.1);border-color:transparent;color:#22c55e">Approved</button>
     <button class="filter-chip" style="background:rgba(239,68,68,.1);border-color:transparent;color:#ef4444">Declined</button>
   </div>
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="all-requests-list">
     ${requests.map(r => reqItem(...r)).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 /* ─── All Movies / Trending (Seerr) ─── */
@@ -3560,21 +3804,22 @@ function screenAllMovies() {
   ];
 
   return `
-  <div class="appbar" style="gap:8px">
+  <div data-od-id="screen-content-all-movies">
+  <div class="appbar" data-od-id="all-movies-appbar" style="gap:8px">
     <button onclick="setScreen('service-detail')" style="background:none;border:none;color:${muted};display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;padding:0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${muted}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <span class="appbar-title" style="color:${fg}">Trending Movies</span>
   </div>
-  <div class="chip-row">
+  <div class="chip-row" data-od-id="all-movies-filters">
     <button class="filter-chip on" style="background:${accent};border-color:${accent};color:#fff">All</button>
     <button class="filter-chip" style="background:rgba(34,197,94,.1);border-color:transparent;color:#22c55e">Available</button>
     <button class="filter-chip" style="background:rgba(245,158,11,.1);border-color:transparent;color:#f59e0b">Pending</button>
     <button class="filter-chip" style="background:rgba(239,68,68,.1);border-color:transparent;color:#ef4444">Missing</button>
   </div>
-  <div class="poster-row" style="flex-wrap:wrap;overflow-x:visible;padding-bottom:20px">
-    ${movies.map(([e,t,s,b,bt]) => poster(e,t,s,b,bt,accent,"setScreen('detail-movie')")).join('')}
-  </div>`;
+  <div class="poster-row" data-od-id="all-movies-grid" style="flex-wrap:wrap;overflow-x:visible;padding-bottom:20px">
+    ${movies.map(([e,t,s,b,bt]) => poster(e,t,s,b,bt,accent,mediaDetailClick('radarr','detail-movie',{ title:t, sub:s, status:b, inLibrary:b !== 'MISS', emoji:e }))).join('')}
+  </div></div>`;
 }
 
 /* ─── All Media (Radarr / Sonarr / Lidarr library) ─── */
@@ -3627,7 +3872,8 @@ function screenAllMedia() {
   const accent = cfg.accent;
 
   return `
-  <div class="appbar" style="gap:8px">
+  <div data-od-id="screen-content-all-media-${currentService}">
+  <div class="appbar" data-od-id="all-media-appbar-${currentService}" style="gap:8px">
     <button onclick="setScreen('service-detail')" style="background:none;border:none;color:${muted};display:flex;align-items:center;gap:4px;font-family:var(--font);cursor:pointer;padding:0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${muted}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
@@ -3637,13 +3883,25 @@ function screenAllMedia() {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${muted}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
     </button>
   </div>
-  <div class="chip-row">
+  <div class="chip-row" data-od-id="all-media-filters-${currentService}">
     <button class="filter-chip on" style="background:${accent};border-color:${accent};color:#fff">${cfg.filters[0]}</button>
     ${cfg.filters.slice(1).map(f=>`<button class="filter-chip" style="background:${accent}14;border-color:transparent;color:${accent}">${f}</button>`).join('')}
   </div>
-  <div class="poster-row" style="flex-wrap:wrap;overflow-x:visible;padding-bottom:20px">
-    ${cfg.items.map(([e,t,s,b,bt]) => poster(e,t,s,b,bt,accent,currentService==='lidarr'?"setScreen('artist-detail')":`setScreen('${currentService==='sonarr'?'detail-series':'detail-movie'}')`)).join('')}
-  </div>`;
+  <div class="poster-row" data-od-id="all-media-grid-${currentService}" style="flex-wrap:wrap;overflow-x:visible;padding-bottom:20px">
+    ${cfg.items.map(([e,t,s,b,bt]) => poster(
+      e,
+      t,
+      s,
+      b,
+      bt,
+      accent,
+      mediaDetailClick(
+        currentService,
+        currentService === 'lidarr' ? 'artist-detail' : currentService === 'sonarr' ? 'detail-series' : 'detail-movie',
+        { title:t, sub:s, status:b, inLibrary:b !== 'MISS' && b !== 'DL', emoji:e }
+      )
+    )).join('')}
+  </div></div>`;
 }
 
 
@@ -3665,7 +3923,8 @@ function screenArtistDetail() {
   ];
 
   return `
-  <div class="detail-hero">
+  <div data-od-id="screen-content-artist-detail-static">
+  <div class="detail-hero" data-od-id="artist-detail-static-hero">
     <div class="hero-bg">🎵</div>
     <div class="hero-grad" style="background:linear-gradient(to top,${bg} 0%,rgba(0,0,0,.05) 100%)"></div>
     <div style="position:absolute;top:12px;left:12px;z-index:10">
@@ -3702,9 +3961,9 @@ function screenArtistDetail() {
     ${albums.map(a => poster(a.e, a.title, a.year, a.status, a.bt, accent)).join('')}
   </div>
   ${secHdr('Download Queue')}
-  <div class="list-gap">
+  <div class="list-gap" data-od-id="artist-detail-static-albums">
     ${queueItem('🎵','Charli XCX — Brat (Deluxe)','Charli.XCX-Brat.Deluxe.2024.FLAC · 1.2 GB',77,accent)}
-  </div>`;
+  </div></div>`;
 }
 
 /* ═══ MANUAL IMPORT SCREENS ══════════════════════════════════ */
@@ -4291,7 +4550,7 @@ function renderScreens() {
     isDark = t === 'dark';
     const html = (SCREEN_MAP[currentScreen] || screenServicesHome)();
     const scr = document.getElementById(`screen-${t}`);
-    scr.innerHTML = html;
+    scr.innerHTML = `<div data-od-id="screen-${odSlug(currentScreen)}-${t}">${html}</div>`;
   });
   isDark = savedDark;
 }
@@ -4353,12 +4612,10 @@ function renderAll() {
 function setScreen(name) {
   // Close any open service pickers
   document.querySelectorAll('[id^=svc-picker-]').forEach(el => el.style.display = 'none');
+  if (!['detail-movie','detail-series','artist-detail'].includes(name)) selectedMedia = null;
   currentScreen = name;
   renderAll();
-  document.querySelectorAll('.screen-tab').forEach(btn => {
-    const oc = btn.getAttribute('onclick') || '';
-    btn.classList.toggle('active', oc.includes(`'${name}'`));
-  });
+  renderScreenNav();
 }
 
 function setTheme(t) {
@@ -4380,6 +4637,7 @@ function showDoc(id) {
 }
 
 renderAll();
+renderScreenNav();
 </script>
 </body>
 </html>

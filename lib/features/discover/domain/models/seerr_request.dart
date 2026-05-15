@@ -2,6 +2,8 @@ enum RequestStatus {
   pendingApproval,
   approved,
   declined,
+  failed,
+  completed,
   unknown;
 
   static RequestStatus fromCode(dynamic value) {
@@ -19,6 +21,10 @@ enum RequestStatus {
         return RequestStatus.approved;
       case 3:
         return RequestStatus.declined;
+      case 4:
+        return RequestStatus.failed;
+      case 5:
+        return RequestStatus.completed;
       default:
         return RequestStatus.unknown;
     }
@@ -151,6 +157,68 @@ class SeerrRequest {
     if (value is bool) return value;
     if (value is int) return value == 1;
     return false;
+  }
+}
+
+enum SeerrRequestDisplayKind {
+  pending,
+  approved,
+  available,
+  partiallyAvailable,
+  processing,
+  deleted,
+  declined,
+  failed,
+  completed,
+  unknown,
+}
+
+typedef SeerrRequestDisplayStatus = ({
+  String label,
+  SeerrRequestDisplayKind kind,
+});
+
+extension SeerrRequestDisplayStatusX on SeerrRequest {
+  SeerrRequestDisplayStatus get displayStatus {
+    final mediaStatus = media?.status;
+
+    if (mediaStatus != null) {
+      switch (mediaStatus) {
+        case MediaAvailability.available:
+          return (label: 'Available', kind: SeerrRequestDisplayKind.available);
+        case MediaAvailability.partiallyAvailable:
+          return (
+            label: 'Partially Available',
+            kind: SeerrRequestDisplayKind.partiallyAvailable,
+          );
+        case MediaAvailability.processing:
+          return (
+            label: 'Processing',
+            kind: SeerrRequestDisplayKind.processing,
+          );
+        case MediaAvailability.deleted:
+          return (label: 'Deleted', kind: SeerrRequestDisplayKind.deleted);
+        case MediaAvailability.pending:
+          return (label: 'Pending', kind: SeerrRequestDisplayKind.pending);
+        case MediaAvailability.unknown:
+          break;
+      }
+    }
+
+    switch (status) {
+      case RequestStatus.pendingApproval:
+        return (label: 'Pending', kind: SeerrRequestDisplayKind.pending);
+      case RequestStatus.approved:
+        return (label: 'Approved', kind: SeerrRequestDisplayKind.approved);
+      case RequestStatus.declined:
+        return (label: 'Declined', kind: SeerrRequestDisplayKind.declined);
+      case RequestStatus.failed:
+        return (label: 'Failed', kind: SeerrRequestDisplayKind.failed);
+      case RequestStatus.completed:
+        return (label: 'Completed', kind: SeerrRequestDisplayKind.completed);
+      case RequestStatus.unknown:
+        return (label: 'Unknown', kind: SeerrRequestDisplayKind.unknown);
+    }
   }
 }
 

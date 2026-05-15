@@ -185,10 +185,7 @@ class _GlobalActivityPane extends ConsumerWidget {
 
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(
-              top: AppSpacing.md,
-              bottom: bottomPadding + AppSpacing.md,
-            ),
+            padding: EdgeInsets.only(top: AppSpacing.md, bottom: bottomPadding),
             itemCount: items.length,
             itemBuilder: (context, index) =>
                 GlobalActivityItemTile(item: items[index]),
@@ -209,7 +206,7 @@ class _ActivityStateList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.only(bottom: bottomPadding + AppSpacing.md),
+      padding: EdgeInsets.only(bottom: bottomPadding),
       children: [SizedBox(height: 320, child: child)],
     );
   }

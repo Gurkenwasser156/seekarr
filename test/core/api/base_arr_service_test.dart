@@ -122,6 +122,48 @@ void main() {
       expect(client.lastPostPath, '/api/v3/release');
       expect(client.lastPostData, {'guid': 'guid-123', 'indexerId': 9});
     });
+
+    test('getQueue returns records with optional query parameters', () async {
+      client.getResponseData = {
+        'records': [
+          {'id': 1, 'title': 'Queued'},
+        ],
+      };
+
+      final items = await service.getQueue(
+        queryParameters: const {'includeMovie': true},
+      );
+
+      expect(client.lastGetPath, '/api/v3/queue');
+      expect(client.lastGetQueryParameters, const {'includeMovie': true});
+      expect(items, [
+        {'id': 1, 'title': 'Queued'},
+      ]);
+    });
+
+    test('getHistory forwards optional query parameters', () async {
+      client.getResponseData = {
+        'records': [
+          {'id': 2, 'sourceTitle': 'Imported.Release'},
+        ],
+      };
+
+      final items = await service.getHistory(
+        page: 2,
+        pageSize: 10,
+        queryParameters: const {'includeMovie': true},
+      );
+
+      expect(client.lastGetPath, '/api/v3/history');
+      expect(client.lastGetQueryParameters, {
+        'page': 2,
+        'pageSize': 10,
+        'includeMovie': true,
+      });
+      expect(items, [
+        {'id': 2, 'sourceTitle': 'Imported.Release'},
+      ]);
+    });
   });
 }
 

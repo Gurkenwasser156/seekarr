@@ -127,6 +127,11 @@ class LidarrService with ArrActivityMixin {
     await updateItemProfile('artist', artistId, qualityProfileId);
   }
 
+  /// Updates an artist's monitored state.
+  Future<void> updateArtistMonitored(int artistId, bool monitored) async {
+    await updateItemMonitored('artist', artistId, monitored);
+  }
+
   /// Deletes an artist from Lidarr.
   Future<void> deleteArtist(
     int artistId, {

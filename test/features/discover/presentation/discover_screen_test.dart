@@ -112,6 +112,34 @@ void main() {
       expect(find.text('Error loading results'), findsOneWidget);
       expect(find.textContaining('Network error'), findsOneWidget);
     });
+
+    testWidgets('uses unique hero tags for mixed media search results', (
+      tester,
+    ) async {
+      await _pumpDiscover(
+        tester,
+        searchQueryBuilder: (ref) => 'same-id',
+        searchResultsBuilder: (ref) async => const [
+          MediaPreview(id: 42, title: 'Movie 42', mediaType: 'movie'),
+          MediaPreview(id: 42, title: 'Show 42', mediaType: 'tv'),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Hero && widget.tag == 'discover_search_movie_42_0',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Hero && widget.tag == 'discover_search_tv_42_1',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 }
 

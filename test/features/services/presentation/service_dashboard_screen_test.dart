@@ -6,13 +6,16 @@ import 'package:seekarr/features/services/presentation/service_dashboard_screen.
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
 void main() {
-  testWidgets('renders service title and switches services from picker', (
+  testWidgets('pushes service dashboard from services home and pops back', (
     tester,
   ) async {
-    final router = _buildRouter('/services/radarr');
+    final router = _buildRouter('/services');
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-service-radarr')));
     await tester.pumpAndSettle();
 
     expect(
@@ -44,15 +47,24 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Sonarr body'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back to Services'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/services');
+    expect(find.text('Services home'), findsOneWidget);
   });
 
   testWidgets('back and activity actions navigate to parent routes', (
     tester,
   ) async {
-    final router = _buildRouter('/services/lidarr');
+    final router = _buildRouter('/services');
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-service-lidarr')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Activity'));
@@ -78,8 +90,20 @@ GoRouter _buildRouter(String initialLocation) {
     routes: [
       GoRoute(
         path: '/services',
-        builder: (context, state) =>
-            const Scaffold(body: Text('Services home')),
+        builder: (context, state) => Scaffold(
+          body: Column(
+            children: [
+              const Text('Services home'),
+              for (final service in ServiceKey.values)
+                TextButton(
+                  key: ValueKey('open-service-${service.routeParam}'),
+                  onPressed: () =>
+                      context.push('/services/${service.routeParam}'),
+                  child: Text('Open ${service.title}'),
+                ),
+            ],
+          ),
+        ),
         routes: [
           for (final service in ServiceKey.values)
             GoRoute(

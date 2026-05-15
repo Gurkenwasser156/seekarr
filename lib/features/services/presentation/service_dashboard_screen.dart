@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/route_utils.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
 class ServiceDashboardScreen extends StatefulWidget {
@@ -64,7 +65,10 @@ class _ServiceDashboardScreenState extends State<ServiceDashboardScreen> {
               selectedService: widget.service,
               onSelected: (service) {
                 setState(() => _isPickerOpen = false);
-                context.go('/services/${service.routeParam}');
+                if (service == widget.service) {
+                  return;
+                }
+                context.pushReplacement('/services/${service.routeParam}');
               },
             ),
           ),
@@ -100,7 +104,7 @@ class _ServiceDashboardAppBar extends StatelessWidget {
                 Icons.chevron_left_rounded,
                 color: colorScheme.onSurfaceVariant,
               ),
-              onPressed: () => context.go('/services'),
+              onPressed: () => RouteUtils.popOrGo(context, '/services'),
               tooltip: 'Back to Services',
               padding: const EdgeInsets.only(right: AppSpacing.xs),
               constraints: const BoxConstraints(minWidth: 36, minHeight: 40),

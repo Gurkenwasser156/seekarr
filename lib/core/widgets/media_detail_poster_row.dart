@@ -44,8 +44,8 @@ class MediaDetailPosterRow extends StatelessWidget {
   });
 
   // Poster dimensions at expanded state.
-  static const expandedWidth = 68.0;
-  static const expandedHeight = 102.0;
+  static const expandedWidth = 82.0;
+  static const expandedHeight = 123.0;
 
   // Poster dimensions at collapsed state.
   static const collapsedWidth = 52.0;
@@ -62,8 +62,8 @@ class MediaDetailPosterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const posterWidth = expandedWidth;
     const posterHeight = expandedHeight;
-    final effectivePosterWidth = circularPoster ? 80.0 : posterWidth;
-    final effectivePosterHeight = circularPoster ? 80.0 : posterHeight;
+    final effectivePosterWidth = circularPoster ? 92.0 : posterWidth;
+    final effectivePosterHeight = circularPoster ? 92.0 : posterHeight;
     final showTextContent =
         title != null ||
         statusBadge != null ||

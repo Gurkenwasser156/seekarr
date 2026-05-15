@@ -13,18 +13,28 @@ import '../../../../test_helpers/fake_services.dart';
 
 void main() {
   group('QueueItemTile', () {
-    testWidgets('renders title, inline status, and metadata', (tester) async {
+    testWidgets('renders media-first title, release details, and warning', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: QueueItemTile(
               item: {
-                'title': 'Movie.2024',
+                'title': 'Movie.2024.2160p.WEB-DL-GROUP',
+                'movie': {'title': 'Movie', 'year': 2024},
                 'status': 'downloading',
+                'trackedDownloadStatus': 'warning',
                 'protocol': 'torrent',
                 'timeleft': '00:12:00',
                 'size': 100,
                 'sizeleft': 17,
+                'statusMessages': [
+                  {
+                    'title': 'Import Warning',
+                    'messages': ['Needs manual import'],
+                  },
+                ],
               },
               serviceType: ServiceType.movies,
             ),
@@ -32,7 +42,13 @@ void main() {
         ),
       );
 
-      expect(find.text('Movie.2024'), findsWidgets);
+      expect(find.text('Movie (2024)'), findsOneWidget);
+      expect(
+        find.textContaining('Movie.2024.2160p.WEB-DL-GROUP'),
+        findsOneWidget,
+      );
+      expect(find.text('Warning'), findsOneWidget);
+      expect(find.textContaining('Needs manual import'), findsNothing);
       expect(find.text('torrent'), findsOneWidget);
       expect(find.text('Downloading (83%)'), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
@@ -50,10 +66,38 @@ void main() {
 
       expect(find.text('Unknown release'), findsOneWidget);
     });
+
+    testWidgets('does not invent episode zero when episode number is missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: QueueItemTile(
+              item: {
+                'title': 'Frieren.S02.Pack.1080p.WEB-DL-GROUP',
+                'series': {'title': 'Frieren: Beyond Journey\'s End'},
+                'seasonNumber': 2,
+              },
+              serviceType: ServiceType.series,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Frieren: Beyond Journey\'s End'), findsOneWidget);
+      expect(
+        find.textContaining('Frieren.S02.Pack.1080p.WEB-DL-GROUP'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('S02E00'), findsNothing);
+    });
   });
 
   group('HistoryItemTile', () {
-    testWidgets('renders sourceTitle and event type chip', (tester) async {
+    testWidgets('renders media-first title and release name as secondary', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -62,6 +106,7 @@ void main() {
                 'sourceTitle': 'Release.Name',
                 'eventType': 'grabbed',
                 'protocol': 'torrent',
+                'movie': {'title': 'Movie Title', 'year': 2024},
               },
               serviceType: ServiceType.movies,
             ),
@@ -69,6 +114,7 @@ void main() {
         ),
       );
 
+      expect(find.text('Movie Title (2024)'), findsOneWidget);
       expect(find.text('Release.Name'), findsOneWidget);
       expect(find.text('Grabbed'), findsOneWidget);
       expect(find.text('torrent'), findsNothing);
@@ -116,18 +162,23 @@ void main() {
   });
 
   group('BlocklistItemTile', () {
-    testWidgets('renders sourceTitle and reason', (tester) async {
+    testWidgets('renders media-first title and reason', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: BlocklistItemTile(
-              item: {'sourceTitle': 'Bad.Release', 'message': 'Rejected'},
+              item: {
+                'sourceTitle': 'Bad.Release',
+                'message': 'Rejected',
+                'movie': {'title': 'Movie Title', 'year': 2024},
+              },
               serviceType: ServiceType.movies,
             ),
           ),
         ),
       );
 
+      expect(find.text('Movie Title (2024)'), findsOneWidget);
       expect(find.text('Bad.Release'), findsOneWidget);
       expect(find.text('Rejected'), findsOneWidget);
       expect(find.byIcon(Icons.block_rounded), findsOneWidget);
@@ -326,6 +377,52 @@ void main() {
   });
 
   group('GlobalActivityItemTile', () {
+    testWidgets('shows warning badge and media-first hierarchy for queue items', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: GlobalActivityItemTile(
+                item: GlobalActivityItem(
+                  kind: GlobalActivityKind.queue,
+                  service: ServiceKey.sonarr,
+                  serviceType: ServiceType.series,
+                  title: 'Frieren: Beyond Journey\'s End',
+                  subtitle:
+                      'S01E03 · Killing Magic · Frieren.S01E03.1080p.WEB-DL-GROUP',
+                  status: 'Completed',
+                  progress: 1,
+                  warning: 'Import Warning: Unable to Import Automatically',
+                  raw: {
+                    'title': 'Frieren.S01E03.1080p.WEB-DL-GROUP',
+                    'series': {'title': 'Frieren: Beyond Journey\'s End'},
+                    'episode': {
+                      'seasonNumber': 1,
+                      'episodeNumber': 3,
+                      'title': 'Killing Magic',
+                    },
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Frieren: Beyond Journey\'s End'), findsOneWidget);
+      expect(
+        find.textContaining('Frieren.S01E03.1080p.WEB-DL-GROUP'),
+        findsOneWidget,
+      );
+      expect(find.text('Warning'), findsOneWidget);
+      expect(
+        find.textContaining('Unable to Import Automatically'),
+        findsNothing,
+      );
+    });
+
     testWidgets('shows search menu for searchable wanted items', (
       tester,
     ) async {
@@ -368,7 +465,7 @@ void main() {
                   serviceType: ServiceType.discover,
                   title: 'Shogun',
                   subtitle: 'sarah · Series',
-                  status: 'Approved',
+                  status: 'Requested',
                 ),
               ),
             ),

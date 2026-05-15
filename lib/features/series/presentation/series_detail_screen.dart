@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
@@ -34,14 +35,19 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     with QualityProfileMixin<SeriesDetailScreen> {
   bool _isSearching = false;
   bool _isDeleting = false;
+  bool _isUpdatingMonitoredState = false;
   final Set<int> _searchingSeasons = {};
   final Set<int> _searchingEpisodes = {};
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(currentSettingsProvider);
-    final seriesAsync = ref.watch(seriesDetailProvider(widget.seriesId));
-    final episodesAsync = ref.watch(seriesEpisodesProvider(widget.seriesId));
+    final seriesAsync = widget.seriesId > 0
+        ? ref.watch(seriesDetailProvider(widget.seriesId))
+        : const AsyncData<SonarrSeries?>(null);
+    final episodesAsync = widget.seriesId > 0
+        ? ref.watch(seriesEpisodesProvider(widget.seriesId))
+        : const AsyncData<List<SonarrEpisode>>(<SonarrEpisode>[]);
     final series = seriesAsync.asData?.value ?? widget.initialSeries;
 
     if (series == null) {
@@ -75,11 +81,16 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         viewModel,
         infoGroups,
         episodesAsync,
+        series.id > 0 ? series.id : widget.seriesId,
       ),
     );
   }
 
   void _syncQualityProfiles(SonarrSeries series) {
+    if (series.id <= 0 || series.path?.isNotEmpty != true) {
+      return;
+    }
+
     ensureQualityProfiles(
       profileId: series.qualityProfileId,
       fetchProfiles: () => ref.read(sonarrServiceProvider).getQualityProfiles(),
@@ -115,17 +126,27 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     SeriesDetailViewModel viewModel,
     List<MediaInfoGroup> infoGroups,
     AsyncValue<List<SonarrEpisode>> episodesAsync,
+    int seriesId,
   ) {
     final detailInfoGroups = _detailInfoGroups(infoGroups);
 
     return [
       LibraryDetailActions(
         collapseFactor: 0,
+        isInLibrary: viewModel.isInLibrary,
+        isMonitored: viewModel.isMonitored,
+        addLabel: 'Add Series',
         isSearching: _isSearching,
         isDeleting: _isDeleting,
+        isUpdatingMonitoredState: _isUpdatingMonitoredState,
         currentProfileName: currentProfileName,
         currentProfileId: currentProfileId,
         qualityProfiles: qualityProfiles,
+        onPrimaryAction: () => _handlePrimaryAction(
+          context,
+          viewModel: viewModel,
+          seriesId: seriesId,
+        ),
         onInteractiveSearch: () =>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
@@ -183,8 +204,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         ),
       ),
       const SizedBox(height: AppSpacing.lg),
-      _buildSeasonsSection(context, viewModel, episodesAsync),
-      const SizedBox(height: AppSpacing.lg),
+      if (viewModel.isInLibrary) ...[
+        _buildSeasonsSection(context, viewModel, episodesAsync),
+        const SizedBox(height: AppSpacing.lg),
+      ],
       const Padding(
         padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: MediaDetailUnavailableSection(
@@ -211,6 +234,50 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
 
   List<MediaInfoGroup> _detailInfoGroups(List<MediaInfoGroup> infoGroups) =>
       infoGroups;
+
+  Future<void> _handlePrimaryAction(
+    BuildContext context, {
+    required SeriesDetailViewModel viewModel,
+    required int seriesId,
+  }) async {
+    if (!viewModel.isInLibrary || seriesId <= 0) {
+      SnackBarHelper.info(
+        context,
+        'Add Series is not available yet from this view.',
+      );
+      return;
+    }
+
+    await _updateMonitoredState(
+      context,
+      seriesId: seriesId,
+      monitored: !viewModel.isMonitored,
+    );
+  }
+
+  Future<void> _updateMonitoredState(
+    BuildContext context, {
+    required int seriesId,
+    required bool monitored,
+  }) async {
+    setState(() => _isUpdatingMonitoredState = true);
+    try {
+      final sonarrService = ref.read(sonarrServiceProvider);
+      await sonarrService.updateSeriesMonitored(seriesId, monitored);
+      if (!mounted) return;
+      ref.invalidate(seriesDetailProvider(seriesId));
+      ref.invalidate(seriesProvider);
+      SnackBarHelper.success(
+        context,
+        monitored ? 'Series monitored' : 'Series unmonitored',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarHelper.error(context, 'Failed to update monitoring: $e');
+    } finally {
+      if (mounted) setState(() => _isUpdatingMonitoredState = false);
+    }
+  }
 
   Widget _buildSeasonsSection(
     BuildContext context,

@@ -43,7 +43,7 @@ class SeriesScreen extends StatelessWidget {
       settingsSelector: (settings) =>
           (settings.sonarrUrl, settings.sonarrApiKey),
       onItemTap: (context, series, heroTag) {
-        context.go(
+        context.push(
           '/services/sonarr/series/${series.id}?heroTag=$heroTag',
           extra: series,
         );

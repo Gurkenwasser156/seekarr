@@ -15,11 +15,18 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 import '../../../test_helpers/fake_services.dart';
 import '../../../test_helpers/model_builders.dart';
 
-RadarrMovie _movie({bool hasFile = true, String? path}) => buildMovie(
+RadarrMovie _movie({
+  int id = 1,
+  bool hasFile = true,
+  bool monitored = true,
+  String? path,
+}) => buildMovie(
+  id: id,
   title: 'Inception',
   overview: 'A mind-bending thriller.',
   path: path ?? '/movies/Inception (2010)/Inception.mkv',
   hasFile: hasFile,
+  monitored: monitored,
   year: 2010,
   tmdbId: 100,
   runtime: 148,
@@ -124,6 +131,83 @@ void main() {
 
       expect(find.byType(FileInfoSection), findsNothing);
     });
+
+    testWidgets('shows add movie action for lookup results not in library', (
+      tester,
+    ) async {
+      var requestedMovie = false;
+
+      await _pumpMovieDetail(
+        tester,
+        movieId: 0,
+        detailBuilder: (ref, movieId) async {
+          requestedMovie = true;
+          return null;
+        },
+        initialMovie: _movie(id: 0, hasFile: false, monitored: false, path: null),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestedMovie, isFalse);
+      expect(find.text('Add Movie'), findsOneWidget);
+      expect(find.text('Interactive'), findsNothing);
+      expect(find.text('Auto Search'), findsNothing);
+      expect(find.text('Delete'), findsNothing);
+
+      await tester.tap(find.text('Add Movie'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Add Movie is not available yet from this view.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows monitor action for unmonitored library movies', (
+      tester,
+    ) async {
+      final radarrService = _TrackingRadarrService();
+
+      await _pumpMovieDetail(
+        tester,
+        detailBuilder: (ref, movieId) async => _movie(monitored: false),
+        radarrService: radarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Monitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Monitor'));
+      await tester.pumpAndSettle();
+
+      expect(radarrService.updatedMovieId, 1);
+      expect(radarrService.updatedMonitored, isTrue);
+      expect(find.text('Movie monitored'), findsOneWidget);
+    });
+
+    testWidgets('shows unmonitor action for monitored library movies', (
+      tester,
+    ) async {
+      final radarrService = _TrackingRadarrService();
+
+      await _pumpMovieDetail(
+        tester,
+        detailBuilder: (ref, movieId) async => _movie(),
+        radarrService: radarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unmonitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Unmonitor'));
+      await tester.pumpAndSettle();
+
+      expect(radarrService.updatedMovieId, 1);
+      expect(radarrService.updatedMonitored, isFalse);
+      expect(find.text('Movie unmonitored'), findsOneWidget);
+    });
   });
 }
 
@@ -140,6 +224,8 @@ Future<void> _pumpMovieDetail(
   WidgetTester tester, {
   required FutureOr<RadarrMovie?> Function(Ref ref, int movieId) detailBuilder,
   RadarrMovie? initialMovie,
+  int movieId = 1,
+  RadarrService? radarrService,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -151,15 +237,30 @@ Future<void> _pumpMovieDetail(
           ),
         ),
         movieDetailProvider.overrideWith(detailBuilder),
-        radarrServiceProvider.overrideWith((ref) => FakeRadarrService()),
+        radarrServiceProvider.overrideWith(
+          (ref) => radarrService ?? FakeRadarrService(),
+        ),
       ],
       child: MaterialApp(
-        home: MovieDetailScreen(
-          movieId: 1,
-          heroTag: 'movie-1',
-          initialMovie: initialMovie,
+        home: Scaffold(
+          body: MovieDetailScreen(
+            movieId: movieId,
+            heroTag: 'movie-1',
+            initialMovie: initialMovie,
+          ),
         ),
       ),
     ),
   );
+}
+
+class _TrackingRadarrService extends FakeRadarrService {
+  int? updatedMovieId;
+  bool? updatedMonitored;
+
+  @override
+  Future<void> updateMovieMonitored(int movieId, bool monitored) async {
+    updatedMovieId = movieId;
+    updatedMonitored = monitored;
+  }
 }

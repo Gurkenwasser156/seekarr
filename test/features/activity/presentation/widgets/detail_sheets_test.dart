@@ -12,10 +12,11 @@ void main() {
       await _pumpDetailSheet(
         tester,
         showSheet: (context) => DetailSheets.showQueueDetail(context, {
-          'title': 'Movie.2024',
+          'title': 'Movie.2024.2160p.WEB-DL-GROUP',
           'status': 'downloading',
           'trackedDownloadStatus': 'warning',
           'trackedDownloadState': 'downloading',
+          'movie': {'title': 'Movie', 'year': 2024},
           'quality': {
             'quality': {'name': 'HD-1080p'},
           },
@@ -36,7 +37,7 @@ void main() {
         }),
       );
 
-      expect(find.text('Movie.2024'), findsOneWidget);
+      expect(find.text('Movie (2024)'), findsOneWidget);
       expect(find.text('Summary'), findsOneWidget);
       expect(find.text('Downloading (Warning)'), findsOneWidget);
       await _scrollSheetUntilVisible(tester, find.text('Transfer'));
@@ -45,6 +46,7 @@ void main() {
       expect(find.text('Status Messages'), findsOneWidget);
       expect(find.text('qBittorrent'), findsOneWidget);
       expect(find.text('/downloads/movie'), findsOneWidget);
+      expect(find.text('Movie.2024.2160p.WEB-DL-GROUP'), findsOneWidget);
       expect(find.text('Import Warning: Needs manual import'), findsOneWidget);
       expect(find.text('Manual Import'), findsNothing);
     });
@@ -83,6 +85,41 @@ void main() {
         expect(find.text('Movie Match Type'), findsNothing);
       },
     );
+
+    testWidgets('showHistoryDetail prefers embedded movie title', (
+      tester,
+    ) async {
+      await _pumpDetailSheet(
+        tester,
+        showSheet: (context) => DetailSheets.showHistoryDetail(context, {
+          'sourceTitle': 'Furiosa.2024.2160p.WEB-DL-GROUP',
+          'eventType': 'downloadImported',
+          'date': '2026-04-03T12:34:56Z',
+          'movie': {'title': 'Furiosa', 'year': 2024},
+        }),
+      );
+
+      expect(find.text('Furiosa (2024)'), findsOneWidget);
+      expect(find.text('Furiosa.2024.2160p.WEB-DL-GROUP'), findsOneWidget);
+    });
+
+    testWidgets('showBlocklistDetail prefers embedded series title', (
+      tester,
+    ) async {
+      await _pumpDetailSheet(
+        tester,
+        showSheet: (context) => DetailSheets.showBlocklistDetail(context, {
+          'sourceTitle': 'Frieren.S01E03.1080p.WEB-DL-GROUP',
+          'date': '2026-04-03T12:34:56Z',
+          'protocol': 'torrent',
+          'message': 'Rejected',
+          'series': {'title': 'Frieren: Beyond Journey\'s End'},
+        }),
+      );
+
+      expect(find.text("Frieren: Beyond Journey's End"), findsOneWidget);
+      expect(find.text('Frieren.S01E03.1080p.WEB-DL-GROUP'), findsOneWidget);
+    });
 
     testWidgets('showBlocklistDetail renders blocked release and messages', (
       tester,

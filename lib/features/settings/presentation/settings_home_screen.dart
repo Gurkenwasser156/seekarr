@@ -37,8 +37,6 @@ class SettingsHomeScreen extends ConsumerWidget {
       ..._buildServicesSection(context, ref, settings),
       const SizedBox(height: AppSpacing.lg),
       ..._buildAboutSection(context),
-      const SizedBox(height: AppSpacing.lg),
-      _SettingsFooter(),
     ];
 
     return Scaffold(
@@ -264,19 +262,6 @@ class _SettingsSectionLabel extends StatelessWidget {
           letterSpacing: 0.7,
           fontSize: 11,
         ),
-      ),
-    );
-  }
-}
-
-class _SettingsFooter extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'Seekarr v1.0.0',
-      textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }

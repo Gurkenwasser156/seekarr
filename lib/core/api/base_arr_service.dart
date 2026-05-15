@@ -44,16 +44,29 @@ mixin ArrActivityMixin {
   ArrServiceConfig get config;
 
   /// Fetches the download queue.
-  Future<List<dynamic>> getQueue() async {
-    final response = await client.get('/api/${config.apiVersion}/queue');
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    final response = await client.get(
+      '/api/${config.apiVersion}/queue',
+      queryParameters: queryParameters,
+    );
     return response.data['records'] as List<dynamic>;
   }
 
   /// Fetches recent history.
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async {
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async {
     final response = await client.get(
       '/api/${config.apiVersion}/history',
-      queryParameters: {'page': page, 'pageSize': pageSize},
+      queryParameters: {
+        'page': page,
+        'pageSize': pageSize,
+        ...?queryParameters,
+      },
     );
     return response.data['records'] as List<dynamic>;
   }
@@ -92,8 +105,10 @@ mixin ArrActivityMixin {
   }
 
   /// Fetches all history records across all pages.
-  Future<List<dynamic>> getAllHistory() async {
-    return _fetchAllPages('history');
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _fetchAllPages('history', extraParams: queryParameters ?? const {});
   }
 
   Map<String, dynamic> _wantedParams({bool includeCutoffParams = false}) {
@@ -222,6 +237,23 @@ mixin ArrActivityMixin {
     );
     final item = response.data as Map<String, dynamic>;
     item['qualityProfileId'] = qualityProfileId;
+    await client.put(
+      '/api/${config.apiVersion}/$resourcePath/$itemId',
+      data: item,
+    );
+  }
+
+  /// Updates an item's monitored state.
+  Future<void> updateItemMonitored(
+    String resourcePath,
+    int itemId,
+    bool monitored,
+  ) async {
+    final response = await client.get(
+      '/api/${config.apiVersion}/$resourcePath/$itemId',
+    );
+    final item = response.data as Map<String, dynamic>;
+    item['monitored'] = monitored;
     await client.put(
       '/api/${config.apiVersion}/$resourcePath/$itemId',
       data: item,

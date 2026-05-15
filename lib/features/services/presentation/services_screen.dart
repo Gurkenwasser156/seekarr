@@ -39,7 +39,7 @@ class ServicesScreen extends ConsumerWidget {
         onRefresh: () async => _invalidateServicesDashboard(ref),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.only(bottom: bottomPadding + AppSpacing.sm),
+          padding: EdgeInsets.only(bottom: bottomPadding),
           children: const [
             ServiceStatusGrid(),
             ServicesTrendingSection(),

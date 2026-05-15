@@ -43,7 +43,7 @@ class MediaDetailView extends StatelessWidget {
   static const collapsedHeight = MediaDetailPosterRow.collapsedHeight;
 
   /// Prototype hero height excluding the device safe-area inset.
-  static const expandedHeight = 210.0;
+  static const expandedHeight = 236.0;
 
   @override
   Widget build(BuildContext context) {
