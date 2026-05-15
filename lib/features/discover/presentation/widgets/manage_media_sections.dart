@@ -123,7 +123,7 @@ class _RequestCard extends StatelessWidget {
                   children: [
                     if (request.is4k)
                       const _Badge(text: '4K', color: AppColors.warning),
-                    _StatusBadge(status: request.status),
+                    _StatusBadge(request: request),
                   ],
                 ),
                 if (request.seasons != null && request.seasons!.isNotEmpty) ...[
@@ -222,30 +222,38 @@ class _Badge extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final RequestStatus status;
+  final SeerrRequest request;
 
-  const _StatusBadge({required this.status});
+  const _StatusBadge({required this.request});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final displayStatus = request.displayStatus;
 
     late final Color color;
-    late final String text;
-    switch (status) {
-      case RequestStatus.approved:
+    switch (displayStatus.kind) {
+      case SeerrRequestDisplayKind.available:
+      case SeerrRequestDisplayKind.partiallyAvailable:
+      case SeerrRequestDisplayKind.completed:
         color = AppColors.success;
-        text = 'Completed';
-      case RequestStatus.pendingApproval:
+        break;
+      case SeerrRequestDisplayKind.pending:
         color = AppColors.warning;
-        text = 'Pending';
-      case RequestStatus.declined:
+        break;
+      case SeerrRequestDisplayKind.approved:
+      case SeerrRequestDisplayKind.processing:
+        color = colorScheme.primary;
+        break;
+      case SeerrRequestDisplayKind.declined:
+      case SeerrRequestDisplayKind.failed:
+      case SeerrRequestDisplayKind.deleted:
         color = AppColors.error;
-        text = 'Declined';
-      case RequestStatus.unknown:
+        break;
+      case SeerrRequestDisplayKind.unknown:
         color = colorScheme.onSurfaceVariant;
-        text = 'Unknown';
+        break;
     }
 
     return Container(
@@ -258,7 +266,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: AppRadius.borderRadiusXs,
       ),
       child: Text(
-        text,
+        displayStatus.label,
         style: theme.textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.bold,
           color: Colors.white,

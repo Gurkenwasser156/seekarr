@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
@@ -35,13 +36,18 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     with QualityProfileMixin<MusicDetailScreen> {
   bool _isSearching = false;
   bool _isDeleting = false;
+  bool _isUpdatingMonitoredState = false;
   final Set<int> _searchingAlbums = {};
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(currentSettingsProvider);
-    final artistAsync = ref.watch(musicDetailProvider(widget.artistId));
-    final albumsAsync = ref.watch(musicAlbumsProvider(widget.artistId));
+    final artistAsync = widget.artistId > 0
+        ? ref.watch(musicDetailProvider(widget.artistId))
+        : const AsyncData<LidarrArtist?>(null);
+    final albumsAsync = widget.artistId > 0
+        ? ref.watch(musicAlbumsProvider(widget.artistId))
+        : const AsyncData<List<LidarrAlbum>>(<LidarrAlbum>[]);
     final artist = artistAsync.asData?.value ?? widget.initialArtist;
 
     if (artist == null) {
@@ -71,12 +77,22 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       backdropUrl: viewModel.backdropUrl,
       posterRow: (collapseFactor) =>
           _buildPosterRow(context, viewModel, collapseFactor),
-      contentSections: _buildContentSections(viewModel, infoGroups),
-      slivers: [_buildAlbumsSliver(context, settings, albumsAsync)],
+      contentSections: _buildContentSections(
+        viewModel,
+        infoGroups,
+        artist.id > 0 ? artist.id : widget.artistId,
+      ),
+      slivers: viewModel.isInLibrary
+          ? [_buildAlbumsSliver(context, settings, albumsAsync)]
+          : const [],
     );
   }
 
   void _syncQualityProfiles(LidarrArtist artist) {
+    if (artist.id <= 0 || artist.path?.isNotEmpty != true) {
+      return;
+    }
+
     ensureQualityProfiles(
       profileId: artist.qualityProfileId,
       fetchProfiles: () => ref.read(lidarrServiceProvider).getQualityProfiles(),
@@ -122,15 +138,25 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
   List<Widget> _buildContentSections(
     MusicDetailViewModel viewModel,
     List<MediaInfoGroup> infoGroups,
+    int artistId,
   ) {
     return [
       LibraryDetailActions(
         collapseFactor: 0,
+        isInLibrary: viewModel.isInLibrary,
+        isMonitored: viewModel.isMonitored,
+        addLabel: 'Add Artist',
         isSearching: _isSearching,
         isDeleting: _isDeleting,
+        isUpdatingMonitoredState: _isUpdatingMonitoredState,
         currentProfileName: currentProfileName,
         currentProfileId: currentProfileId,
         qualityProfiles: qualityProfiles,
+        onPrimaryAction: () => _handlePrimaryAction(
+          context,
+          viewModel: viewModel,
+          artistId: artistId,
+        ),
         onInteractiveSearch: () =>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
@@ -197,6 +223,50 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
         const SizedBox(height: AppSpacing.lg),
       ],
     ];
+  }
+
+  Future<void> _handlePrimaryAction(
+    BuildContext context, {
+    required MusicDetailViewModel viewModel,
+    required int artistId,
+  }) async {
+    if (!viewModel.isInLibrary || artistId <= 0) {
+      SnackBarHelper.info(
+        context,
+        'Add Artist is not available yet from this view.',
+      );
+      return;
+    }
+
+    await _updateMonitoredState(
+      context,
+      artistId: artistId,
+      monitored: !viewModel.isMonitored,
+    );
+  }
+
+  Future<void> _updateMonitoredState(
+    BuildContext context, {
+    required int artistId,
+    required bool monitored,
+  }) async {
+    setState(() => _isUpdatingMonitoredState = true);
+    try {
+      final lidarrService = ref.read(lidarrServiceProvider);
+      await lidarrService.updateArtistMonitored(artistId, monitored);
+      if (!mounted) return;
+      ref.invalidate(musicDetailProvider(artistId));
+      ref.invalidate(musicProvider);
+      SnackBarHelper.success(
+        context,
+        monitored ? 'Artist monitored' : 'Artist unmonitored',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarHelper.error(context, 'Failed to update monitoring: $e');
+    } finally {
+      if (mounted) setState(() => _isUpdatingMonitoredState = false);
+    }
   }
 
   Widget _buildAlbumsSliver(

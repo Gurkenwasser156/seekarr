@@ -207,7 +207,8 @@ class DiscoverScreen extends ConsumerWidget {
             final imageUrl = posterPath != null
                 ? 'https://image.tmdb.org/t/p/w500$posterPath'
                 : '';
-            final heroTag = 'discover_search_${item.id}';
+            final heroTag =
+                'discover_search_${item.mediaType}_${item.id}_$index';
 
             return GestureDetector(
               onTap: () {

@@ -6,16 +6,28 @@ import 'package:seekarr/core/widgets/media_profile_selector.dart';
 
 /// Shared action buttons for library detail screens (Movies, Series, Music).
 ///
-/// Prototype-style icon action row for library detail screens.
+/// Renders the tri-state primary action plus library management actions.
 class LibraryDetailActions extends StatelessWidget {
   /// Collapse progress from [MediaDetailPosterRow].
   final double collapseFactor;
+
+  /// Whether the current item already exists in the library.
+  final bool isInLibrary;
+
+  /// Whether the current item is monitored.
+  final bool isMonitored;
+
+  /// Service-specific label used when the item is not in the library yet.
+  final String addLabel;
 
   /// Whether a search operation is in progress.
   final bool isSearching;
 
   /// Whether a delete operation is in progress.
   final bool isDeleting;
+
+  /// Whether the primary monitor/unmonitor action is in progress.
+  final bool isUpdatingMonitoredState;
 
   /// Current quality profile name. If null, Row 2 is hidden.
   final String? currentProfileName;
@@ -25,6 +37,9 @@ class LibraryDetailActions extends StatelessWidget {
 
   /// Available quality profiles for the selector.
   final List<Map<String, dynamic>> qualityProfiles;
+
+  /// Called when the user taps the primary button.
+  final VoidCallback onPrimaryAction;
 
   /// Called when the user taps Interactive Search.
   final VoidCallback onInteractiveSearch;
@@ -41,8 +56,13 @@ class LibraryDetailActions extends StatelessWidget {
   const LibraryDetailActions({
     super.key,
     required this.collapseFactor,
+    required this.isInLibrary,
+    required this.isMonitored,
+    required this.addLabel,
     required this.isSearching,
     required this.isDeleting,
+    required this.isUpdatingMonitoredState,
+    required this.onPrimaryAction,
     required this.onInteractiveSearch,
     required this.onAutoSearch,
     required this.onProfileSelected,
@@ -55,6 +75,16 @@ class LibraryDetailActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final primaryLabel = !isInLibrary
+        ? addLabel
+        : isMonitored
+        ? 'Unmonitor'
+        : 'Monitor';
+    final primaryIcon = !isInLibrary
+        ? Icons.add_circle_outline_rounded
+        : isMonitored
+        ? Icons.bookmark_remove_outlined
+        : Icons.bookmark_add_outlined;
     final actions = <Widget>[
       _DetailActionButton(
         icon: isSearching ? null : Icons.search_rounded,
@@ -93,10 +123,35 @@ class LibraryDetailActions extends StatelessWidget {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: actions,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: isUpdatingMonitoredState ? null : onPrimaryAction,
+            icon: isUpdatingMonitoredState
+                ? SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.onPrimary,
+                    ),
+                  )
+                : Icon(primaryIcon, size: 18),
+            label: Text(primaryLabel),
+            style: HeaderActionRow.expandedButtonStyle(
+              foregroundColor: colorScheme.onPrimary,
+              backgroundColor: colorScheme.primary,
+            ),
+          ),
+          if (isInLibrary) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: actions,
+            ),
+          ],
+        ],
       ),
     );
   }

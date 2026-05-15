@@ -13,6 +13,8 @@ class MusicDetailViewModel {
   final String? backdropUrl;
   final String status;
   final bool hasFiles;
+  final bool isInLibrary;
+  final bool isMonitored;
   final int trackFileCount;
   final List<String> genres;
   final List<RatingSource> ratings;
@@ -31,6 +33,8 @@ class MusicDetailViewModel {
     this.backdropUrl,
     required this.status,
     required this.hasFiles,
+    required this.isInLibrary,
+    required this.isMonitored,
     this.trackFileCount = 0,
     required this.genres,
     required this.ratings,
@@ -127,6 +131,8 @@ class MusicDetailViewModel {
       apiKey: apiKey,
       coverTypes: const ['fanart'],
     );
+    final isInLibrary = artist.id > 0 && artist.path?.isNotEmpty == true;
+
     return MusicDetailViewModel(
       title: artist.artistName,
       overview: artist.overview?.trim().isNotEmpty == true
@@ -137,6 +143,8 @@ class MusicDetailViewModel {
       backdropUrl: ImageUtils.safeBackdropUrl(backdropSource),
       status: artist.status,
       hasFiles: artist.hasFiles,
+      isInLibrary: isInLibrary,
+      isMonitored: artist.monitored,
       trackFileCount: artist.trackFileCount,
       genres: artist.genres,
       ratings: artist.ratings,

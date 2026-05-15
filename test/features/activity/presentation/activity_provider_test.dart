@@ -138,11 +138,12 @@ void main() {
         radarrService: _ActivityRadarrService(
           queue: const [
             {
-              'title': 'Furiosa',
+              'title': 'Furiosa.2024.2160p.WEB-DL-GROUP',
               'status': 'downloading',
               'estimatedCompletionTime': '2026-04-03T14:32:00Z',
               'size': 100,
               'sizeleft': 25,
+              'movie': {'title': 'Furiosa', 'year': 2024},
             },
           ],
           history: const [
@@ -161,8 +162,9 @@ void main() {
       expect(items.map((item) => item.title), [
         'Furiosa',
         'Shogun',
-        'Dune.Part.Two.2024',
+        'Dune: Part Two',
       ]);
+      expect(items.first.subtitle, contains('Furiosa.2024.2160p.WEB-DL-GROUP'));
       expect(items.first.kind, GlobalActivityKind.queue);
       expect(items.first.service, ServiceKey.radarr);
       expect(items.first.progress, 0.75);
@@ -176,7 +178,12 @@ void main() {
         radarrService: _ThrowingQueueRadarrService(),
         sonarrService: _ActivitySonarrService(
           queue: const [
-            {'title': 'House of the Dragon S02E03', 'status': 'downloading'},
+            {
+              'title': 'House.of.the.Dragon.S02E03.1080p.WEB-DL-GROUP',
+              'status': 'downloading',
+              'series': {'title': 'House of the Dragon'},
+              'episode': {'seasonNumber': 2, 'episodeNumber': 3},
+            },
           ],
         ),
       );
@@ -185,7 +192,31 @@ void main() {
 
       expect(items, hasLength(1));
       expect(items.single.service, ServiceKey.sonarr);
-      expect(items.single.title, 'House of the Dragon S02E03');
+      expect(items.single.title, 'House of the Dragon');
+      expect(
+        items.single.subtitle,
+        contains('House.of.the.Dragon.S02E03.1080p.WEB-DL-GROUP'),
+      );
+    });
+
+    test('deduplicates release subtitle in global history feed', () async {
+      final container = createContainer(
+        radarrService: _ActivityRadarrService(
+          history: const [
+            {
+              'sourceTitle': 'Imported.Release',
+              'eventType': 'grabbed',
+              'date': '2026-04-02T11:18:00Z',
+            },
+          ],
+        ),
+      );
+
+      final items = await container.read(globalHistoryItemsProvider.future);
+
+      expect(items, hasLength(1));
+      expect(items.single.title, 'Imported.Release');
+      expect(items.single.subtitle, isEmpty);
     });
 
     test('wanted provider combines missing and cutoff items', () async {
@@ -228,14 +259,21 @@ class _ActivityRadarrService extends FakeRadarrService {
   final List<dynamic> cutoff;
 
   @override
-  Future<List<dynamic>> getQueue() async => queue;
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => queue;
 
   @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      history;
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async => history;
 
   @override
-  Future<List<dynamic>> getAllHistory() async => history;
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async => history;
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -267,10 +305,14 @@ class _ActivitySonarrService extends FakeSonarrService {
   final List<dynamic> queue;
 
   @override
-  Future<List<dynamic>> getQueue() async => queue;
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => queue;
 }
 
 class _ThrowingQueueRadarrService extends FakeRadarrService {
   @override
-  Future<List<dynamic>> getQueue() async => throw Exception('Radarr down');
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => throw Exception('Radarr down');
 }

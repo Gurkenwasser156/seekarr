@@ -17,41 +17,53 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 import '../../../test_helpers/fake_services.dart';
 import '../../../test_helpers/model_builders.dart';
 
-SonarrSeries _series() => buildSeries(
+SonarrSeries _series({
+  int id = 1,
+  bool monitored = true,
+  String? path,
+  List<Map<String, dynamic>>? seasons,
+  Map<String, dynamic>? statistics,
+}) => buildSeries(
+  id: id,
   title: 'Breaking Bad',
   overview: 'A chemistry teacher turns to crime.',
-  path: '/tv/Breaking Bad',
+  path: path ?? '/tv/Breaking Bad',
   year: 2008,
   tvdbId: 81189,
   runtime: 45,
   status: 'ended',
+  monitored: monitored,
   network: 'AMC',
   genres: const ['Drama', 'Crime'],
-  seasons: const [
-    {
-      'seasonNumber': 1,
-      'monitored': true,
-      'statistics': {
-        'episodeFileCount': 7,
-        'totalEpisodeCount': 7,
+  seasons:
+      seasons ??
+      const [
+        {
+          'seasonNumber': 1,
+          'monitored': true,
+          'statistics': {
+            'episodeFileCount': 7,
+            'totalEpisodeCount': 7,
+            'episodeCount': 7,
+          },
+        },
+        {
+          'seasonNumber': 2,
+          'monitored': true,
+          'statistics': {
+            'episodeFileCount': 0,
+            'totalEpisodeCount': 1,
+            'episodeCount': 1,
+          },
+        },
+      ],
+  statistics:
+      statistics ??
+      const {
+        'seasonCount': 1,
         'episodeCount': 7,
+        'episodeFileCount': 7,
       },
-    },
-    {
-      'seasonNumber': 2,
-      'monitored': true,
-      'statistics': {
-        'episodeFileCount': 0,
-        'totalEpisodeCount': 1,
-        'episodeCount': 1,
-      },
-    },
-  ],
-  statistics: const {
-    'seasonCount': 1,
-    'episodeCount': 7,
-    'episodeFileCount': 7,
-  },
   seriesType: 'standard',
   certification: 'TV-MA',
 );
@@ -175,6 +187,98 @@ void main() {
       expect(find.text('Seven Thirty-Seven'), findsOneWidget);
       expect(find.text('Pilot'), findsNothing);
     });
+
+    testWidgets('shows add series action and hides seasons for lookup miss', (
+      tester,
+    ) async {
+      var requestedSeries = false;
+      var requestedEpisodes = false;
+
+      await _pumpSeriesDetail(
+        tester,
+        seriesId: 0,
+        detailBuilder: (ref, seriesId) async {
+          requestedSeries = true;
+          return null;
+        },
+        episodesBuilder: (ref, seriesId) async {
+          requestedEpisodes = true;
+          return const [];
+        },
+        initialSeries: _series(
+          id: 0,
+          monitored: false,
+          path: null,
+          seasons: const [],
+          statistics: const {
+            'seasonCount': 0,
+            'episodeCount': 0,
+            'episodeFileCount': 0,
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestedSeries, isFalse);
+      expect(requestedEpisodes, isFalse);
+      expect(find.text('Add Series'), findsOneWidget);
+      expect(find.text('Interactive'), findsNothing);
+      expect(find.text('Seasons'), findsNothing);
+
+      await tester.tap(find.text('Add Series'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Add Series is not available yet from this view.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows monitor action for unmonitored library series', (
+      tester,
+    ) async {
+      final sonarrService = _TrackingSonarrService();
+
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) async => _series(monitored: false),
+        sonarrService: sonarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Monitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Monitor'));
+      await tester.pumpAndSettle();
+
+      expect(sonarrService.updatedSeriesId, 1);
+      expect(sonarrService.updatedMonitored, isTrue);
+      expect(find.text('Series monitored'), findsOneWidget);
+    });
+
+    testWidgets('shows unmonitor action for monitored library series', (
+      tester,
+    ) async {
+      final sonarrService = _TrackingSonarrService();
+
+      await _pumpSeriesDetail(
+        tester,
+        detailBuilder: (ref, seriesId) async => _series(),
+        sonarrService: sonarrService,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unmonitor'), findsOneWidget);
+      expect(find.text('Interactive'), findsOneWidget);
+
+      await tester.tap(find.text('Unmonitor'));
+      await tester.pumpAndSettle();
+
+      expect(sonarrService.updatedSeriesId, 1);
+      expect(sonarrService.updatedMonitored, isFalse);
+      expect(find.text('Series unmonitored'), findsOneWidget);
+    });
   });
 }
 
@@ -194,6 +298,8 @@ Future<void> _pumpSeriesDetail(
   FutureOr<List<SonarrEpisode>> Function(Ref ref, int seriesId)?
   episodesBuilder,
   SonarrSeries? initialSeries,
+  int seriesId = 1,
+  SonarrService? sonarrService,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -208,15 +314,30 @@ Future<void> _pumpSeriesDetail(
         seriesEpisodesProvider.overrideWith(
           episodesBuilder ?? (ref, seriesId) async => _episodes(),
         ),
-        sonarrServiceProvider.overrideWith((ref) => FakeSonarrService()),
+        sonarrServiceProvider.overrideWith(
+          (ref) => sonarrService ?? FakeSonarrService(),
+        ),
       ],
       child: MaterialApp(
-        home: SeriesDetailScreen(
-          seriesId: 1,
-          heroTag: 'series-1',
-          initialSeries: initialSeries,
+        home: Scaffold(
+          body: SeriesDetailScreen(
+            seriesId: seriesId,
+            heroTag: 'series-1',
+            initialSeries: initialSeries,
+          ),
         ),
       ),
     ),
   );
+}
+
+class _TrackingSonarrService extends FakeSonarrService {
+  int? updatedSeriesId;
+  bool? updatedMonitored;
+
+  @override
+  Future<void> updateSeriesMonitored(int seriesId, bool monitored) async {
+    updatedSeriesId = seriesId;
+    updatedMonitored = monitored;
+  }
 }

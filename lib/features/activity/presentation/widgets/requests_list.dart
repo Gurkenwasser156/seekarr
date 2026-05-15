@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
+import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 
 class RequestsList extends ConsumerWidget {
@@ -43,7 +44,7 @@ class RequestsList extends ConsumerWidget {
               final request = requests[index];
               final title = request.media?.title ?? 'Unknown';
               final year = request.media?.year ?? '';
-              final status = request.media?.status.label ?? 'Unknown';
+              final status = request.displayStatus.label;
               final createdAt =
                   DateTime.tryParse(
                     request.createdAt,

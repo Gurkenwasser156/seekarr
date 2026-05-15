@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:seekarr/core/api/api_client.dart';
+import 'package:seekarr/core/utils/arr_activity_display.dart';
 import 'package:seekarr/core/utils/dynamic_map_utils.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
@@ -150,12 +151,14 @@ class ServiceQueueItem {
   final String title;
   final String subtitle;
   final double? progress;
+  final String? warning;
 
   const ServiceQueueItem({
     required this.service,
     required this.title,
     required this.subtitle,
     required this.progress,
+    required this.warning,
   });
 }
 
@@ -179,19 +182,35 @@ Future<List<ServiceQueueItem>> _loadServiceQueueItems(
 }
 
 ServiceQueueItem _queueItemFromMap(ServiceKey service, Map item) {
+  final typedItem = stringKeyMap(item);
   final title =
-      stringOrNull(item['title']) ??
-      stringOrNull(mapOrNull(item['movie'])?['title']) ??
-      stringOrNull(mapOrNull(item['series'])?['title']) ??
+      arrPrimaryMediaTitle(typedItem) ??
+      arrReleaseTitle(typedItem) ??
       'Unknown release';
-  final quality = _queueQualityLabel(item['quality']);
+  final quality = _queueQualityLabel(typedItem['quality']);
+  final subtitle = joinDisplayParts([
+    _queueTypeLabel(service),
+    if (service == ServiceKey.sonarr) arrEpisodeCode(typedItem),
+    quality,
+    arrReleaseTitle(typedItem),
+  ]);
 
   return ServiceQueueItem(
     service: service,
     title: title,
-    subtitle: [service.title, quality].whereType<String>().join(' · '),
-    progress: queueProgress(item),
+    subtitle: subtitle,
+    progress: queueProgress(typedItem),
+    warning: arrQueueWarningMessage(typedItem),
   );
+}
+
+String _queueTypeLabel(ServiceKey service) {
+  return switch (service) {
+    ServiceKey.radarr => 'Movie',
+    ServiceKey.sonarr => 'Series',
+    ServiceKey.lidarr => 'Music',
+    ServiceKey.seerr => service.title,
+  };
 }
 
 String? _queueQualityLabel(dynamic value) {

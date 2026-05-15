@@ -1,5 +1,6 @@
 import 'package:seekarr/core/utils/dynamic_map_utils.dart'
     show intOrNull, mapOrNull, stringOrNull;
+import 'package:seekarr/core/utils/arr_activity_display.dart';
 import 'package:seekarr/core/utils/release_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/status_badge.dart';
@@ -12,11 +13,7 @@ export 'package:seekarr/core/utils/string_utils.dart' show formatIsoDate;
 Map<String, dynamic>? asActivityMap(dynamic value) => mapOrNull(value);
 
 String joinActivityParts(Iterable<String?> parts, {String separator = ' · '}) {
-  return parts
-      .whereType<String>()
-      .map((part) => part.trim())
-      .where((part) => part.isNotEmpty)
-      .join(separator);
+  return joinDisplayParts(parts, separator: separator);
 }
 
 String formatActivityBytes(dynamic bytes) {
@@ -172,8 +169,9 @@ String humanizeEventType(String value) {
 }
 
 ({String label, MediaStatus badge}) resolveQueueDisplayStatus(
-  Map<String, dynamic> item,
-) {
+  Map<String, dynamic> item, {
+  bool includeWarningSuffix = true,
+}) {
   final trackedState = stringOrNull(
     item['trackedDownloadState'],
   )?.toLowerCase();
@@ -201,7 +199,9 @@ String humanizeEventType(String value) {
     },
   };
 
-  if (trackedStatus == 'warning') {
+  if (includeWarningSuffix &&
+      (trackedStatus == 'warning' ||
+          extractArrStatusMessages(item['statusMessages']).isNotEmpty)) {
     return (label: '${resolved.label} (Warning)', badge: resolved.badge);
   }
 
@@ -271,34 +271,7 @@ String formatActivityValue(dynamic value) {
 }
 
 List<String> extractStatusMessages(dynamic rawMessages) {
-  if (rawMessages is! List || rawMessages.isEmpty) return const [];
-
-  final messages = <String>[];
-  for (final entry in rawMessages) {
-    final map = asActivityMap(entry);
-    if (map == null) {
-      final text = stringOrNull(entry);
-      if (text != null) messages.add(text);
-      continue;
-    }
-
-    final title = stringOrNull(map['title']);
-    final nestedMessages = map['messages'];
-    if (nestedMessages is List && nestedMessages.isNotEmpty) {
-      for (final nested in nestedMessages) {
-        final body = stringOrNull(nested);
-        if (body != null) {
-          messages.add(title == null ? body : '$title: $body');
-        }
-      }
-      continue;
-    }
-
-    final text = stringOrNull(map['message'] ?? map['text'] ?? map['title']);
-    if (text != null) messages.add(text);
-  }
-
-  return messages;
+  return extractArrStatusMessages(rawMessages);
 }
 
 String? extractQualityName(Map<String, dynamic> item, {String? fileKey}) {
@@ -309,9 +282,5 @@ String? extractQualityName(Map<String, dynamic> item, {String? fileKey}) {
 }
 
 String? formatEpisodeCode(int? seasonNumber, int? episodeNumber) {
-  if (seasonNumber == null && episodeNumber == null) return null;
-
-  final season = (seasonNumber ?? 0).toString().padLeft(2, '0');
-  final episode = (episodeNumber ?? 0).toString().padLeft(2, '0');
-  return 'S${season}E${episode}';
+  return formatArrEpisodeCode(seasonNumber, episodeNumber);
 }

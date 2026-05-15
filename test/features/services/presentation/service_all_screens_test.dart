@@ -28,7 +28,8 @@ void main() {
     expect(find.text('A Quiet Place'), findsOneWidget);
     expect(find.text('sarah'), findsOneWidget);
     expect(find.text('Movie'), findsOneWidget);
-    expect(find.text('PENDING'), findsOneWidget);
+    expect(find.text('AVAILABLE'), findsOneWidget);
+    expect(find.text('PARTIALLY AVAILABLE'), findsOneWidget);
     expect(_contentCardWithImage('/quiet-place.jpg'), findsOneWidget);
   });
 
@@ -127,6 +128,7 @@ _providerOverrides() {
             title: 'A Quiet Place',
             tmdbId: 123,
             posterPath: '/quiet-place.jpg',
+            status: MediaAvailability.available,
           ),
           createdAt: '2026-05-02T10:00:00Z',
           type: 'movie',
@@ -135,7 +137,10 @@ _providerOverrides() {
         SeerrRequest(
           id: 2,
           status: RequestStatus.approved,
-          media: RequestMedia(title: 'Shogun'),
+          media: RequestMedia(
+            title: 'Shogun',
+            status: MediaAvailability.partiallyAvailable,
+          ),
           createdAt: '2026-05-01T10:00:00Z',
           type: 'tv',
           requestedBy: RequestedBy(id: 2, displayName: 'james'),

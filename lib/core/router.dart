@@ -89,7 +89,7 @@ GoRoute _discoverRoutes({required String path, String? redirectLocation}) {
         : null,
     pageBuilder: path.startsWith('/')
         ? null
-        : (context, state) => NoTransitionPage(
+        : (context, state) => RouteUtils.cupertinoPage(
             key: state.pageKey,
             child: ServiceDashboardScreen(
               service: ServiceKey.seerr,
@@ -152,7 +152,7 @@ GoRoute _moviesRoutes({required String path, String? redirectLocation}) {
         : null,
     pageBuilder: path.startsWith('/')
         ? null
-        : (context, state) => NoTransitionPage(
+        : (context, state) => RouteUtils.cupertinoPage(
             key: state.pageKey,
             child: ServiceDashboardScreen(
               service: ServiceKey.radarr,
@@ -201,7 +201,7 @@ GoRoute _seriesRoutes({required String path, String? redirectLocation}) {
         : null,
     pageBuilder: path.startsWith('/')
         ? null
-        : (context, state) => NoTransitionPage(
+        : (context, state) => RouteUtils.cupertinoPage(
             key: state.pageKey,
             child: ServiceDashboardScreen(
               service: ServiceKey.sonarr,
@@ -250,7 +250,7 @@ GoRoute _musicRoutes({required String path, String? redirectLocation}) {
         : null,
     pageBuilder: path.startsWith('/')
         ? null
-        : (context, state) => NoTransitionPage(
+        : (context, state) => RouteUtils.cupertinoPage(
             key: state.pageKey,
             child: ServiceDashboardScreen(
               service: ServiceKey.lidarr,

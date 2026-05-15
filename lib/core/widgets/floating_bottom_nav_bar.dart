@@ -42,12 +42,11 @@ class FloatingNavBarMetrics {
   static const double topPadding = AppSpacing.sm; // 8dp
 
   /// Bottom padding below the nav bar (excluding safe area).
-  static const double bottomPadding = AppSpacing.sm; // md=12dp
+  static const double bottomPadding = AppSpacing.xs;
 
   /// Total height including top/bottom padding (excluding safe area).
   /// Use this value to add bottom padding to screen content.
-  static const double totalHeight =
-      barHeight + topPadding + bottomPadding; // 60 + 8 + 12 = 80dp
+  static const double totalHeight = barHeight + topPadding + bottomPadding;
 
   /// Returns the bottom padding needed for scroll views to allow content
   /// to scroll above the floating nav bar.
@@ -129,6 +128,7 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
   static const double _barHorizontalPadding = 6.0;
   static const double _barVerticalPadding = 6.0;
   static const double _blurSigma = 24.0;
+  static const double _selectedExtraShare = 0.6;
 
   @override
   void initState() {
@@ -226,77 +226,139 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
           bottom: bottomPadding + FloatingNavBarMetrics.bottomPadding,
           top: FloatingNavBarMetrics.topPadding,
         ),
-        child: Transform.translate(
-          key: const ValueKey('floating-nav-drag-transform'),
-          offset: _dragOffset,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.borderRadiusXl,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: isDark ? 0.07 : 0.55),
-                  blurRadius: 0,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: AppRadius.borderRadiusXl,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: _blurSigma,
-                  sigmaY: _blurSigma,
-                ),
-                child: Container(
-                  height: FloatingNavBarMetrics.barHeight,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final preferredSurfaceWidth =
+                (_NavBarLayoutMetrics.preferredInnerWidth(widget.destinations) +
+                        (_barHorizontalPadding * 2))
+                    .clamp(0.0, constraints.maxWidth)
+                    .toDouble();
+
+            return Align(
+              alignment: Alignment.center,
+              heightFactor: 1,
+              child: Transform.translate(
+                key: const ValueKey('floating-nav-drag-transform'),
+                offset: _dragOffset,
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: glassColor,
                     borderRadius: AppRadius.borderRadiusXl,
-                    border: Border.all(color: borderColor),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _barHorizontalPadding,
-                    vertical: _barVerticalPadding,
-                  ),
-                  child: SizedBox.expand(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (selectedDestination != null)
-                          IgnorePointer(
-                            child: _NavBarIndicator(
-                              selectedIndex: widget.selectedIndex,
-                              destinations: widget.destinations,
-                              selectedDestination: selectedDestination,
-                            ),
-                          ),
-                        Row(
-                          children: List.generate(widget.destinations.length, (
-                            index,
-                          ) {
-                            return Expanded(
-                              child: _NavBarItem(
-                                destination: widget.destinations[index],
-                                isSelected: index == widget.selectedIndex,
-                                onTap: () =>
-                                    widget.onDestinationSelected(index),
-                              ),
-                            );
-                          }),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.18,
                         ),
-                      ],
+                        blurRadius: 32,
+                        offset: const Offset(0, 8),
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(
+                          alpha: isDark ? 0.07 : 0.55,
+                        ),
+                        blurRadius: 0,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: AppRadius.borderRadiusXl,
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: _blurSigma,
+                        sigmaY: _blurSigma,
+                      ),
+                      child: Container(
+                        key: const ValueKey('floating-nav-surface'),
+                        width: preferredSurfaceWidth,
+                        height: FloatingNavBarMetrics.barHeight,
+                        decoration: BoxDecoration(
+                          color: glassColor,
+                          borderRadius: AppRadius.borderRadiusXl,
+                          border: Border.all(color: borderColor),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: _barHorizontalPadding,
+                          vertical: _barVerticalPadding,
+                        ),
+                        child: SizedBox.expand(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final layout = _NavBarLayoutMetrics.resolve(
+                                availableWidth: constraints.maxWidth,
+                                destinations: widget.destinations,
+                                selectedIndex: widget.selectedIndex,
+                                selectedExtraShare: _selectedExtraShare,
+                              );
+                              final indicatorWidth = selectedDestination == null
+                                  ? 0.0
+                                  : _NavBarItem.preferredSelectedWidthFor(
+                                          selectedDestination,
+                                        )
+                                        .clamp(
+                                          0.0,
+                                          layout.itemWidths[widget
+                                              .selectedIndex],
+                                        )
+                                        .toDouble();
+                              final indicatorLeft = selectedDestination == null
+                                  ? 0.0
+                                  : layout.itemLefts[widget.selectedIndex] +
+                                        ((layout.itemWidths[widget
+                                                    .selectedIndex] -
+                                                indicatorWidth) /
+                                            2);
+
+                              return Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (selectedDestination != null)
+                                    IgnorePointer(
+                                      child: _NavBarIndicator(
+                                        left: indicatorLeft,
+                                        width: indicatorWidth,
+                                        barHeight: constraints.maxHeight,
+                                        selectedDestination:
+                                            selectedDestination,
+                                      ),
+                                    ),
+                                  Row(
+                                    children: [
+                                      for (
+                                        var index = 0;
+                                        index < widget.destinations.length;
+                                        index++
+                                      ) ...[
+                                        if (index > 0)
+                                          SizedBox(width: layout.gap),
+                                        AnimatedContainer(
+                                          duration: AppAnimation.durationSm,
+                                          curve: AppAnimation.emphasizedCurve,
+                                          width: layout.itemWidths[index],
+                                          child: _NavBarItem(
+                                            destination:
+                                                widget.destinations[index],
+                                            isSelected:
+                                                index == widget.selectedIndex,
+                                            onTap: () => widget
+                                                .onDestinationSelected(index),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -304,13 +366,15 @@ class _FloatingBottomNavBarState extends State<FloatingBottomNavBar>
 }
 
 class _NavBarIndicator extends StatelessWidget {
-  final int selectedIndex;
-  final List<FloatingNavDestination> destinations;
+  final double left;
+  final double width;
+  final double barHeight;
   final FloatingNavDestination selectedDestination;
 
   const _NavBarIndicator({
-    required this.selectedIndex,
-    required this.destinations,
+    required this.left,
+    required this.width,
+    required this.barHeight,
     required this.selectedDestination,
   });
 
@@ -324,40 +388,192 @@ class _NavBarIndicator extends StatelessWidget {
     );
     final activeBorder = accentColor.withValues(alpha: 0.27);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = constraints.maxWidth / destinations.length;
-        // Cap the pill width to the slot width so it never bleeds outside its
-        // slot and always aligns with the item content (which is also capped to
-        // slot_width by the Expanded + Center layout constraints).
-        final indicatorWidth = _NavBarItem.indicatorWidthFor(
-          selectedDestination,
-        ).clamp(0.0, itemWidth);
-        final left =
-            (itemWidth * selectedIndex) + ((itemWidth - indicatorWidth) / 2);
-
-        return Stack(
-          children: [
-            AnimatedPositioned(
-              duration: AppAnimation.durationSm,
-              curve: AppAnimation.emphasizedCurve,
-              left: left,
-              top: (constraints.maxHeight - _NavBarItem._pillHeight) / 2,
-              width: indicatorWidth,
-              height: _NavBarItem._pillHeight,
-              child: DecoratedBox(
-                key: const ValueKey('floating-nav-indicator'),
-                decoration: BoxDecoration(
-                  color: activeBackground,
-                  borderRadius: BorderRadius.circular(_NavBarItem.itemRadius),
-                  border: Border.all(color: activeBorder),
-                ),
-              ),
+    return Stack(
+      children: [
+        AnimatedPositioned(
+          duration: AppAnimation.durationSm,
+          curve: AppAnimation.emphasizedCurve,
+          left: left,
+          top: (barHeight - _NavBarItem._pillHeight) / 2,
+          width: width,
+          height: _NavBarItem._pillHeight,
+          child: DecoratedBox(
+            key: const ValueKey('floating-nav-indicator'),
+            decoration: BoxDecoration(
+              color: activeBackground,
+              borderRadius: BorderRadius.circular(_NavBarItem.itemRadius),
+              border: Border.all(color: activeBorder),
             ),
-          ],
-        );
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NavBarLayoutMetrics {
+  static const double _compactBreakpoint = 360.0;
+  static const double _compactTargetWidth = 52.0;
+  static const double _compactMinWidth = 48.0;
+
+  final List<double> itemWidths;
+  final List<double> itemLefts;
+  final double gap;
+
+  const _NavBarLayoutMetrics({
+    required this.itemWidths,
+    required this.itemLefts,
+    required this.gap,
+  });
+
+  static double preferredInnerWidth(List<FloatingNavDestination> destinations) {
+    final count = destinations.length;
+    if (count == 0) return 0.0;
+
+    final preferredSelectedWidth = destinations.fold<double>(
+      _NavBarItem.minSelectedWidth,
+      (currentMax, destination) {
+        final width = _NavBarItem.preferredSelectedWidthFor(
+          destination,
+        ).clamp(_NavBarItem.minSelectedWidth, double.infinity).toDouble();
+        return width > currentMax ? width : currentMax;
       },
     );
+
+    if (count == 1) {
+      return preferredSelectedWidth;
+    }
+
+    double widthForGap(double gap) {
+      return preferredSelectedWidth +
+          (_compactTargetWidth * (count - 1)) +
+          (gap * (count - 1));
+    }
+
+    final regularGap = AppSpacing.sm - 2;
+    final regularWidth = widthForGap(regularGap);
+    if (regularWidth >= _compactBreakpoint) {
+      return regularWidth;
+    }
+
+    return widthForGap(AppSpacing.xs);
+  }
+
+  factory _NavBarLayoutMetrics.resolve({
+    required double availableWidth,
+    required List<FloatingNavDestination> destinations,
+    required int selectedIndex,
+    required double selectedExtraShare,
+  }) {
+    final count = destinations.length;
+    final gap = count > 1
+        ? (availableWidth < _compactBreakpoint
+              ? AppSpacing.xs
+              : AppSpacing.sm - 2)
+        : 0.0;
+    final totalGapWidth = gap * (count - 1);
+    final itemAreaWidth = (availableWidth - totalGapWidth)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+
+    if (count == 0) {
+      return const _NavBarLayoutMetrics(itemWidths: [], itemLefts: [], gap: 0);
+    }
+
+    if (selectedIndex < 0 || selectedIndex >= count) {
+      final equalWidth = itemAreaWidth / count;
+      final itemWidths = List<double>.filled(count, equalWidth);
+      return _NavBarLayoutMetrics(
+        itemWidths: itemWidths,
+        itemLefts: _leftsFor(itemWidths, gap),
+        gap: gap,
+      );
+    }
+
+    final itemWidths = List<double>.filled(count, _compactTargetWidth);
+    itemWidths[selectedIndex] = _NavBarItem.preferredSelectedWidthFor(
+      destinations[selectedIndex],
+    ).clamp(_NavBarItem.minSelectedWidth, double.infinity).toDouble();
+
+    var delta = itemAreaWidth - _sum(itemWidths);
+
+    if (delta >= 0) {
+      if (count == 1) {
+        itemWidths[0] += delta;
+      } else {
+        final selectedExtra = delta * selectedExtraShare;
+        final compactExtra = (delta - selectedExtra) / (count - 1);
+
+        for (var index = 0; index < count; index++) {
+          itemWidths[index] += index == selectedIndex
+              ? selectedExtra
+              : compactExtra;
+        }
+      }
+    } else {
+      var deficit = -delta;
+
+      if (count > 1) {
+        final compactReductionCapacity =
+            (_compactTargetWidth - _compactMinWidth) * (count - 1);
+        final compactReduction = deficit.clamp(0.0, compactReductionCapacity);
+        final perCompactReduction = compactReduction / (count - 1);
+
+        for (var index = 0; index < count; index++) {
+          if (index == selectedIndex) {
+            continue;
+          }
+          itemWidths[index] -= perCompactReduction;
+        }
+
+        deficit -= compactReduction;
+      }
+
+      if (deficit > 0) {
+        final selectedReductionCapacity =
+            (itemWidths[selectedIndex] - _NavBarItem.minSelectedWidth)
+                .clamp(0.0, double.infinity)
+                .toDouble();
+        final selectedReduction = deficit.clamp(0.0, selectedReductionCapacity);
+
+        itemWidths[selectedIndex] -= selectedReduction;
+        deficit -= selectedReduction;
+      }
+
+      if (deficit > 0) {
+        final minimumWidths = List<double>.filled(count, _compactMinWidth);
+        minimumWidths[selectedIndex] = _NavBarItem.minSelectedWidth;
+        final scaleFactor = itemAreaWidth / _sum(minimumWidths);
+
+        for (var index = 0; index < count; index++) {
+          itemWidths[index] = minimumWidths[index] * scaleFactor;
+        }
+      }
+    }
+
+    itemWidths[selectedIndex] += itemAreaWidth - _sum(itemWidths);
+
+    return _NavBarLayoutMetrics(
+      itemWidths: itemWidths,
+      itemLefts: _leftsFor(itemWidths, gap),
+      gap: gap,
+    );
+  }
+
+  static List<double> _leftsFor(List<double> widths, double gap) {
+    final lefts = <double>[];
+    var currentLeft = 0.0;
+
+    for (final width in widths) {
+      lefts.add(currentLeft);
+      currentLeft += width + gap;
+    }
+
+    return lefts;
+  }
+
+  static double _sum(List<double> widths) {
+    return widths.fold(0.0, (sum, width) => sum + width);
   }
 }
 
@@ -367,6 +583,8 @@ class _NavBarItem extends StatelessWidget {
   static const double itemRadius = 20.0;
   static const double _labelGap = 6.0;
   static const double _selectedLabelFontSize = 12.0;
+  static const double _selectedWidthSlack = 6.0;
+  static const double minSelectedWidth = 84.0;
 
   /// Height of the animated selection pill — shorter than the full inner bar
   /// height so the highlight feels proportionate rather than filling the bar.
@@ -382,7 +600,7 @@ class _NavBarItem extends StatelessWidget {
     required this.onTap,
   });
 
-  static double indicatorWidthFor(FloatingNavDestination destination) {
+  static double preferredSelectedWidthFor(FloatingNavDestination destination) {
     final painter = TextPainter(
       text: TextSpan(
         text: destination.label,
@@ -397,7 +615,11 @@ class _NavBarItem extends StatelessWidget {
       maxLines: 1,
     )..layout();
 
-    return _itemHorizontalPadding * 2 + _iconSize + _labelGap + painter.width;
+    return _itemHorizontalPadding * 2 +
+        _iconSize +
+        _labelGap +
+        painter.width +
+        _selectedWidthSlack;
   }
 
   @override

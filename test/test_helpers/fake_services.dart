@@ -39,14 +39,21 @@ class FakeRadarrService extends RadarrService {
   Future<List<RadarrMovie>> lookupMovies(String term) async => const [];
 
   @override
-  Future<List<dynamic>> getQueue() async => const [];
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      const [];
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getAllHistory() async => const [];
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -85,14 +92,21 @@ class FakeSonarrService extends SonarrService {
   Future<List<SonarrSeries>> lookupSeries(String term) async => const [];
 
   @override
-  Future<List<dynamic>> getQueue() async => const [];
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      const [];
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getAllHistory() async => const [];
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];
@@ -134,14 +148,21 @@ class FakeLidarrService extends LidarrService {
   Future<List<LidarrArtist>> lookupArtists(String term) async => const [];
 
   @override
-  Future<List<dynamic>> getQueue() async => const [];
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      const [];
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
-  Future<List<dynamic>> getAllHistory() async => const [];
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async => const [];
 
   @override
   Future<List<dynamic>> getBlocklist() async => const [];

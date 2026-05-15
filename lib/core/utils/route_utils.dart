@@ -13,6 +13,15 @@ class RouteUtils {
     return CupertinoPage(key: key, child: child);
   }
 
+  static void popOrGo(BuildContext context, String fallbackLocation) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    context.go(fallbackLocation);
+  }
+
   /// Safely parses an integer path parameter.
   static int? safeIntParam(GoRouterState state, String paramName) {
     return int.tryParse(state.pathParameters[paramName] ?? '');

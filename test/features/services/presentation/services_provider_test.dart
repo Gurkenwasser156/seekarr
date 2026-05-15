@@ -90,43 +90,59 @@ void main() {
   });
 
   group('servicesQueueProvider', () {
-    test('combines Radarr and Sonarr queue items with progress', () async {
-      final container = _container(
-        radarrService: _QueueRadarrService([
-          {
-            'title': 'Furiosa',
-            'status': 'downloading',
-            'size': 100,
-            'sizeleft': 25,
-            'quality': {
-              'quality': {'name': 'WEB-DL 1080p'},
+    test(
+      'combines Radarr and Sonarr queue items with media-first hierarchy',
+      () async {
+        final container = _container(
+          radarrService: _QueueRadarrService([
+            {
+              'title': 'Furiosa.2024.2160p.WEB-DL-GROUP',
+              'status': 'downloading',
+              'size': 100,
+              'sizeleft': 25,
+              'movie': {'title': 'Furiosa', 'year': 2024},
+              'quality': {
+                'quality': {'name': 'WEB-DL 1080p'},
+              },
             },
-          },
-        ]),
-        sonarrService: _QueueSonarrService([
-          {
-            'title': 'The Boys S04E07',
-            'status': 'downloading',
-            'size': 200,
-            'sizeleft': 100,
-          },
-          {'title': 'Shogun'},
-          {'title': 'Slow Horses'},
-        ]),
-      );
+          ]),
+          sonarrService: _QueueSonarrService([
+            {
+              'title': 'The.Boys.S04E07.1080p.WEB-DL-GROUP',
+              'status': 'downloading',
+              'size': 200,
+              'sizeleft': 100,
+              'series': {'title': 'The Boys'},
+              'episode': {'seasonNumber': 4, 'episodeNumber': 7},
+              'trackedDownloadStatus': 'warning',
+              'statusMessages': ['Unable to Import Automatically'],
+            },
+            {
+              'title': 'Shogun',
+              'series': {'title': 'Shogun'},
+            },
+            {'title': 'Slow Horses'},
+          ]),
+        );
 
-      final items = await container.read(servicesQueueProvider.future);
+        final items = await container.read(servicesQueueProvider.future);
 
-      expect(items, hasLength(3));
-      expect(items[0].service, ServiceKey.radarr);
-      expect(items[0].title, 'Furiosa');
-      expect(items[0].subtitle, 'Radarr · WEB-DL 1080p');
-      expect(items[0].progress, 0.75);
-      expect(items[1].service, ServiceKey.sonarr);
-      expect(items[1].progress, 0.5);
-      expect(items[2].title, 'Shogun');
-      expect(items.map((item) => item.title), isNot(contains('Slow Horses')));
-    });
+        expect(items, hasLength(3));
+        expect(items[0].service, ServiceKey.radarr);
+        expect(items[0].title, 'Furiosa');
+        expect(items[0].subtitle, contains('Furiosa.2024.2160p.WEB-DL-GROUP'));
+        expect(items[0].progress, 0.75);
+        expect(items[1].service, ServiceKey.sonarr);
+        expect(items[1].title, 'The Boys');
+        expect(
+          items[1].subtitle,
+          contains('The.Boys.S04E07.1080p.WEB-DL-GROUP'),
+        );
+        expect(items[1].progress, 0.5);
+        expect(items[2].title, 'Shogun');
+        expect(items.map((item) => item.title), isNot(contains('Slow Horses')));
+      },
+    );
 
     test('keeps queue available when one service fails', () async {
       final container = _container(
@@ -193,12 +209,16 @@ class _QueueRadarrService extends FakeRadarrService {
   final List<dynamic> items;
 
   @override
-  Future<List<dynamic>> getQueue() async => items;
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => items;
 }
 
 class _ThrowingRadarrService extends FakeRadarrService {
   @override
-  Future<List<dynamic>> getQueue() async => throw Exception('Radarr failed');
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => throw Exception('Radarr failed');
 }
 
 class _QueueSonarrService extends FakeSonarrService {
@@ -207,7 +227,9 @@ class _QueueSonarrService extends FakeSonarrService {
   final List<dynamic> items;
 
   @override
-  Future<List<dynamic>> getQueue() async => items;
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => items;
 }
 
 class _StatusClient extends ApiClient {

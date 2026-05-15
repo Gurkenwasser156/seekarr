@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:seekarr/core/api/base_arr_service.dart';
+import 'package:seekarr/core/utils/arr_activity_display.dart';
 import 'package:seekarr/core/utils/dynamic_map_utils.dart';
 import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 import 'package:seekarr/features/activity/presentation/activity_screen.dart';
+import 'package:seekarr/features/activity/presentation/widgets/activity_formatters.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
@@ -26,6 +28,7 @@ class GlobalActivityItem {
   final String subtitle;
   final String status;
   final double? progress;
+  final String? warning;
   final DateTime? sortDate;
   final Map<String, dynamic>? raw;
   final SeerrRequest? request;
@@ -38,6 +41,7 @@ class GlobalActivityItem {
     required this.subtitle,
     required this.status,
     this.progress,
+    this.warning,
     this.sortDate,
     this.raw,
     this.request,
@@ -193,7 +197,7 @@ GlobalActivityItem _requestItem(SeerrRequest request) {
     serviceType: ServiceType.discover,
     title: title,
     subtitle: [requester, type].whereType<String>().join(' · '),
-    status: _requestStatusLabel(request.status),
+    status: request.displayStatus.label,
     sortDate: DateTime.tryParse(request.createdAt),
     request: request,
   );
@@ -213,6 +217,9 @@ GlobalActivityItem _arrItem(
     subtitle: _subtitleFor(kind, serviceType, item),
     status: _statusFor(kind, item),
     progress: kind == GlobalActivityKind.queue ? queueProgress(item) : null,
+    warning: kind == GlobalActivityKind.queue
+        ? arrQueueWarningMessage(item)
+        : null,
     sortDate: _sortDateFor(kind, item),
     raw: item,
   );
@@ -245,13 +252,11 @@ String _titleFor(
 ) {
   return switch (kind) {
     GlobalActivityKind.queue =>
-      stringOrNull(item['title']) ?? _mediaTitle(item) ?? 'Unknown release',
+      arrPrimaryMediaTitle(item) ?? arrReleaseTitle(item) ?? 'Unknown release',
     GlobalActivityKind.history =>
-      stringOrNull(item['sourceTitle']) ?? _mediaTitle(item) ?? 'History item',
+      arrPrimaryMediaTitle(item) ?? arrReleaseTitle(item) ?? 'History item',
     GlobalActivityKind.blocklist =>
-      stringOrNull(item['sourceTitle']) ??
-          _mediaTitle(item) ??
-          'Blocked release',
+      arrPrimaryMediaTitle(item) ?? arrReleaseTitle(item) ?? 'Blocked release',
     GlobalActivityKind.missing ||
     GlobalActivityKind.cutoff => _wantedTitle(serviceType, item),
     GlobalActivityKind.request => 'Request',
@@ -263,22 +268,26 @@ String _subtitleFor(
   ServiceType serviceType,
   Map<String, dynamic> item,
 ) {
-  final quality = _qualityName(item);
+  final title = _titleFor(kind, serviceType, item);
+
   return switch (kind) {
-    GlobalActivityKind.queue => [
-      _serviceKeyFor(serviceType).title,
-      quality,
-      stringOrNull(item['indexer']),
-    ].whereType<String>().join(' · '),
-    GlobalActivityKind.history => [
-      _serviceKeyFor(serviceType).title,
-      stringOrNull(item['eventType']),
-      _dateLabel(item['date']),
-    ].whereType<String>().join(' · '),
-    GlobalActivityKind.blocklist => [
-      _serviceKeyFor(serviceType).title,
-      stringOrNull(item['message']),
-    ].whereType<String>().join(' · '),
+    GlobalActivityKind.queue => _activitySecondaryLine(
+      serviceType,
+      item,
+      title: title,
+    ),
+    GlobalActivityKind.history => _activitySecondaryLine(
+      serviceType,
+      item,
+      title: title,
+      releaseKey: 'sourceTitle',
+    ),
+    GlobalActivityKind.blocklist => _activitySecondaryLine(
+      serviceType,
+      item,
+      title: title,
+      releaseKey: 'sourceTitle',
+    ),
     GlobalActivityKind.missing || GlobalActivityKind.cutoff => [
       _serviceKeyFor(serviceType).title,
       _wantedContext(serviceType, item),
@@ -289,11 +298,13 @@ String _subtitleFor(
 
 String _statusFor(GlobalActivityKind kind, Map<String, dynamic> item) {
   return switch (kind) {
-    GlobalActivityKind.queue =>
-      stringOrNull(item['status']) ??
-          stringOrNull(item['trackedDownloadStatus']) ??
-          'Queued',
-    GlobalActivityKind.history => stringOrNull(item['eventType']) ?? 'History',
+    GlobalActivityKind.queue => resolveQueueDisplayStatus(
+      item,
+      includeWarningSuffix: false,
+    ).label,
+    GlobalActivityKind.history => humanizeEventType(
+      stringOrNull(item['eventType']) ?? 'History',
+    ),
     GlobalActivityKind.blocklist => 'Blocked',
     GlobalActivityKind.missing => 'Missing',
     GlobalActivityKind.cutoff => 'Cutoff',
@@ -316,15 +327,6 @@ DateTime? _sortDateFor(GlobalActivityKind kind, Map<String, dynamic> item) {
           '',
     ),
     GlobalActivityKind.request => null,
-  };
-}
-
-String _requestStatusLabel(RequestStatus status) {
-  return switch (status) {
-    RequestStatus.pendingApproval => 'Pending',
-    RequestStatus.approved => 'Approved',
-    RequestStatus.declined => 'Declined',
-    RequestStatus.unknown => 'Unknown',
   };
 }
 
@@ -352,11 +354,25 @@ String? _wantedContext(ServiceType serviceType, Map<String, dynamic> item) {
   };
 }
 
-String? _mediaTitle(Map<String, dynamic> item) {
-  return stringOrNull(mapOrNull(item['movie'])?['title']) ??
-      stringOrNull(mapOrNull(item['series'])?['title']) ??
-      stringOrNull(mapOrNull(item['artist'])?['artistName']) ??
-      stringOrNull(mapOrNull(item['album'])?['title']);
+String _activitySecondaryLine(
+  ServiceType serviceType,
+  Map<String, dynamic> item, {
+  required String title,
+  String releaseKey = 'title',
+}) {
+  final release = stringOrNull(item[releaseKey]);
+  final uniqueRelease = release == title ? null : release;
+
+  return switch (serviceType) {
+    ServiceType.series => joinDisplayParts([
+      arrEpisodeCode(item),
+      arrEpisodeTitle(item),
+      uniqueRelease,
+    ]),
+    ServiceType.movies => joinDisplayParts([uniqueRelease]),
+    ServiceType.music => joinDisplayParts([arrArtistName(item), uniqueRelease]),
+    ServiceType.discover => '',
+  };
 }
 
 String? _yearLabel(Map<String, dynamic> item) {
@@ -370,16 +386,4 @@ String? _episodeLabel(Map<String, dynamic> item) {
   final episode = intOrNull(item['episodeNumber']);
   if (season == null || episode == null) return stringOrNull(item['title']);
   return 'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}';
-}
-
-String? _qualityName(Map<String, dynamic> item) {
-  final quality = mapOrNull(item['quality']);
-  return stringOrNull(mapOrNull(quality?['quality'])?['name']) ??
-      stringOrNull(quality?['name']);
-}
-
-String? _dateLabel(dynamic value) {
-  final text = stringOrNull(value);
-  if (text == null || text.length < 10) return text;
-  return text.substring(0, 10);
 }

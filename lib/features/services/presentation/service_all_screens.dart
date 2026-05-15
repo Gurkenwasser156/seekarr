@@ -6,6 +6,7 @@ import 'package:seekarr/core/app_radius.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/utils/route_utils.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
@@ -174,7 +175,7 @@ class _ServiceListAppBar extends StatelessWidget
     return AppBar(
       leading: IconButton(
         icon: const Icon(Icons.chevron_left_rounded),
-        onPressed: () => context.go(backRoute),
+        onPressed: () => RouteUtils.popOrGo(context, backRoute),
         tooltip: 'Back',
       ),
       title: Text(title),
@@ -242,7 +243,8 @@ class _RequestListRow extends StatelessWidget {
     final title = media?.title ?? 'Unknown Media';
     final requester = request.requestedBy?.displayName ?? 'Unknown';
     final mediaType = request.type == 'tv' ? 'Series' : 'Movie';
-    final statusColor = _requestStatusColor(request.status);
+    final displayStatus = request.displayStatus;
+    final statusColor = _requestStatusColor(displayStatus.kind);
     final posterUrl = ImageUtils.buildTmdbPosterUrl(media?.posterPath);
     final heroTag = 'services_all_request_${request.id}';
 
@@ -333,10 +335,7 @@ class _RequestListRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _SmallPill(
-                label: _requestStatusLabel(request.status),
-                color: statusColor,
-              ),
+              _SmallPill(label: displayStatus.label, color: statusColor),
               const SizedBox(height: AppSpacing.sm),
               SizedBox.square(
                 dimension: 28,
@@ -533,28 +532,22 @@ String _formatRequestDate(String value) {
   return formatIsoDate(value);
 }
 
-String _requestStatusLabel(RequestStatus status) {
-  switch (status) {
-    case RequestStatus.pendingApproval:
-      return 'Pending';
-    case RequestStatus.approved:
-      return 'Approved';
-    case RequestStatus.declined:
-      return 'Declined';
-    case RequestStatus.unknown:
-      return 'Unknown';
-  }
-}
-
-Color _requestStatusColor(RequestStatus status) {
-  switch (status) {
-    case RequestStatus.pendingApproval:
+Color _requestStatusColor(SeerrRequestDisplayKind kind) {
+  switch (kind) {
+    case SeerrRequestDisplayKind.pending:
       return AppColors.warning;
-    case RequestStatus.approved:
+    case SeerrRequestDisplayKind.approved:
+    case SeerrRequestDisplayKind.processing:
+      return AppColors.info;
+    case SeerrRequestDisplayKind.available:
+    case SeerrRequestDisplayKind.partiallyAvailable:
+    case SeerrRequestDisplayKind.completed:
       return AppColors.success;
-    case RequestStatus.declined:
+    case SeerrRequestDisplayKind.declined:
+    case SeerrRequestDisplayKind.failed:
+    case SeerrRequestDisplayKind.deleted:
       return AppColors.error;
-    case RequestStatus.unknown:
+    case SeerrRequestDisplayKind.unknown:
       return AppColors.info;
   }
 }

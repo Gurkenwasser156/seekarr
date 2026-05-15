@@ -17,7 +17,7 @@ void main() {
       expect(find.text('GENERAL'), findsOneWidget);
       expect(find.text('SERVICES'), findsOneWidget);
       expect(find.text('ABOUT'), findsOneWidget);
-      expect(find.text('Seekarr v1.0.0'), findsOneWidget);
+      expect(find.text('Seekarr v1.0.0'), findsNothing);
     });
 
     testWidgets('formats the selected region label', (tester) async {

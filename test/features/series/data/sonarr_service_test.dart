@@ -1,11 +1,61 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:seekarr/core/api/base_arr_service.dart';
 import 'package:seekarr/core/api/api_client.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 
+import '../../../test_helpers/fake_api_client.dart';
+
 void main() {
   group('SonarrService', () {
+    test('getQueue requests embedded series and episode data', () async {
+      final client = FakeApiClient()
+        ..getResponseData = {
+          'records': [
+            {'id': 1, 'title': 'Queued'},
+          ],
+        };
+      final service = SonarrService(client);
+
+      final items = await service.getQueue();
+
+      expect(items, hasLength(1));
+      expect(
+        client.lastGetPath,
+        '/api/${ArrServiceConfig.sonarr.apiVersion}/queue',
+      );
+      expect(client.lastGetQueryParameters, const {
+        'includeSeries': true,
+        'includeEpisode': true,
+        'includeUnknownSeriesItems': true,
+      });
+    });
+
+    test('getHistory requests embedded series and episode data', () async {
+      final client = FakeApiClient()
+        ..getResponseData = {
+          'records': [
+            {'id': 1, 'sourceTitle': 'Imported.Release'},
+          ],
+        };
+      final service = SonarrService(client);
+
+      final items = await service.getHistory();
+
+      expect(items, hasLength(1));
+      expect(
+        client.lastGetPath,
+        '/api/${ArrServiceConfig.sonarr.apiVersion}/history',
+      );
+      expect(client.lastGetQueryParameters, {
+        'page': 1,
+        'pageSize': 20,
+        'includeSeries': true,
+        'includeEpisode': true,
+      });
+    });
+
     group('getSeriesByTvdbId', () {
       test('finds series when TVDB ID matches', () async {
         final service = _TestSonarrService([

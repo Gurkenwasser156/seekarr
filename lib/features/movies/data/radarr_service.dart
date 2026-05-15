@@ -29,6 +29,13 @@ class RadarrService with ArrActivityMixin {
 
   RadarrService(this.client);
 
+  @override
+  Future<List<dynamic>> getQueue({Map<String, dynamic>? queryParameters}) {
+    return super.getQueue(
+      queryParameters: {'includeMovie': true, ...?queryParameters},
+    );
+  }
+
   /// Fetches all movies from Radarr.
   Future<List<RadarrMovie>> getMovies() async {
     return fetchAllItems('movie', RadarrMovie.fromJson);
@@ -42,6 +49,26 @@ class RadarrService with ArrActivityMixin {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return super.getHistory(
+      page: page,
+      pageSize: pageSize,
+      queryParameters: {'includeMovie': true, ...?queryParameters},
+    );
+  }
+
+  @override
+  Future<List<dynamic>> getAllHistory({Map<String, dynamic>? queryParameters}) {
+    return super.getAllHistory(
+      queryParameters: {'includeMovie': true, ...?queryParameters},
+    );
   }
 
   /// Triggers an automatic search for the given movie ID.
@@ -100,6 +127,11 @@ class RadarrService with ArrActivityMixin {
   /// Updates a movie's quality profile.
   Future<void> updateMovieProfile(int movieId, int qualityProfileId) async {
     await updateItemProfile('movie', movieId, qualityProfileId);
+  }
+
+  /// Updates a movie's monitored state.
+  Future<void> updateMovieMonitored(int movieId, bool monitored) async {
+    await updateItemMonitored('movie', movieId, monitored);
   }
 
   /// Deletes a movie from Radarr.

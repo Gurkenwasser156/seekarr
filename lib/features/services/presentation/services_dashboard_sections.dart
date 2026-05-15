@@ -30,7 +30,7 @@ class ServicesTrendingSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesTrendingProvider),
       serviceName: 'Seerr',
       actionLabel: 'Seerr',
-      onAction: () => context.go('/services/seerr'),
+      onAction: () => context.push('/services/seerr'),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year,
       imageUrl: (item, _) => ImageUtils.buildTmdbPosterUrl(item.posterPath),
@@ -55,7 +55,7 @@ class ServicesRecentlyAddedMoviesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesMoviesProvider),
       serviceName: 'Radarr',
       actionLabel: 'See all',
-      onAction: () => context.go('/services/radarr/media'),
+      onAction: () => context.push('/services/radarr/media'),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(
@@ -84,7 +84,7 @@ class ServicesRecentlyAddedSeriesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesSeriesProvider),
       serviceName: 'Sonarr',
       actionLabel: 'See all',
-      onAction: () => context.go('/services/sonarr/media'),
+      onAction: () => context.push('/services/sonarr/media'),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(
@@ -115,7 +115,7 @@ class ServicesRecentRequestsSection extends ConsumerWidget {
       asyncValue: requests,
       serviceName: 'Seerr',
       actionLabel: 'See all',
-      onAction: () => context.go('/services/seerr/requests'),
+      onAction: () => context.push('/services/seerr/requests'),
       emptyLabel: 'No recent requests',
       itemsBuilder: (items) => items.take(3).map(_RequestRow.new).toList(),
     );
@@ -399,7 +399,8 @@ class _RequestRow extends StatelessWidget {
     final requester = request.requestedBy?.displayName ?? 'Unknown';
     final subtitle =
         '$requester · ${request.type == 'tv' ? 'Series' : 'Movie'}';
-    final statusColor = _requestStatusColor(request.status);
+    final displayStatus = request.displayStatus;
+    final statusColor = _requestStatusColor(displayStatus.kind);
     final posterUrl = ImageUtils.buildTmdbPosterUrl(media?.posterPath);
     final heroTag = _requestHeroTag(request);
 
@@ -412,7 +413,7 @@ class _RequestRow extends StatelessWidget {
         imageUrl: posterUrl,
         heroTag: heroTag,
         trailing: _SmallStatusPill(
-          label: request.status.label,
+          label: displayStatus.label,
           color: statusColor,
         ),
         onTap: () => _openRequest(context, request, heroTag: heroTag),
@@ -452,14 +453,15 @@ class _DownloadRow extends StatelessWidget {
     final percent = item.progress == null
         ? null
         : (item.progress! * 100).round();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: _CompactListRow(
-        icon: item.service.icon,
-        title: item.title,
-        subtitle: item.subtitle,
-        trailing: Text(
+    final trailing = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (item.warning != null) ...[
+          _SmallStatusPill(label: 'Warning', color: AppColors.error),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        Text(
           percent == null ? 'DL' : '$percent%',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: item.service.accent,
@@ -467,6 +469,16 @@ class _DownloadRow extends StatelessWidget {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: _CompactListRow(
+        icon: item.service.icon,
+        title: item.title,
+        subtitle: item.subtitle,
+        trailing: trailing,
         progressValue: item.progress,
         progressColor: item.progress == null ? null : item.service.accent,
         onTap: () => context.go('/activity'),
@@ -633,15 +645,22 @@ class _SectionEmptyState extends StatelessWidget {
   }
 }
 
-Color _requestStatusColor(RequestStatus status) {
-  switch (status) {
-    case RequestStatus.approved:
-      return AppColors.success;
-    case RequestStatus.pendingApproval:
+Color _requestStatusColor(SeerrRequestDisplayKind kind) {
+  switch (kind) {
+    case SeerrRequestDisplayKind.pending:
       return AppColors.warning;
-    case RequestStatus.declined:
+    case SeerrRequestDisplayKind.approved:
+    case SeerrRequestDisplayKind.processing:
+      return AppColors.info;
+    case SeerrRequestDisplayKind.available:
+    case SeerrRequestDisplayKind.partiallyAvailable:
+    case SeerrRequestDisplayKind.completed:
+      return AppColors.success;
+    case SeerrRequestDisplayKind.declined:
+    case SeerrRequestDisplayKind.failed:
+    case SeerrRequestDisplayKind.deleted:
       return AppColors.error;
-    case RequestStatus.unknown:
+    case SeerrRequestDisplayKind.unknown:
       return AppColors.info;
   }
 }
@@ -660,18 +679,3 @@ void _openSeerrPreview(
 
 String _requestHeroTag(SeerrRequest request) =>
     'services_request_${request.id}';
-
-extension on RequestStatus {
-  String get label {
-    switch (this) {
-      case RequestStatus.pendingApproval:
-        return 'Pending';
-      case RequestStatus.approved:
-        return 'Approved';
-      case RequestStatus.declined:
-        return 'Declined';
-      case RequestStatus.unknown:
-        return 'Unknown';
-    }
-  }
-}

@@ -85,10 +85,11 @@ void main() {
             (ref) => _ActivityRadarrService(
               queue: const [
                 {
-                  'title': 'Furiosa',
+                  'title': 'Furiosa.2024.2160p.WEB-DL-GROUP',
                   'status': 'downloading',
                   'size': 100,
                   'sizeleft': 25,
+                  'movie': {'title': 'Furiosa', 'year': 2024},
                 },
               ],
               history: const [
@@ -96,6 +97,7 @@ void main() {
                   'sourceTitle': 'Dune.Part.Two.2024',
                   'eventType': 'downloadImported',
                   'date': '2026-04-02T11:18:00Z',
+                  'movie': {'title': 'Dune: Part Two', 'year': 2024},
                 },
               ],
               missing: const [
@@ -125,6 +127,10 @@ void main() {
     }
     expect(find.text('Furiosa'), findsOneWidget);
     expect(find.text('Shogun'), findsOneWidget);
+    expect(
+      find.textContaining('Furiosa.2024.2160p.WEB-DL-GROUP'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Missing'));
     await tester.pumpAndSettle();
@@ -146,14 +152,21 @@ class _ActivityRadarrService extends FakeRadarrService {
   final List<dynamic> missing;
 
   @override
-  Future<List<dynamic>> getQueue() async => queue;
+  Future<List<dynamic>> getQueue({
+    Map<String, dynamic>? queryParameters,
+  }) async => queue;
 
   @override
-  Future<List<dynamic>> getHistory({int page = 1, int pageSize = 20}) async =>
-      history;
+  Future<List<dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    Map<String, dynamic>? queryParameters,
+  }) async => history;
 
   @override
-  Future<List<dynamic>> getAllHistory() async => history;
+  Future<List<dynamic>> getAllHistory({
+    Map<String, dynamic>? queryParameters,
+  }) async => history;
 
   @override
   Future<List<dynamic>> getMissing({int page = 1, int pageSize = 20}) async =>

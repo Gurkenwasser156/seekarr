@@ -135,6 +135,7 @@ Future<void> _pumpServices(
                 title: 'A Quiet Place',
                 tmdbId: 123,
                 posterPath: '/quiet-place.jpg',
+                status: MediaAvailability.available,
               ),
               createdAt: '2024-01-01',
               type: 'movie',
@@ -166,8 +167,9 @@ Future<void> _pumpServices(
                 ServiceQueueItem(
                   service: ServiceKey.radarr,
                   title: 'Furiosa',
-                  subtitle: 'Radarr · WEB-DL 1080p',
+                  subtitle: 'Movie · Furiosa.2024.2160p.WEB-DL-GROUP',
                   progress: 0.75,
+                  warning: null,
                 ),
               ],
         ),
