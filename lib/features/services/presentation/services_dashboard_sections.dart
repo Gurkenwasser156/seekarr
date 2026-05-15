@@ -55,7 +55,7 @@ class ServicesRecentlyAddedMoviesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesMoviesProvider),
       serviceName: 'Radarr',
       actionLabel: 'See all',
-      onAction: () => context.push('/services/radarr/media'),
+      onAction: () => context.push('/services/radarr'),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(
@@ -84,7 +84,7 @@ class ServicesRecentlyAddedSeriesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesSeriesProvider),
       serviceName: 'Sonarr',
       actionLabel: 'See all',
-      onAction: () => context.push('/services/sonarr/media'),
+      onAction: () => context.push('/services/sonarr'),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(

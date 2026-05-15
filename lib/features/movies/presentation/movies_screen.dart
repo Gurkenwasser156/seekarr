@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
@@ -6,30 +7,47 @@ import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
 import 'package:seekarr/features/movies/presentation/movies_search_provider.dart';
+import 'package:seekarr/features/services/presentation/services_provider.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
-class MoviesScreen extends StatelessWidget {
+class MoviesScreen extends ConsumerWidget {
   final bool showAppBar;
   final double topPadding;
 
   const MoviesScreen({super.key, this.showAppBar = true, this.topPadding = 0});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final queuedMovieIds = ref.watch(radarrQueuedMovieIdsProvider).maybeWhen(
+          data: (ids) => ids,
+          orElse: () => const <int>{},
+        );
+
     return MediaBrowseScaffold<RadarrMovie>(
       title: 'Movies',
       searchHint: 'Search movies...',
       activityRoute: '/activity/movies',
       navigationSection: NavigationSection.services,
       serviceName: 'Radarr',
+      accentColor: ServiceKey.radarr.accent,
       heroTagPrefix: 'movie',
       searchHeroTagPrefix: 'movie_search',
       libraryProvider: moviesProvider,
       searchQueryProvider: moviesSearchQueryProvider,
       searchResultsProvider: moviesSearchResultsProvider,
+      titleExtractor: (movie) => movie.title,
+      subtitleExtractor: (movie) => movie.year > 0 ? '${movie.year}' : '',
+      sortTitleExtractor: (movie) => movie.sortTitle,
       imagesExtractor: (movie) => movie.images,
       idExtractor: (movie) => movie.id,
       statusExtractor: (movie) =>
           MediaAvailabilityInfo(hasFile: movie.hasFile, status: movie.status),
+      browseStatusExtractor: (movie) => queuedMovieIds.contains(movie.id)
+          ? MediaStatus.queued
+          : null,
+      onRefresh: (ref) {
+        ref.invalidate(radarrQueuedMovieIdsProvider);
+      },
       settingsSelector: (settings) =>
           (settings.radarrUrl, settings.radarrApiKey),
       onItemTap: (context, movie, heroTag) {

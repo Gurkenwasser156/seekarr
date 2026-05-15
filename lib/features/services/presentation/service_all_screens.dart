@@ -13,13 +13,8 @@ import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
 import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
-import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
-import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
-import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/services/presentation/services_provider.dart';
-import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 class ServiceAllRequestsScreen extends ConsumerWidget {
   const ServiceAllRequestsScreen({super.key});
@@ -77,94 +72,16 @@ class ServiceAllRequestsScreen extends ConsumerWidget {
   }
 }
 
-class ServiceAllMediaScreen extends ConsumerWidget {
-  final ServiceKey service;
-
-  const ServiceAllMediaScreen({super.key, required this.service})
-    : assert(service != ServiceKey.seerr);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(currentSettingsProvider);
-    final media = switch (service) {
-      ServiceKey.radarr => ref.watch(servicesMoviesProvider),
-      ServiceKey.sonarr => ref.watch(servicesSeriesProvider),
-      ServiceKey.lidarr => ref.watch(servicesMusicProvider),
-      ServiceKey.seerr => throw StateError('Seerr does not have all media'),
-    };
-
-    return Scaffold(
-      appBar: _ServiceListAppBar(
-        title: _allMediaTitle(service),
-        backRoute: '/services/${service.routeParam}',
-        accent: service.accent,
-        trailing: IconButton(
-          icon: Icon(Icons.filter_list_rounded, color: service.accent),
-          onPressed: () {},
-          tooltip: 'Filters',
-        ),
-      ),
-      body: Column(
-        children: [
-          _FilterChipRow(accent: service.accent, filters: _filtersFor(service)),
-          Expanded(
-            child: AsyncValueWidget<List<dynamic>>(
-              value: media,
-              serviceName: service.title,
-              data: (items) {
-                if (items.isEmpty) {
-                  return const _EmptyListState(label: 'No media found');
-                }
-
-                return GridView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    left: AppSpacing.lg,
-                    right: AppSpacing.lg,
-                    bottom:
-                        AppSpacing.lg +
-                        FloatingNavBarMetrics.getScrollViewBottomPadding(
-                          context,
-                        ),
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.56,
-                    crossAxisSpacing: AppSpacing.gridGap,
-                    mainAxisSpacing: AppSpacing.gridGap,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _AllMediaTile(
-                      service: service,
-                      item: item,
-                      settings: settings,
-                      index: index,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ServiceListAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   final String title;
   final String backRoute;
   final Color accent;
-  final Widget? trailing;
 
   const _ServiceListAppBar({
     required this.title,
     required this.backRoute,
     required this.accent,
-    this.trailing,
   });
 
   @override
@@ -179,14 +96,6 @@ class _ServiceListAppBar extends StatelessWidget
         tooltip: 'Back',
       ),
       title: Text(title),
-      actions: trailing == null
-          ? null
-          : [
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: trailing!,
-              ),
-            ],
       titleTextStyle: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -412,73 +321,6 @@ class _RequesterAvatar extends StatelessWidget {
   }
 }
 
-class _AllMediaTile extends StatelessWidget {
-  final ServiceKey service;
-  final dynamic item;
-  final SettingsModel settings;
-  final int index;
-
-  const _AllMediaTile({
-    required this.service,
-    required this.item,
-    required this.settings,
-    required this.index,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final title = _mediaTitle(service, item);
-    final subtitle = _mediaSubtitle(service, item);
-    final imageSource = _mediaImage(service, item, settings);
-    final id = _mediaId(service, item);
-
-    return InkWell(
-      onTap: () => context.push(
-        _mediaRoute(service, id, heroTag: _mediaHeroTag(service, id, index)),
-        extra: item,
-      ),
-      borderRadius: AppRadius.borderRadiusMd,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Hero(
-              tag: _mediaHeroTag(service, id, index),
-              child: ContentCard(
-                imageUrl: imageSource.url,
-                httpHeaders: imageSource.headers,
-                badge: _SmallPill(
-                  label: _mediaStatusLabel(service, item),
-                  color: _mediaStatusColor(service, item),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          if (subtitle.isNotEmpty)
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 10,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SmallPill extends StatelessWidget {
   final String label;
   final Color color;
@@ -550,134 +392,4 @@ Color _requestStatusColor(SeerrRequestDisplayKind kind) {
     case SeerrRequestDisplayKind.unknown:
       return AppColors.info;
   }
-}
-
-String _allMediaTitle(ServiceKey service) {
-  switch (service) {
-    case ServiceKey.radarr:
-      return 'All Movies';
-    case ServiceKey.sonarr:
-      return 'All Series';
-    case ServiceKey.lidarr:
-      return 'All Artists';
-    case ServiceKey.seerr:
-      return 'All Media';
-  }
-}
-
-List<String> _filtersFor(ServiceKey service) {
-  switch (service) {
-    case ServiceKey.radarr:
-      return const ['All', 'Available', 'Missing', 'In Queue'];
-    case ServiceKey.sonarr:
-      return const ['All', 'Continuing', 'Ended', 'Missing'];
-    case ServiceKey.lidarr:
-      return const ['All', 'Complete', 'Missing', 'Cutoff'];
-    case ServiceKey.seerr:
-      return const ['All'];
-  }
-}
-
-String _mediaTitle(ServiceKey service, dynamic item) {
-  return switch (service) {
-    ServiceKey.radarr => (item as RadarrMovie).title,
-    ServiceKey.sonarr => (item as SonarrSeries).title,
-    ServiceKey.lidarr => (item as LidarrArtist).artistName,
-    ServiceKey.seerr => 'Unknown',
-  };
-}
-
-String _mediaSubtitle(ServiceKey service, dynamic item) {
-  return switch (service) {
-    ServiceKey.radarr => (item as RadarrMovie).year.toString(),
-    ServiceKey.sonarr => (item as SonarrSeries).year.toString(),
-    ServiceKey.lidarr => _artistStats(item as LidarrArtist),
-    ServiceKey.seerr => '',
-  };
-}
-
-String _artistStats(LidarrArtist artist) {
-  final albumText = artist.albumCount == 1
-      ? '1 album'
-      : '${artist.albumCount} albums';
-  final trackText = artist.trackCount == 1
-      ? '1 track'
-      : '${artist.trackCount} tracks';
-  if (artist.albumCount == 0 && artist.trackCount == 0) return artist.status;
-  return '$albumText · $trackText';
-}
-
-ImageSource _mediaImage(
-  ServiceKey service,
-  dynamic item,
-  SettingsModel settings,
-) {
-  return switch (service) {
-    ServiceKey.radarr => ImageUtils.extractPosterUrl(
-      (item as RadarrMovie).images,
-      baseUrl: settings.radarrUrl,
-      apiKey: settings.radarrApiKey,
-    ),
-    ServiceKey.sonarr => ImageUtils.extractPosterUrl(
-      (item as SonarrSeries).images,
-      baseUrl: settings.sonarrUrl,
-      apiKey: settings.sonarrApiKey,
-    ),
-    ServiceKey.lidarr => ImageUtils.extractPosterUrl(
-      (item as LidarrArtist).images,
-      baseUrl: settings.lidarrUrl,
-      apiKey: settings.lidarrApiKey,
-      coverTypes: const ['poster', 'fanart', 'banner'],
-    ),
-    ServiceKey.seerr => (url: '', headers: null),
-  };
-}
-
-int _mediaId(ServiceKey service, dynamic item) {
-  return switch (service) {
-    ServiceKey.radarr => (item as RadarrMovie).id,
-    ServiceKey.sonarr => (item as SonarrSeries).id,
-    ServiceKey.lidarr => (item as LidarrArtist).id,
-    ServiceKey.seerr => 0,
-  };
-}
-
-String _mediaRoute(ServiceKey service, int id, {String? heroTag}) {
-  final query = heroTag == null ? '' : '?heroTag=$heroTag';
-  return switch (service) {
-    ServiceKey.radarr => '/services/radarr/movie/$id$query',
-    ServiceKey.sonarr => '/services/sonarr/series/$id$query',
-    ServiceKey.lidarr => '/services/lidarr/artist/$id$query',
-    ServiceKey.seerr => '/services/seerr',
-  };
-}
-
-String _mediaHeroTag(ServiceKey service, int id, int index) =>
-    'services_${service.routeParam}_media_${id}_$index';
-
-String _mediaStatusLabel(ServiceKey service, dynamic item) {
-  return switch (service) {
-    ServiceKey.radarr => (item as RadarrMovie).hasFile ? 'Avail' : 'Miss',
-    ServiceKey.sonarr => _seriesAvailabilityLabel(item as SonarrSeries),
-    ServiceKey.lidarr => (item as LidarrArtist).hasFiles ? 'Avail' : 'Miss',
-    ServiceKey.seerr => '',
-  };
-}
-
-Color _mediaStatusColor(ServiceKey service, dynamic item) {
-  final label = _mediaStatusLabel(service, item);
-  return switch (label) {
-    'Avail' => AppColors.success,
-    'Part' => AppColors.info,
-    _ => AppColors.error,
-  };
-}
-
-String _seriesAvailabilityLabel(SonarrSeries series) {
-  final stats = series.statistics;
-  final fileCount = (stats?['episodeFileCount'] as num?)?.toInt() ?? 0;
-  final episodeCount = (stats?['episodeCount'] as num?)?.toInt() ?? 0;
-  if (episodeCount > 0 && fileCount >= episodeCount) return 'Avail';
-  if (fileCount > 0) return 'Part';
-  return 'Miss';
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
@@ -94,6 +96,59 @@ void main() {
     );
     expect(find.text('No active downloads'), findsOneWidget);
   });
+
+  testWidgets('see all routes to canonical Radarr and Sonarr homes', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/services',
+      routes: [
+        GoRoute(
+          path: '/services',
+          builder: (context, state) => const ServicesScreen(),
+        ),
+        GoRoute(
+          path: '/services/radarr',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Radarr Home')),
+        ),
+        GoRoute(
+          path: '/services/sonarr',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Sonarr Home')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await _pumpServicesRouter(tester, router);
+    await _pumpDashboard(tester);
+
+    await tester.scrollUntilVisible(
+      find.text('Recently Added · Movies'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(_sectionHeaderTapTarget('Recently Added · Movies'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/services/radarr');
+    expect(find.text('Radarr Home'), findsOneWidget);
+
+    router.go('/services');
+    await _pumpDashboard(tester);
+
+    await tester.scrollUntilVisible(
+      find.text('Recently Added · Series'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(_sectionHeaderTapTarget('Recently Added · Series'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/services/sonarr');
+    expect(find.text('Sonarr Home'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpServices(
@@ -102,79 +157,21 @@ Future<void> _pumpServices(
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        currentSettingsProvider.overrideWith(
-          (ref) => const SettingsModel(
-            seerrUrl: 'http://seerr.local:5055',
-            seerrApiKey: 'key',
-            radarrUrl: 'http://radarr.local:7878',
-            radarrApiKey: 'key',
-            sonarrUrl: 'http://sonarr.local:8989',
-            sonarrApiKey: 'key',
-            lidarrUrl: 'http://lidarr.local:8686',
-            lidarrApiKey: 'key',
-          ),
-        ),
-        serviceSummaryProvider.overrideWith(_summaryBuilder),
-        servicesTrendingProvider.overrideWith(
-          (ref) async => const [
-            MediaPreview(
-              id: 1,
-              title: 'Trending One',
-              releaseDate: '2024-01-01',
-              mediaType: 'movie',
-            ),
-          ],
-        ),
-        servicesRequestsProvider.overrideWith(
-          (ref) async => const [
-            SeerrRequest(
-              id: 1,
-              status: RequestStatus.pendingApproval,
-              media: RequestMedia(
-                title: 'A Quiet Place',
-                tmdbId: 123,
-                posterPath: '/quiet-place.jpg',
-                status: MediaAvailability.available,
-              ),
-              createdAt: '2024-01-01',
-              type: 'movie',
-              requestedBy: RequestedBy(id: 1, displayName: 'sarah'),
-            ),
-          ],
-        ),
-        servicesMoviesProvider.overrideWith(
-          (ref) async => [
-            buildMovie(
-              id: 10,
-              title: 'Dune',
-              images: const [
-                {
-                  'coverType': 'poster',
-                  'remoteUrl': 'https://example.com/dune.jpg',
-                },
-              ],
-            ),
-          ],
-        ),
-        servicesSeriesProvider.overrideWith(
-          (ref) async => [buildSeries(id: 20, title: 'The Boys')],
-        ),
-        servicesMusicProvider.overrideWith((ref) async => const []),
-        servicesQueueProvider.overrideWith(
-          queueBuilder ??
-              (ref) async => const [
-                ServiceQueueItem(
-                  service: ServiceKey.radarr,
-                  title: 'Furiosa',
-                  subtitle: 'Movie · Furiosa.2024.2160p.WEB-DL-GROUP',
-                  progress: 0.75,
-                  warning: null,
-                ),
-              ],
-        ),
-      ],
+      overrides: _providerOverrides(queueBuilder: queueBuilder),
       child: const MaterialApp(home: ServicesScreen()),
+    ),
+  );
+}
+
+Future<void> _pumpServicesRouter(
+  WidgetTester tester,
+  GoRouter router, {
+  Future<List<ServiceQueueItem>> Function(Ref ref)? queueBuilder,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: _providerOverrides(queueBuilder: queueBuilder),
+      child: MaterialApp.router(routerConfig: router),
     ),
   );
 }
@@ -190,6 +187,90 @@ Finder _contentCardWithImage(String imagePath) {
         widget is ContentCard && widget.imageUrl?.contains(imagePath) == true,
     skipOffstage: false,
   );
+}
+
+Finder _sectionHeaderTapTarget(String title) {
+  return find.ancestor(
+    of: find.text(title),
+    matching: find.byType(InkWell),
+  ).first;
+}
+
+List<Override> _providerOverrides({
+  Future<List<ServiceQueueItem>> Function(Ref ref)? queueBuilder,
+}) {
+  return [
+    currentSettingsProvider.overrideWith(
+      (ref) => const SettingsModel(
+        seerrUrl: 'http://seerr.local:5055',
+        seerrApiKey: 'key',
+        radarrUrl: 'http://radarr.local:7878',
+        radarrApiKey: 'key',
+        sonarrUrl: 'http://sonarr.local:8989',
+        sonarrApiKey: 'key',
+        lidarrUrl: 'http://lidarr.local:8686',
+        lidarrApiKey: 'key',
+      ),
+    ),
+    serviceSummaryProvider.overrideWith(_summaryBuilder),
+    servicesTrendingProvider.overrideWith(
+      (ref) async => const [
+        MediaPreview(
+          id: 1,
+          title: 'Trending One',
+          releaseDate: '2024-01-01',
+          mediaType: 'movie',
+        ),
+      ],
+    ),
+    servicesRequestsProvider.overrideWith(
+      (ref) async => const [
+        SeerrRequest(
+          id: 1,
+          status: RequestStatus.pendingApproval,
+          media: RequestMedia(
+            title: 'A Quiet Place',
+            tmdbId: 123,
+            posterPath: '/quiet-place.jpg',
+            status: MediaAvailability.available,
+          ),
+          createdAt: '2024-01-01',
+          type: 'movie',
+          requestedBy: RequestedBy(id: 1, displayName: 'sarah'),
+        ),
+      ],
+    ),
+    servicesMoviesProvider.overrideWith(
+      (ref) async => [
+        buildMovie(
+          id: 10,
+          title: 'Dune',
+          images: const [
+            {
+              'coverType': 'poster',
+              'remoteUrl': 'https://example.com/dune.jpg',
+            },
+          ],
+        ),
+      ],
+    ),
+    servicesSeriesProvider.overrideWith(
+      (ref) async => [buildSeries(id: 20, title: 'The Boys')],
+    ),
+    servicesMusicProvider.overrideWith((ref) async => const []),
+    servicesQueueProvider.overrideWith(
+      queueBuilder ??
+          (ref) async => const [
+            ServiceQueueItem(
+              service: ServiceKey.radarr,
+              title: 'Furiosa',
+              subtitle: 'Movie · Furiosa.2024.2160p.WEB-DL-GROUP',
+              progress: 0.75,
+              warning: null,
+            ),
+          ],
+    ),
+  ];
 }
 
 Future<ServiceSummary> _summaryBuilder(Ref ref, ServiceKey service) async {
