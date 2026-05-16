@@ -135,12 +135,7 @@ class SonarrService with ArrActivityMixin {
     if (seasonNumber != null) params['seasonNumber'] = seasonNumber;
     if (episodeId != null) params['episodeId'] = episodeId;
 
-    final response = await client.get(
-      '/api/v3/release',
-      queryParameters: params,
-      cancelToken: cancelToken,
-    );
-    return response.data as List<dynamic>;
+    return fetchReleases(params, cancelToken: cancelToken);
   }
 
   /// Grabs a specific release for download.

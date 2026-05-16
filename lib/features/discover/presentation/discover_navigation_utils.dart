@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
@@ -70,7 +71,7 @@ Future<bool> _openMovieInService({
     final router = GoRouter.of(context);
     dismissSheet?.call();
     router.push(
-      '/services/radarr/movie/${movie.id}?heroTag=radarr_${movie.id}',
+      ServiceRoutes.radarrMovie(movie.id, heroTag: 'radarr_${movie.id}'),
       extra: movie,
     );
     return true;
@@ -120,7 +121,7 @@ Future<bool> _openSeriesInService({
     final router = GoRouter.of(context);
     dismissSheet?.call();
     router.push(
-      '/services/sonarr/series/${series.id}?heroTag=sonarr_${series.id}',
+      ServiceRoutes.sonarrSeries(series.id, heroTag: 'sonarr_${series.id}'),
       extra: series,
     );
     return true;

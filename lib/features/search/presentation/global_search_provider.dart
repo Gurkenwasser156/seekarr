@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/features/discover/data/seerr_service.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
@@ -35,20 +36,11 @@ Future<GlobalSearchServiceResults> _loadSeerrResults(
   Ref ref,
   String query,
 ) async {
-  try {
-    final service = ref.read(seerrServiceProvider);
-    final items = await service.search(query);
-    return GlobalSearchServiceResults(
-      service: ServiceKey.seerr,
-      results: items.map(_seerrResult).toList(growable: false),
-    );
-  } catch (error) {
-    return GlobalSearchServiceResults(
-      service: ServiceKey.seerr,
-      results: const [],
-      error: error,
-    );
-  }
+  return _loadServiceResults(
+    service: ServiceKey.seerr,
+    loadItems: () => ref.read(seerrServiceProvider).search(query),
+    toResult: _seerrResult,
+  );
 }
 
 Future<GlobalSearchServiceResults> _loadRadarrResults(
@@ -56,22 +48,11 @@ Future<GlobalSearchServiceResults> _loadRadarrResults(
   String query,
   SettingsModel settings,
 ) async {
-  try {
-    final service = ref.read(radarrServiceProvider);
-    final items = await service.lookupMovies(query);
-    return GlobalSearchServiceResults(
-      service: ServiceKey.radarr,
-      results: items
-          .map((item) => _radarrResult(item, settings))
-          .toList(growable: false),
-    );
-  } catch (error) {
-    return GlobalSearchServiceResults(
-      service: ServiceKey.radarr,
-      results: const [],
-      error: error,
-    );
-  }
+  return _loadServiceResults(
+    service: ServiceKey.radarr,
+    loadItems: () => ref.read(radarrServiceProvider).lookupMovies(query),
+    toResult: (item) => _radarrResult(item, settings),
+  );
 }
 
 Future<GlobalSearchServiceResults> _loadSonarrResults(
@@ -79,22 +60,11 @@ Future<GlobalSearchServiceResults> _loadSonarrResults(
   String query,
   SettingsModel settings,
 ) async {
-  try {
-    final service = ref.read(sonarrServiceProvider);
-    final items = await service.lookupSeries(query);
-    return GlobalSearchServiceResults(
-      service: ServiceKey.sonarr,
-      results: items
-          .map((item) => _sonarrResult(item, settings))
-          .toList(growable: false),
-    );
-  } catch (error) {
-    return GlobalSearchServiceResults(
-      service: ServiceKey.sonarr,
-      results: const [],
-      error: error,
-    );
-  }
+  return _loadServiceResults(
+    service: ServiceKey.sonarr,
+    loadItems: () => ref.read(sonarrServiceProvider).lookupSeries(query),
+    toResult: (item) => _sonarrResult(item, settings),
+  );
 }
 
 Future<GlobalSearchServiceResults> _loadLidarrResults(
@@ -102,18 +72,27 @@ Future<GlobalSearchServiceResults> _loadLidarrResults(
   String query,
   SettingsModel settings,
 ) async {
+  return _loadServiceResults(
+    service: ServiceKey.lidarr,
+    loadItems: () => ref.read(lidarrServiceProvider).lookupArtists(query),
+    toResult: (item) => _lidarrResult(item, settings),
+  );
+}
+
+Future<GlobalSearchServiceResults> _loadServiceResults<T>({
+  required ServiceKey service,
+  required Future<List<T>> Function() loadItems,
+  required GlobalSearchResult Function(T item) toResult,
+}) async {
   try {
-    final service = ref.read(lidarrServiceProvider);
-    final items = await service.lookupArtists(query);
+    final items = await loadItems();
     return GlobalSearchServiceResults(
-      service: ServiceKey.lidarr,
-      results: items
-          .map((item) => _lidarrResult(item, settings))
-          .toList(growable: false),
+      service: service,
+      results: items.map(toResult).toList(growable: false),
     );
   } catch (error) {
     return GlobalSearchServiceResults(
-      service: ServiceKey.lidarr,
+      service: service,
       results: const [],
       error: error,
     );
@@ -131,8 +110,7 @@ GlobalSearchResult _seerrResult(MediaPreview item) {
     imageUrl: ImageUtils.buildTmdbPosterUrl(item.posterPath),
     imageHeaders: null,
     tags: [type, if (year.isNotEmpty) year],
-    route:
-        '/services/seerr/${item.mediaType == 'tv' ? 'tv' : 'movie'}/${item.id}',
+    route: ServiceRoutes.seerrDetail(mediaType: item.mediaType, id: item.id),
   );
 }
 
@@ -153,7 +131,7 @@ GlobalSearchResult _radarrResult(RadarrMovie item, SettingsModel settings) {
     imageUrl: image.url,
     imageHeaders: image.headers,
     tags: ['Movie', item.hasFile ? 'Available' : 'Missing'],
-    route: '/services/radarr/movie/${item.id}',
+    route: ServiceRoutes.radarrMovie(item.id),
   );
 }
 
@@ -174,7 +152,7 @@ GlobalSearchResult _sonarrResult(SonarrSeries item, SettingsModel settings) {
     imageUrl: image.url,
     imageHeaders: image.headers,
     tags: ['Series', item.status],
-    route: '/services/sonarr/series/${item.id}',
+    route: ServiceRoutes.sonarrSeries(item.id),
   );
 }
 
@@ -196,6 +174,6 @@ GlobalSearchResult _lidarrResult(LidarrArtist item, SettingsModel settings) {
     imageUrl: image.url,
     imageHeaders: image.headers,
     tags: ['Artist', item.hasFiles ? 'Available' : 'Missing'],
-    route: '/services/lidarr/artist/${item.id}',
+    route: ServiceRoutes.lidarrArtist(item.id),
   );
 }

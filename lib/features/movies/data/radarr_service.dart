@@ -87,12 +87,7 @@ class RadarrService with ArrActivityMixin {
     int movieId, {
     CancelToken? cancelToken,
   }) async {
-    final response = await client.get(
-      '/api/v3/release',
-      queryParameters: {'movieId': movieId},
-      cancelToken: cancelToken,
-    );
-    return response.data as List<dynamic>;
+    return fetchReleases({'movieId': movieId}, cancelToken: cancelToken);
   }
 
   /// Grabs a specific release for download.

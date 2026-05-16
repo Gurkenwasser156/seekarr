@@ -96,12 +96,7 @@ class LidarrService with ArrActivityMixin {
     if (artistId != null) params['artistId'] = artistId;
     if (albumId != null) params['albumId'] = albumId;
 
-    final response = await client.get(
-      '/api/v1/release',
-      queryParameters: params,
-      cancelToken: cancelToken,
-    );
-    return response.data as List<dynamic>;
+    return fetchReleases(params, cancelToken: cancelToken);
   }
 
   /// Grabs a specific release for download.

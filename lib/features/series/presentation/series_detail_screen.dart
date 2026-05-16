@@ -325,17 +325,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.searchSeries(widget.seriesId);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Search started for entire series')),
-      );
+      SnackBarHelper.success(context, 'Search started for entire series');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Search failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
@@ -369,17 +362,13 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.searchSeason(widget.seriesId, seasonNumber);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Search started for Season $seasonNumber')),
+      SnackBarHelper.success(
+        context,
+        'Search started for Season $seasonNumber',
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Search failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _searchingSeasons.remove(seasonNumber));
     }
@@ -408,17 +397,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       final sonarrService = ref.read(sonarrServiceProvider);
       await sonarrService.searchEpisodes([episodeId]);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Episode search started')));
+      SnackBarHelper.success(context, 'Episode search started');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Search failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _searchingEpisodes.remove(episodeId));
     }
@@ -447,18 +429,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
       if (mounted) {
         updateProfileState(profileId);
         ref.invalidate(seriesProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quality profile updated')),
-        );
+        SnackBarHelper.success(context, 'Quality profile updated');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update profile: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Failed to update profile: $e');
     }
   }
 
@@ -469,7 +444,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
     final result = await showDeleteMediaDialog(
       context: context,
       title: title,
-      mediaType: 'series',
+      mediaType: DeleteMediaType.series,
     );
 
     if (!result.confirmed || !context.mounted) return;
@@ -483,18 +458,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
         addImportListExclusion: result.addExclusion,
       );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Series deleted')));
+      SnackBarHelper.success(context, 'Series deleted');
       context.pop();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete series: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Failed to delete series: $e');
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }

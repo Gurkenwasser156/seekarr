@@ -1,5 +1,7 @@
 import 'dart:isolate';
 
+import 'package:dio/dio.dart';
+
 import 'package:seekarr/core/api/api_client.dart';
 
 /// Configuration for *arr service activity endpoints.
@@ -211,6 +213,19 @@ mixin ArrActivityMixin {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Fetches release candidates for interactive search.
+  Future<List<dynamic>> fetchReleases(
+    Map<String, dynamic> queryParameters, {
+    CancelToken? cancelToken,
+  }) async {
+    final response = await client.get(
+      '/api/${config.apiVersion}/release',
+      queryParameters: queryParameters,
+      cancelToken: cancelToken,
+    );
+    return response.data as List<dynamic>;
   }
 
   /// Fetches all quality profiles.

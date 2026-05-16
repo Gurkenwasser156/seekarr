@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 import 'package:seekarr/features/series/presentation/series_provider.dart';
@@ -18,10 +19,9 @@ class SeriesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final queuedSeriesIds = ref.watch(sonarrQueuedSeriesIdsProvider).maybeWhen(
-          data: (ids) => ids,
-          orElse: () => const <int>{},
-        );
+    final queuedSeriesIds = ref
+        .watch(sonarrQueuedSeriesIdsProvider)
+        .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
 
     return MediaBrowseScaffold<SonarrSeries>(
       title: 'TV Series',
@@ -52,9 +52,8 @@ class SeriesScreen extends ConsumerWidget {
           totalCount: episodeCount,
         );
       },
-      browseStatusExtractor: (series) => queuedSeriesIds.contains(series.id)
-          ? MediaStatus.queued
-          : null,
+      browseStatusExtractor: (series) =>
+          queuedSeriesIds.contains(series.id) ? MediaStatus.queued : null,
       onRefresh: (ref) {
         ref.invalidate(sonarrQueuedSeriesIdsProvider);
       },
@@ -62,7 +61,7 @@ class SeriesScreen extends ConsumerWidget {
           (settings.sonarrUrl, settings.sonarrApiKey),
       onItemTap: (context, series, heroTag) {
         context.push(
-          '/services/sonarr/series/${series.id}?heroTag=$heroTag',
+          ServiceRoutes.sonarrSeries(series.id, heroTag: heroTag),
           extra: series,
         );
       },

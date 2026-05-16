@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 import 'package:seekarr/features/music/presentation/music_provider.dart';
@@ -18,10 +19,9 @@ class MusicScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final queuedArtistIds = ref.watch(lidarrQueuedArtistIdsProvider).maybeWhen(
-          data: (ids) => ids,
-          orElse: () => const <int>{},
-        );
+    final queuedArtistIds = ref
+        .watch(lidarrQueuedArtistIdsProvider)
+        .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
 
     return MediaBrowseScaffold<LidarrArtist>(
       title: 'Music',
@@ -48,9 +48,8 @@ class MusicScreen extends ConsumerWidget {
         fileCount: artist.trackFileCount,
         totalCount: artist.trackCount,
       ),
-      browseStatusExtractor: (artist) => queuedArtistIds.contains(artist.id)
-          ? MediaStatus.queued
-          : null,
+      browseStatusExtractor: (artist) =>
+          queuedArtistIds.contains(artist.id) ? MediaStatus.queued : null,
       onRefresh: (ref) {
         ref.invalidate(lidarrQueuedArtistIdsProvider);
       },
@@ -58,7 +57,7 @@ class MusicScreen extends ConsumerWidget {
           (settings.lidarrUrl, settings.lidarrApiKey),
       onItemTap: (context, artist, heroTag) {
         context.push(
-          '/services/lidarr/artist/${artist.id}?heroTag=$heroTag',
+          ServiceRoutes.lidarrArtist(artist.id, heroTag: heroTag),
           extra: artist,
         );
       },

@@ -296,7 +296,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
     final result = await showDeleteMediaDialog(
       context: context,
       title: title,
-      mediaType: 'movie',
+      mediaType: DeleteMediaType.movie,
     );
 
     if (!result.confirmed || !context.mounted) return;

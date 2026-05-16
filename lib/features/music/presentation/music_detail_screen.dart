@@ -323,18 +323,11 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       if (mounted) {
         updateProfileState(profileId);
         ref.invalidate(musicProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quality profile updated')),
-        );
+        SnackBarHelper.success(context, 'Quality profile updated');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update profile: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Failed to update profile: $e');
     }
   }
 
@@ -344,17 +337,10 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       final lidarrService = ref.read(lidarrServiceProvider);
       await lidarrService.searchArtist(widget.artistId);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Search started for artist')),
-      );
+      SnackBarHelper.success(context, 'Search started for artist');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Search failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
@@ -384,17 +370,10 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
       final lidarrService = ref.read(lidarrServiceProvider);
       await lidarrService.searchAlbums([albumId]);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Album search started')));
+      SnackBarHelper.success(context, 'Album search started');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Search failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _searchingAlbums.remove(albumId));
     }
@@ -423,7 +402,7 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
     final result = await showDeleteMediaDialog(
       context: context,
       title: title,
-      mediaType: 'artist',
+      mediaType: DeleteMediaType.artist,
     );
 
     if (!result.confirmed || !context.mounted) return;
@@ -437,18 +416,11 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
         addImportListExclusion: result.addExclusion,
       );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Artist deleted')));
+      SnackBarHelper.success(context, 'Artist deleted');
       context.pop();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete artist: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      SnackBarHelper.error(context, 'Failed to delete artist: $e');
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
