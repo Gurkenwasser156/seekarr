@@ -6,6 +6,7 @@ import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_album.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
@@ -15,6 +16,7 @@ import 'package:seekarr/features/music/presentation/music_provider.dart';
 import 'package:seekarr/features/music/presentation/widgets/music_albums_list.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
 class MusicDetailScreen extends ConsumerStatefulWidget {
   final int artistId;
@@ -161,6 +163,15 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
+        onImport: artistId > 0
+            ? () => context.push(
+                manualImportLocation(
+                  '/import/browse',
+                  ServiceKey.lidarr,
+                  targetId: artistId,
+                ),
+              )
+            : null,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[

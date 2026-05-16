@@ -6,6 +6,7 @@ import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_episode.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
@@ -14,6 +15,7 @@ import 'package:seekarr/features/series/presentation/series_detail_view_model.da
 import 'package:seekarr/features/series/presentation/series_provider.dart';
 import 'package:seekarr/features/series/presentation/widgets/series_seasons_list.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
 class SeriesDetailScreen extends ConsumerStatefulWidget {
   final int seriesId;
@@ -151,6 +153,15 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
+        onImport: seriesId > 0
+            ? () => context.push(
+                manualImportLocation(
+                  '/import/browse',
+                  ServiceKey.sonarr,
+                  targetId: seriesId,
+                ),
+              )
+            : null,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[

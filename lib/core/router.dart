@@ -27,6 +27,11 @@ import 'package:seekarr/features/settings/presentation/settings_region_screen.da
 import 'package:seekarr/features/settings/presentation/settings_services_screen.dart';
 import 'package:seekarr/features/settings/presentation/service_settings_screen.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
+import 'package:seekarr/features/import/presentation/manual_import_browse_screen.dart';
+import 'package:seekarr/features/import/presentation/manual_import_folder_screen.dart';
+import 'package:seekarr/features/import/presentation/manual_import_match_screen.dart';
+import 'package:seekarr/features/import/presentation/manual_import_progress_screen.dart';
+import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -76,6 +81,24 @@ Page<void> _libraryDetailPage<T>(
 
 Page<void> _settingsSubpage(GoRouterState state, Widget child) {
   return RouteUtils.cupertinoPage(key: state.pageKey, child: child);
+}
+
+Page<void> _manualImportPage(
+  GoRouterState state,
+  Widget Function(ServiceKey service, int? targetId) buildChild,
+) {
+  final service = manualImportServiceFromRoute(
+    state.uri.queryParameters['service'],
+  );
+  if (service == null) {
+    return RouteUtils.redirectPage(key: state.pageKey, location: '/activity');
+  }
+
+  final targetId = int.tryParse(state.uri.queryParameters['targetId'] ?? '');
+  return RouteUtils.cupertinoPage(
+    key: state.pageKey,
+    child: buildChild(service, targetId),
+  );
 }
 
 GoRoute _discoverRoutes({required String path, String? redirectLocation}) {
@@ -165,10 +188,8 @@ GoRoute _moviesRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        redirect: (context, state) => _preserveQuery(
-          state.uri,
-          '/services/radarr',
-        ),
+        redirect: (context, state) =>
+            _preserveQuery(state.uri, '/services/radarr'),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'movie/:id',
@@ -216,10 +237,8 @@ GoRoute _seriesRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        redirect: (context, state) => _preserveQuery(
-          state.uri,
-          '/services/sonarr',
-        ),
+        redirect: (context, state) =>
+            _preserveQuery(state.uri, '/services/sonarr'),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'series/:id',
@@ -267,10 +286,8 @@ GoRoute _musicRoutes({required String path, String? redirectLocation}) {
     routes: [
       GoRoute(
         path: 'media',
-        redirect: (context, state) => _preserveQuery(
-          state.uri,
-          '/services/lidarr',
-        ),
+        redirect: (context, state) =>
+            _preserveQuery(state.uri, '/services/lidarr'),
       ),
       GoRoute(
         path: path.startsWith('/') ? ':id' : 'artist/:id',
@@ -354,6 +371,42 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/activity',
             builder: (context, state) => const GlobalActivityScreen(),
+          ),
+          GoRoute(
+            path: '/import/browse',
+            pageBuilder: (context, state) => _manualImportPage(
+              state,
+              (service, targetId) => ManualImportBrowseScreen(
+                service: service,
+                targetId: targetId,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/import/folder',
+            pageBuilder: (context, state) => _manualImportPage(
+              state,
+              (service, targetId) => ManualImportFolderScreen(
+                service: service,
+                targetId: targetId,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/import/match',
+            pageBuilder: (context, state) => _manualImportPage(
+              state,
+              (service, targetId) =>
+                  ManualImportMatchScreen(service: service, targetId: targetId),
+            ),
+          ),
+          GoRoute(
+            path: '/import/progress',
+            pageBuilder: (context, state) => _manualImportPage(
+              state,
+              (service, targetId) =>
+                  ManualImportProgressScreen(service: service),
+            ),
           ),
           GoRoute(
             path: '/search',
