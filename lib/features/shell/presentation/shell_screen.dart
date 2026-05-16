@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
+import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
 import 'package:seekarr/features/settings/domain/nav_tab.dart';
 
 /// Main shell screen with floating bottom navigation.
@@ -40,7 +41,7 @@ class ShellScreen extends ConsumerWidget {
 
   static bool _isImportRoute(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
-    return location.startsWith('/import');
+    return location.startsWith(manualImportPathPrefix);
   }
 
   static int _calculateSelectedIndex(BuildContext context) {

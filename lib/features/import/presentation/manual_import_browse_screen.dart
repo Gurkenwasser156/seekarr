@@ -69,7 +69,7 @@ class _ManualImportBrowseScreenState
             ? null
             : () => context.push(
                 manualImportLocation(
-                  '/import/folder',
+                  manualImportFolderPath,
                   widget.service,
                   targetId: widget.targetId,
                 ),

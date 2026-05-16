@@ -373,7 +373,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const GlobalActivityScreen(),
           ),
           GoRoute(
-            path: '/import/browse',
+            path: manualImportBrowsePath,
             pageBuilder: (context, state) => _manualImportPage(
               state,
               (service, targetId) => ManualImportBrowseScreen(
@@ -383,7 +383,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/import/folder',
+            path: manualImportFolderPath,
             pageBuilder: (context, state) => _manualImportPage(
               state,
               (service, targetId) => ManualImportFolderScreen(
@@ -393,7 +393,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/import/match',
+            path: manualImportMatchPath,
             pageBuilder: (context, state) => _manualImportPage(
               state,
               (service, targetId) =>
@@ -401,7 +401,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/import/progress',
+            path: manualImportProgressPath,
             pageBuilder: (context, state) => _manualImportPage(
               state,
               (service, targetId) =>

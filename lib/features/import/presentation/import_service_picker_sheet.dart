@@ -99,7 +99,7 @@ class _ServicePickerRow extends StatelessWidget {
           borderRadius: AppRadius.borderRadiusMd,
           onTap: () {
             Navigator.of(context).pop();
-            context.push(manualImportLocation('/import/browse', service));
+            context.push(manualImportLocation(manualImportBrowsePath, service));
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(

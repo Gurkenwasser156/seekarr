@@ -153,15 +153,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
-        onImport: seriesId > 0
-            ? () => context.push(
-                manualImportLocation(
-                  '/import/browse',
-                  ServiceKey.sonarr,
-                  targetId: seriesId,
-                ),
-              )
-            : null,
+        onImport: openManualImportCallback(
+          context,
+          ServiceKey.sonarr,
+          seriesId,
+        ),
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[

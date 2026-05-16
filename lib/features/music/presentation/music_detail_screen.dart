@@ -163,15 +163,11 @@ class _MusicDetailScreenState extends ConsumerState<MusicDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
-        onImport: artistId > 0
-            ? () => context.push(
-                manualImportLocation(
-                  '/import/browse',
-                  ServiceKey.lidarr,
-                  targetId: artistId,
-                ),
-              )
-            : null,
+        onImport: openManualImportCallback(
+          context,
+          ServiceKey.lidarr,
+          artistId,
+        ),
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[

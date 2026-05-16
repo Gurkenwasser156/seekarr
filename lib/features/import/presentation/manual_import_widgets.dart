@@ -446,8 +446,7 @@ List<String> _segmentsFor(String path) {
 }
 
 String _pathForSegment(String path, int segmentIndex) {
-  final normalized = path.replaceAll('\\', '/');
   final prefix = path.startsWith('/') ? '/' : '';
-  final segments = _segmentsFor(normalized).take(segmentIndex + 1).join('/');
+  final segments = _segmentsFor(path).take(segmentIndex + 1).join('/');
   return '$prefix$segments';
 }
