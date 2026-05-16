@@ -386,17 +386,7 @@ class ManualImportFlowNotifier extends Notifier<ManualImportFlowState> {
       languages: languageOverride,
     );
 
-    final assignment = ManualImportFixAssignment(
-      match: ManualImportLookupResult.fromJson(
-        service,
-        _matchPayloadForItem(service, draft),
-      ),
-      episode: _episodeAssignmentForItem(service, draft),
-      episodes: _episodeAssignmentsForItem(service, draft),
-      album: _albumAssignmentForItem(service, draft),
-      track: _trackAssignmentForItem(service, draft),
-      tracks: _trackAssignmentsForItem(service, draft),
-    );
+    final assignment = _assignmentForItem(service, draft);
 
     return reprocessItem(draft, assignment);
   }
@@ -502,60 +492,43 @@ class ManualImportFlowNotifier extends Notifier<ManualImportFlowState> {
   }
 }
 
-Map<String, dynamic> _matchPayloadForItem(
+ManualImportFixAssignment _assignmentForItem(
   ServiceKey service,
   ManualImportItem item,
 ) {
-  return switch (service) {
+  final matchPayload = switch (service) {
     ServiceKey.radarr => item.movie ?? const <String, dynamic>{},
     ServiceKey.sonarr => item.series ?? const <String, dynamic>{},
     ServiceKey.lidarr => item.artist ?? const <String, dynamic>{},
     ServiceKey.seerr => const <String, dynamic>{},
   };
-}
+  final episodes = service == ServiceKey.sonarr
+      ? item.episodes
+            .map(ManualImportEpisode.fromJson)
+            .where((item) => item.id > 0)
+            .toList(growable: false)
+      : const <ManualImportEpisode>[];
+  final episode = service == ServiceKey.sonarr && item.episodes.isNotEmpty
+      ? ManualImportEpisode.fromJson(item.episodes.first)
+      : null;
+  final tracks = service == ServiceKey.lidarr
+      ? item.tracks
+            .map(ManualImportTrack.fromJson)
+            .where((item) => item.id > 0)
+            .toList(growable: false)
+      : const <ManualImportTrack>[];
+  final track = service == ServiceKey.lidarr && item.tracks.isNotEmpty
+      ? ManualImportTrack.fromJson(item.tracks.first)
+      : null;
 
-ManualImportEpisode? _episodeAssignmentForItem(
-  ServiceKey service,
-  ManualImportItem item,
-) {
-  if (service != ServiceKey.sonarr || item.episodes.isEmpty) return null;
-  return ManualImportEpisode.fromJson(item.episodes.first);
-}
-
-List<ManualImportEpisode> _episodeAssignmentsForItem(
-  ServiceKey service,
-  ManualImportItem item,
-) {
-  if (service != ServiceKey.sonarr) return const [];
-  return item.episodes
-      .map(ManualImportEpisode.fromJson)
-      .where((item) => item.id > 0)
-      .toList(growable: false);
-}
-
-ManualImportAlbum? _albumAssignmentForItem(
-  ServiceKey service,
-  ManualImportItem item,
-) {
-  if (service != ServiceKey.lidarr || item.album == null) return null;
-  return ManualImportAlbum.fromJson(item.album!);
-}
-
-ManualImportTrack? _trackAssignmentForItem(
-  ServiceKey service,
-  ManualImportItem item,
-) {
-  if (service != ServiceKey.lidarr || item.tracks.isEmpty) return null;
-  return ManualImportTrack.fromJson(item.tracks.first);
-}
-
-List<ManualImportTrack> _trackAssignmentsForItem(
-  ServiceKey service,
-  ManualImportItem item,
-) {
-  if (service != ServiceKey.lidarr) return const [];
-  return item.tracks
-      .map(ManualImportTrack.fromJson)
-      .where((item) => item.id > 0)
-      .toList(growable: false);
+  return ManualImportFixAssignment(
+    match: ManualImportLookupResult.fromJson(service, matchPayload),
+    episode: episode,
+    episodes: episodes,
+    album: service == ServiceKey.lidarr && item.album != null
+        ? ManualImportAlbum.fromJson(item.album!)
+        : null,
+    track: track,
+    tracks: tracks,
+  );
 }

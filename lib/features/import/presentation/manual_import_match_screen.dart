@@ -560,7 +560,7 @@ class _ImportFooter extends ConsumerWidget {
                         if (command != null && context.mounted) {
                           context.push(
                             manualImportLocation(
-                              '/import/progress',
+                              manualImportProgressPath,
                               service,
                               targetId: targetId,
                             ),

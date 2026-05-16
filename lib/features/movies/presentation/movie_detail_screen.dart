@@ -144,15 +144,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
-        onImport: movieId > 0
-            ? () => context.push(
-                manualImportLocation(
-                  '/import/browse',
-                  ServiceKey.radarr,
-                  targetId: movieId,
-                ),
-              )
-            : null,
+        onImport: openManualImportCallback(context, ServiceKey.radarr, movieId),
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[

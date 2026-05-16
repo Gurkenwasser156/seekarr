@@ -77,18 +77,20 @@ class ManualImportService {
       '$_prefix/${_lookupEndpoint()}',
       queryParameters: {'term': normalized},
     );
-    return _listData(response.data)
-        .map((item) => ManualImportLookupResult.fromJson(service, item))
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      (item) => ManualImportLookupResult.fromJson(service, item),
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<List<ManualImportLookupResult>> getLibraryMatches() async {
     final response = await client.get('$_prefix/${_libraryEndpoint()}');
-    return _listData(response.data)
-        .map((item) => ManualImportLookupResult.fromJson(service, item))
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      (item) => ManualImportLookupResult.fromJson(service, item),
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<ManualImportItem> reprocessItem({
@@ -116,10 +118,11 @@ class ManualImportService {
         if (seasonNumber != null) 'seasonNumber': seasonNumber,
       },
     );
-    return _listData(response.data)
-        .map(ManualImportEpisode.fromJson)
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportEpisode.fromJson,
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<List<ManualImportAlbum>> getAlbums(int artistId) async {
@@ -127,10 +130,11 @@ class ManualImportService {
       '$_prefix/album',
       queryParameters: {'artistId': artistId},
     );
-    return _listData(response.data)
-        .map(ManualImportAlbum.fromJson)
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportAlbum.fromJson,
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<List<ManualImportTrack>> getTracks({required int albumId}) async {
@@ -138,26 +142,29 @@ class ManualImportService {
       '$_prefix/track',
       queryParameters: {'albumId': albumId},
     );
-    return _listData(response.data)
-        .map(ManualImportTrack.fromJson)
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportTrack.fromJson,
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<List<ManualImportQualityOption>> getQualityOptions() async {
     final response = await client.get('$_prefix/qualitydefinition');
-    return _listData(response.data)
-        .map(ManualImportQualityOption.fromJson)
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportQualityOption.fromJson,
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<List<ManualImportLanguageOption>> getLanguageOptions() async {
     final response = await client.get('$_prefix/language');
-    return _listData(response.data)
-        .map(ManualImportLanguageOption.fromJson)
-        .where((item) => item.id > 0)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportLanguageOption.fromJson,
+      where: (item) => item.id > 0,
+    );
   }
 
   Future<ManualImportCommandStatus> startManualImport(
@@ -208,4 +215,13 @@ List<Map<String, dynamic>> _listData(dynamic data) {
       .map(mapOrNull)
       .whereType<Map<String, dynamic>>()
       .toList(growable: false);
+}
+
+List<T> _mappedList<T>(
+  dynamic data,
+  T Function(Map<String, dynamic>) fromJson, {
+  bool Function(T item)? where,
+}) {
+  final items = _listData(data).map(fromJson);
+  return (where == null ? items : items.where(where)).toList(growable: false);
 }

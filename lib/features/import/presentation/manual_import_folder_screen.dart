@@ -79,7 +79,7 @@ class _ManualImportFolderScreenState
         onPressed: state.hasSelectedItems
             ? () => context.push(
                 manualImportLocation(
-                  '/import/match',
+                  manualImportMatchPath,
                   widget.service,
                   targetId: widget.targetId,
                 ),
