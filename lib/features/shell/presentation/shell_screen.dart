@@ -18,21 +18,29 @@ class ShellScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hideBottomNav = _isImportRoute(context);
     final destinations = NavTab.values
         .map(_destinationFor)
         .toList(growable: false);
-    final selectedIndex = _calculateSelectedIndex(context);
+    final selectedIndex = hideBottomNav ? -1 : _calculateSelectedIndex(context);
 
     return Scaffold(
-      extendBody: true,
+      extendBody: !hideBottomNav,
       body: child,
-      bottomNavigationBar: FloatingBottomNavBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (int idx) =>
-            _onItemTapped(idx, context, ref, selectedIndex),
-        destinations: destinations,
-      ),
+      bottomNavigationBar: hideBottomNav
+          ? null
+          : FloatingBottomNavBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (int idx) =>
+                  _onItemTapped(idx, context, ref, selectedIndex),
+              destinations: destinations,
+            ),
     );
+  }
+
+  static bool _isImportRoute(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    return location.startsWith('/import');
   }
 
   static int _calculateSelectedIndex(BuildContext context) {

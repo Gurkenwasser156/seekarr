@@ -53,6 +53,9 @@ class LibraryDetailActions extends StatelessWidget {
   /// Called when the user taps the Delete icon button.
   final VoidCallback onDelete;
 
+  /// Called when the user taps the manual Import icon button.
+  final VoidCallback? onImport;
+
   const LibraryDetailActions({
     super.key,
     required this.collapseFactor,
@@ -67,6 +70,7 @@ class LibraryDetailActions extends StatelessWidget {
     required this.onAutoSearch,
     required this.onProfileSelected,
     required this.onDelete,
+    this.onImport,
     this.currentProfileName,
     this.currentProfileId,
     this.qualityProfiles = const [],
@@ -107,7 +111,7 @@ class LibraryDetailActions extends StatelessWidget {
       _DetailActionButton(
         icon: Icons.download_for_offline_outlined,
         label: 'Import',
-        onPressed: null,
+        onPressed: onImport,
       ),
       _DetailActionButton(
         icon: isDeleting ? null : Icons.delete_outline_rounded,

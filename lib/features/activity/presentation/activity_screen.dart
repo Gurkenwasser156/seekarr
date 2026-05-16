@@ -11,6 +11,7 @@ import 'package:seekarr/features/activity/presentation/widgets/activity_tab.dart
 import 'package:seekarr/features/activity/presentation/widgets/requests_list.dart';
 import 'package:seekarr/features/activity/presentation/widgets/wanted_tab.dart';
 import 'package:seekarr/features/discover/presentation/discover_provider.dart';
+import 'package:seekarr/features/import/presentation/import_service_picker_sheet.dart';
 
 enum ServiceType { movies, series, music, discover }
 
@@ -113,6 +114,13 @@ class _GlobalActivityScreenState extends ConsumerState<GlobalActivityScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Activity'),
+          actions: [
+            IconButton(
+              tooltip: 'Manual Import',
+              icon: const Icon(Icons.download_for_offline_outlined),
+              onPressed: () => showImportServicePickerSheet(context),
+            ),
+          ],
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,

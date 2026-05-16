@@ -7,12 +7,14 @@ import 'package:seekarr/core/api/quality_profile_mixin.dart';
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
+import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_provider.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_view_model.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
+import 'package:seekarr/features/settings/domain/service_key.dart';
 
 /// Detail screen for a Radarr movie with M3 styling.
 class MovieDetailScreen extends ConsumerStatefulWidget {
@@ -142,6 +144,15 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
             _showInteractiveSearch(context, title: viewModel.title),
         onAutoSearch: () => _triggerSearch(context),
         onProfileSelected: _updateProfile,
+        onImport: movieId > 0
+            ? () => context.push(
+                manualImportLocation(
+                  '/import/browse',
+                  ServiceKey.radarr,
+                  targetId: movieId,
+                ),
+              )
+            : null,
         onDelete: () => _confirmDelete(context, title: viewModel.title),
       ),
       if (viewModel.overview.isNotEmpty) ...[
