@@ -1,10 +1,13 @@
-import 'package:seekarr/core/models/media_preview.dart';
-import 'package:seekarr/core/widgets/content_card.dart';
-import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+
+import 'package:seekarr/core/app_spacing.dart';
+import 'package:seekarr/core/models/media_preview.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
+import 'package:seekarr/core/widgets/content_card.dart';
+import 'package:seekarr/features/discover/presentation/discover_provider.dart';
 
 class DiscoverSeeAllScreen extends ConsumerStatefulWidget {
   final String type; // 'movies', 'tv', 'trending'
@@ -74,12 +77,12 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
             PagedGridView<int, MediaPreview>(
               state: state,
               fetchNextPage: fetchNextPage,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 childAspectRatio: 2 / 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: AppSpacing.gridGap,
+                mainAxisSpacing: AppSpacing.gridGap,
               ),
               builderDelegate: PagedChildBuilderDelegate<MediaPreview>(
                 itemBuilder: (context, item, index) {
@@ -95,9 +98,13 @@ class _DiscoverSeeAllScreenState extends ConsumerState<DiscoverSeeAllScreen> {
 
                   return GestureDetector(
                     onTap: () {
-                      final encodedUrl = Uri.encodeComponent(imageUrl);
                       context.push(
-                        '/services/seerr/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                        ServiceRoutes.seerrDetail(
+                          mediaType: mediaType,
+                          id: item.id,
+                          heroTag: heroTag,
+                          posterUrl: imageUrl,
+                        ),
                       );
                     },
                     child: Hero(

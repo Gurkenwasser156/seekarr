@@ -227,6 +227,7 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
           ..sort();
     return _ChoiceList<int>(
       key: const ValueKey('season'),
+      service: widget.service,
       emptyMessage: 'No episodes found for this series.',
       values: seasons,
       selected: _seasonNumber,
@@ -242,18 +243,20 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
         .where((item) => item.seasonNumber == _seasonNumber)
         .toList(growable: false);
     return widget.isBulk
-        ? _EpisodeBulkMap(
+        ? _BulkMap<ManualImportEpisode>(
             key: const ValueKey('episode-bulk'),
             service: widget.service,
             items: widget.bulkItems,
-            episodes: episodes,
+            values: episodes,
             assignments: _episodeAssignments,
+            titleFor: (item) => '${item.label} · ${item.title}',
             onChanged: (item, episode) {
               setState(() => _episodeAssignments[item.path] = episode);
             },
           )
         : _ChoiceList<ManualImportEpisode>(
             key: const ValueKey('episode-single'),
+            service: widget.service,
             emptyMessage: 'No episodes found for this season.',
             values: episodes,
             selected: _episodeAssignments[widget.item?.path],
@@ -271,6 +274,7 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
   Widget _buildAlbumStep() {
     return _ChoiceList<ManualImportAlbum>(
       key: const ValueKey('album'),
+      service: widget.service,
       emptyMessage: 'No albums found for this artist.',
       values: _albums,
       selected: _album,
@@ -282,18 +286,20 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
 
   Widget _buildTrackStep() {
     return widget.isBulk
-        ? _TrackBulkMap(
+        ? _BulkMap<ManualImportTrack>(
             key: const ValueKey('track-bulk'),
             service: widget.service,
             items: widget.bulkItems,
-            tracks: _tracks,
+            values: _tracks,
             assignments: _trackAssignments,
+            titleFor: (item) => item.label,
             onChanged: (item, track) {
               setState(() => _trackAssignments[item.path] = track);
             },
           )
         : _ChoiceList<ManualImportTrack>(
             key: const ValueKey('track-single'),
+            service: widget.service,
             emptyMessage: 'No tracks found for this album.',
             values: _tracks,
             selected: _trackAssignments[widget.item?.path],
@@ -522,42 +528,12 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
     final beforeError = ref.read(manualImportFlowProvider).error;
     if (widget.isBulk) {
       await notifier.reprocessItems({
-        for (final item in widget.bulkItems)
-          item: ManualImportFixAssignment(
-            match: match,
-            episode: _episodeAssignments[item.path],
-            episodes: [
-              if (_episodeAssignments[item.path] != null)
-                _episodeAssignments[item.path]!,
-            ],
-            album: _album,
-            track: _trackAssignments[item.path],
-            tracks: [
-              if (_trackAssignments[item.path] != null)
-                _trackAssignments[item.path]!,
-            ],
-          ),
+        for (final item in widget.bulkItems) item: _assignmentFor(item, match),
       });
     } else {
       final item = widget.item;
       if (item != null) {
-        await notifier.reprocessItem(
-          item,
-          ManualImportFixAssignment(
-            match: match,
-            episode: _episodeAssignments[item.path],
-            episodes: [
-              if (_episodeAssignments[item.path] != null)
-                _episodeAssignments[item.path]!,
-            ],
-            album: _album,
-            track: _trackAssignments[item.path],
-            tracks: [
-              if (_trackAssignments[item.path] != null)
-                _trackAssignments[item.path]!,
-            ],
-          ),
-        );
+        await notifier.reprocessItem(item, _assignmentFor(item, match));
       }
     }
 
@@ -572,6 +548,22 @@ class _ManualImportFixSheetState extends ConsumerState<_ManualImportFixSheet> {
     if (mounted) {
       setState(() => _applying = false);
     }
+  }
+
+  ManualImportFixAssignment _assignmentFor(
+    ManualImportItem item,
+    ManualImportLookupResult match,
+  ) {
+    final episode = _episodeAssignments[item.path];
+    final track = _trackAssignments[item.path];
+    return ManualImportFixAssignment(
+      match: match,
+      episode: episode,
+      episodes: [if (episode != null) episode],
+      album: _album,
+      track: track,
+      tracks: [if (track != null) track],
+    );
   }
 }
 
@@ -832,6 +824,7 @@ class _SearchStep extends StatelessWidget {
 }
 
 class _ChoiceList<T> extends StatelessWidget {
+  final ServiceKey service;
   final List<T> values;
   final T? selected;
   final String emptyMessage;
@@ -841,6 +834,7 @@ class _ChoiceList<T> extends StatelessWidget {
 
   const _ChoiceList({
     super.key,
+    required this.service,
     required this.values,
     required this.selected,
     required this.emptyMessage,
@@ -857,10 +851,6 @@ class _ChoiceList<T> extends StatelessWidget {
         message: emptyMessage,
       );
     }
-    final service = context
-        .findAncestorWidgetOfExactType<_FixSheetChrome>()
-        ?.service;
-    final accent = service?.accent ?? Theme.of(context).colorScheme.primary;
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -872,73 +862,13 @@ class _ChoiceList<T> extends StatelessWidget {
       itemBuilder: (context, index) {
         final value = values[index];
         return _ResultTile(
-          service: service ?? ServiceKey.radarr,
+          service: service,
           title: titleFor(value),
           subtitle: subtitleFor(value),
           selected: selected == value,
-          accentOverride: accent,
           onTap: () => onSelected(value),
         );
       },
-    );
-  }
-}
-
-class _EpisodeBulkMap extends StatelessWidget {
-  final ServiceKey service;
-  final List<ManualImportItem> items;
-  final List<ManualImportEpisode> episodes;
-  final Map<String, ManualImportEpisode> assignments;
-  final void Function(ManualImportItem item, ManualImportEpisode episode)
-  onChanged;
-
-  const _EpisodeBulkMap({
-    super.key,
-    required this.service,
-    required this.items,
-    required this.episodes,
-    required this.assignments,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _BulkMap<ManualImportEpisode>(
-      service: service,
-      items: items,
-      values: episodes,
-      assignments: assignments,
-      titleFor: (item) => '${item.label} · ${item.title}',
-      onChanged: onChanged,
-    );
-  }
-}
-
-class _TrackBulkMap extends StatelessWidget {
-  final ServiceKey service;
-  final List<ManualImportItem> items;
-  final List<ManualImportTrack> tracks;
-  final Map<String, ManualImportTrack> assignments;
-  final void Function(ManualImportItem item, ManualImportTrack track) onChanged;
-
-  const _TrackBulkMap({
-    super.key,
-    required this.service,
-    required this.items,
-    required this.tracks,
-    required this.assignments,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _BulkMap<ManualImportTrack>(
-      service: service,
-      items: items,
-      values: tracks,
-      assignments: assignments,
-      titleFor: (item) => item.label,
-      onChanged: onChanged,
     );
   }
 }
@@ -952,6 +882,7 @@ class _BulkMap<T> extends StatelessWidget {
   final void Function(ManualImportItem item, T value) onChanged;
 
   const _BulkMap({
+    super.key,
     required this.service,
     required this.items,
     required this.values,
@@ -1046,7 +977,6 @@ class _ResultTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool selected;
-  final Color? accentOverride;
   final VoidCallback onTap;
 
   const _ResultTile({
@@ -1054,14 +984,13 @@ class _ResultTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.selected,
-    this.accentOverride,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final accent = accentOverride ?? service.accent;
+    final accent = service.accent;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.xs),
       decoration: BoxDecoration(

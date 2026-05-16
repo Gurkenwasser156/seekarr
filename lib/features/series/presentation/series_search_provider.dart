@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ignore: implementation_imports
 import 'package:flutter_riverpod/legacy.dart';
+
+import 'package:seekarr/core/utils/search_results_loader.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
 
@@ -14,14 +16,6 @@ final seriesSearchResultsProvider = FutureProvider<List<SonarrSeries>?>((
   ref,
 ) async {
   final query = ref.watch(seriesSearchQueryProvider);
-  if (query.isEmpty) {
-    return null;
-  }
-
-  try {
-    final service = ref.read(sonarrServiceProvider);
-    return await service.lookupSeries(query);
-  } catch (_) {
-    return [];
-  }
+  final service = ref.read(sonarrServiceProvider);
+  return loadNullableSearchResults(query: query, lookup: service.lookupSeries);
 });

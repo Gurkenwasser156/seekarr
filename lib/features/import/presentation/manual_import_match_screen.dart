@@ -322,25 +322,23 @@ class _MediaMatchRow extends StatelessWidget {
                   ],
                 ),
               ),
-              ...[
-                const SizedBox(width: AppSpacing.sm),
-                OutlinedButton.icon(
-                  onPressed: onFix,
-                  icon: const Icon(Icons.search_rounded, size: 14),
-                  label: const Text('Fix'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: service.accent,
-                    side: BorderSide(color: service.accent),
-                    textStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                    ),
+              const SizedBox(width: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: onFix,
+                icon: const Icon(Icons.search_rounded, size: 14),
+                label: const Text('Fix'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: service.accent,
+                  side: BorderSide(color: service.accent),
+                  textStyle: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ],

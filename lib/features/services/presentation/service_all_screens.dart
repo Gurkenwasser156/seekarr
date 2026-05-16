@@ -7,6 +7,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
 import 'package:seekarr/core/utils/route_utils.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/utils/string_utils.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
@@ -26,7 +27,7 @@ class ServiceAllRequestsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: _ServiceListAppBar(
         title: 'All Requests',
-        backRoute: '/services/seerr',
+        backRoute: ServiceRoutes.seerr,
         accent: ServiceKey.seerr.accent,
       ),
       body: RefreshIndicator(
@@ -276,9 +277,13 @@ class _RequestListRow extends StatelessWidget {
     if (id == null || id <= 0) return;
     final mediaType = request.type == 'tv' ? 'tv' : 'movie';
     final posterUrl = ImageUtils.buildTmdbPosterUrl(media?.posterPath);
-    final encodedPosterUrl = Uri.encodeComponent(posterUrl);
     context.push(
-      '/services/seerr/$mediaType/$id?heroTag=$heroTag&posterUrl=$encodedPosterUrl',
+      ServiceRoutes.seerrDetail(
+        mediaType: mediaType,
+        id: id,
+        heroTag: heroTag,
+        posterUrl: posterUrl,
+      ),
     );
   }
 }

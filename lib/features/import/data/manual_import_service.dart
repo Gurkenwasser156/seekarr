@@ -35,10 +35,11 @@ class ManualImportService {
 
   Future<List<ManualImportRootFolder>> getRootFolders() async {
     final response = await client.get('$_prefix/rootfolder');
-    return _listData(response.data)
-        .map(ManualImportRootFolder.fromJson)
-        .where((folder) => folder.path.isNotEmpty)
-        .toList(growable: false);
+    return _mappedList(
+      response.data,
+      ManualImportRootFolder.fromJson,
+      where: (folder) => folder.path.isNotEmpty,
+    );
   }
 
   Future<ManualImportFileSystemResult> getFileSystem(String path) async {
@@ -64,9 +65,7 @@ class ManualImportService {
         if (service == ServiceKey.lidarr) 'replaceExistingFiles': false,
       },
     );
-    return _listData(
-      response.data,
-    ).map(ManualImportItem.fromJson).toList(growable: false);
+    return _mappedList(response.data, ManualImportItem.fromJson);
   }
 
   Future<List<ManualImportLookupResult>> lookup(String term) async {
@@ -101,9 +100,7 @@ class ManualImportService {
       '$_prefix/manualimport',
       data: [item.toReprocessJson(service, assignment: assignment)],
     );
-    final items = _listData(
-      response.data,
-    ).map(ManualImportItem.fromJson).toList(growable: false);
+    final items = _mappedList(response.data, ManualImportItem.fromJson);
     return items.isEmpty ? item : items.first;
   }
 

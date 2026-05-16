@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ignore: implementation_imports
 import 'package:flutter_riverpod/legacy.dart';
+
+import 'package:seekarr/core/utils/search_results_loader.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/domain/models/lidarr_artist.dart';
 
@@ -14,14 +16,6 @@ final musicSearchResultsProvider = FutureProvider<List<LidarrArtist>?>((
   ref,
 ) async {
   final query = ref.watch(musicSearchQueryProvider);
-  if (query.isEmpty) {
-    return null;
-  }
-
-  try {
-    final service = ref.read(lidarrServiceProvider);
-    return await service.lookupArtists(query);
-  } catch (_) {
-    return [];
-  }
+  final service = ref.read(lidarrServiceProvider);
+  return loadNullableSearchResults(query: query, lookup: service.lookupArtists);
 });

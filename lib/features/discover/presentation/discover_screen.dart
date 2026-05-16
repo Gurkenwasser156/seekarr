@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
@@ -106,14 +108,14 @@ class DiscoverScreen extends ConsumerWidget {
               title: 'Trending',
               sectionId: 'trending',
               provider: discoverTrendingProvider,
-              onSeeAll: () => context.push('/services/seerr/trending/all'),
+              onSeeAll: () => context.push(ServiceRoutes.seerrTrendingAll),
             ),
             const SizedBox(height: AppSpacing.xl),
             _DiscoverSection(
               title: 'Movies',
               sectionId: 'movies',
               provider: discoverMoviesProvider,
-              onSeeAll: () => context.push('/services/seerr/movies/all'),
+              onSeeAll: () => context.push(ServiceRoutes.seerrMoviesAll),
               forcedMediaType: 'movie',
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -121,7 +123,7 @@ class DiscoverScreen extends ConsumerWidget {
               title: 'TV Series',
               sectionId: 'tv',
               provider: discoverTVProvider,
-              onSeeAll: () => context.push('/services/seerr/tv/all'),
+              onSeeAll: () => context.push(ServiceRoutes.seerrTvAll),
               forcedMediaType: 'tv',
             ),
           ],
@@ -212,9 +214,13 @@ class DiscoverScreen extends ConsumerWidget {
 
             return GestureDetector(
               onTap: () {
-                final encodedUrl = Uri.encodeComponent(imageUrl);
                 context.push(
-                  '/services/seerr/${item.mediaType}/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                  ServiceRoutes.seerrDetail(
+                    mediaType: item.mediaType,
+                    id: item.id,
+                    heroTag: heroTag,
+                    posterUrl: imageUrl,
+                  ),
                 );
               },
               child: Hero(
@@ -293,9 +299,13 @@ class _DiscoverSection extends ConsumerWidget {
                     ),
                     child: GestureDetector(
                       onTap: () {
-                        final encodedUrl = Uri.encodeComponent(imageUrl);
                         context.push(
-                          '/services/seerr/$mediaType/${item.id}?heroTag=$heroTag&posterUrl=$encodedUrl',
+                          ServiceRoutes.seerrDetail(
+                            mediaType: mediaType,
+                            id: item.id,
+                            heroTag: heroTag,
+                            posterUrl: imageUrl,
+                          ),
                         );
                       },
                       child: Hero(

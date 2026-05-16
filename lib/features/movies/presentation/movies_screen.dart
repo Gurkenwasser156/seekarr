@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:seekarr/core/providers/navigation_refresh_provider.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/widgets/widgets.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/movies/presentation/movies_provider.dart';
@@ -18,10 +19,9 @@ class MoviesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final queuedMovieIds = ref.watch(radarrQueuedMovieIdsProvider).maybeWhen(
-          data: (ids) => ids,
-          orElse: () => const <int>{},
-        );
+    final queuedMovieIds = ref
+        .watch(radarrQueuedMovieIdsProvider)
+        .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
 
     return MediaBrowseScaffold<RadarrMovie>(
       title: 'Movies',
@@ -42,9 +42,8 @@ class MoviesScreen extends ConsumerWidget {
       idExtractor: (movie) => movie.id,
       statusExtractor: (movie) =>
           MediaAvailabilityInfo(hasFile: movie.hasFile, status: movie.status),
-      browseStatusExtractor: (movie) => queuedMovieIds.contains(movie.id)
-          ? MediaStatus.queued
-          : null,
+      browseStatusExtractor: (movie) =>
+          queuedMovieIds.contains(movie.id) ? MediaStatus.queued : null,
       onRefresh: (ref) {
         ref.invalidate(radarrQueuedMovieIdsProvider);
       },
@@ -52,7 +51,7 @@ class MoviesScreen extends ConsumerWidget {
           (settings.radarrUrl, settings.radarrApiKey),
       onItemTap: (context, movie, heroTag) {
         context.push(
-          '/services/radarr/movie/${movie.id}?heroTag=$heroTag',
+          ServiceRoutes.radarrMovie(movie.id, heroTag: heroTag),
           extra: movie,
         );
       },

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ignore: implementation_imports
 import 'package:flutter_riverpod/legacy.dart';
+
+import 'package:seekarr/core/utils/search_results_loader.dart';
 import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 
@@ -14,14 +16,6 @@ final moviesSearchResultsProvider = FutureProvider<List<RadarrMovie>?>((
   ref,
 ) async {
   final query = ref.watch(moviesSearchQueryProvider);
-  if (query.isEmpty) {
-    return null;
-  }
-
-  try {
-    final service = ref.read(radarrServiceProvider);
-    return await service.lookupMovies(query);
-  } catch (_) {
-    return [];
-  }
+  final service = ref.read(radarrServiceProvider);
+  return loadNullableSearchResults(query: query, lookup: service.lookupMovies);
 });

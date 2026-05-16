@@ -7,6 +7,7 @@ import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/models/media_preview.dart';
 import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/utils/image_utils.dart';
+import 'package:seekarr/core/utils/service_routes.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
@@ -30,7 +31,7 @@ class ServicesTrendingSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesTrendingProvider),
       serviceName: 'Seerr',
       actionLabel: 'Seerr',
-      onAction: () => context.push('/services/seerr'),
+      onAction: () => context.push(ServiceRoutes.seerr),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year,
       imageUrl: (item, _) => ImageUtils.buildTmdbPosterUrl(item.posterPath),
@@ -55,7 +56,7 @@ class ServicesRecentlyAddedMoviesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesMoviesProvider),
       serviceName: 'Radarr',
       actionLabel: 'See all',
-      onAction: () => context.push('/services/radarr'),
+      onAction: () => context.push(ServiceRoutes.radarr),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(
@@ -65,7 +66,10 @@ class ServicesRecentlyAddedMoviesSection extends ConsumerWidget {
       ).url,
       heroTag: (item) => 'services_radarr_${item.id}',
       onTap: (item) => context.push(
-        '/services/radarr/movie/${item.id}?heroTag=services_radarr_${item.id}',
+        ServiceRoutes.radarrMovie(
+          item.id,
+          heroTag: 'services_radarr_${item.id}',
+        ),
         extra: item,
       ),
       limit: 8,
@@ -84,7 +88,7 @@ class ServicesRecentlyAddedSeriesSection extends ConsumerWidget {
       asyncValue: ref.watch(servicesSeriesProvider),
       serviceName: 'Sonarr',
       actionLabel: 'See all',
-      onAction: () => context.push('/services/sonarr'),
+      onAction: () => context.push(ServiceRoutes.sonarr),
       itemTitle: (item) => item.title,
       itemSubtitle: (item) => item.year.toString(),
       imageUrl: (item, settings) => ImageUtils.extractPosterUrl(
@@ -94,7 +98,10 @@ class ServicesRecentlyAddedSeriesSection extends ConsumerWidget {
       ).url,
       heroTag: (item) => 'services_sonarr_${item.id}',
       onTap: (item) => context.push(
-        '/services/sonarr/series/${item.id}?heroTag=services_sonarr_${item.id}',
+        ServiceRoutes.sonarrSeries(
+          item.id,
+          heroTag: 'services_sonarr_${item.id}',
+        ),
         extra: item,
       ),
       limit: 8,
@@ -115,7 +122,7 @@ class ServicesRecentRequestsSection extends ConsumerWidget {
       asyncValue: requests,
       serviceName: 'Seerr',
       actionLabel: 'See all',
-      onAction: () => context.push('/services/seerr/requests'),
+      onAction: () => context.push(ServiceRoutes.seerrRequests),
       emptyLabel: 'No recent requests',
       itemsBuilder: (items) => items.take(3).map(_RequestRow.new).toList(),
     );
@@ -429,16 +436,20 @@ class _RequestRow extends StatelessWidget {
     final media = request.media;
     final id = media?.tmdbId ?? media?.id;
     if (id == null || id <= 0) {
-      context.go('/services/seerr');
+      context.go(ServiceRoutes.seerr);
       return;
     }
 
     final mediaType = request.type == 'tv' ? 'tv' : 'movie';
     final posterUrl = ImageUtils.buildTmdbPosterUrl(media?.posterPath);
-    final encodedPosterUrl = Uri.encodeComponent(posterUrl);
     final tag = heroTag ?? 'services_request_${request.id}';
     context.push(
-      '/services/seerr/$mediaType/$id?heroTag=$tag&posterUrl=$encodedPosterUrl',
+      ServiceRoutes.seerrDetail(
+        mediaType: mediaType,
+        id: id,
+        heroTag: tag,
+        posterUrl: posterUrl,
+      ),
     );
   }
 }
@@ -671,9 +682,13 @@ void _openSeerrPreview(
   required String heroTag,
 }) {
   final posterUrl = ImageUtils.buildTmdbPosterUrl(item.posterPath);
-  final encodedPosterUrl = Uri.encodeComponent(posterUrl);
   context.push(
-    '/services/seerr/${item.mediaType}/${item.id}?heroTag=$heroTag&posterUrl=$encodedPosterUrl',
+    ServiceRoutes.seerrDetail(
+      mediaType: item.mediaType,
+      id: item.id,
+      heroTag: heroTag,
+      posterUrl: posterUrl,
+    ),
   );
 }
 
