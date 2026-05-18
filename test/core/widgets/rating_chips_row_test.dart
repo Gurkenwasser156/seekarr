@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:seekarr/core/app_spacing.dart';
 import 'package:seekarr/core/models/rating_source.dart';
 import 'package:seekarr/core/widgets/rating_chip.dart';
 import 'package:seekarr/core/widgets/rating_chips_row.dart';
@@ -57,7 +56,7 @@ void main() {
       expect(find.textContaining('7.6'), findsOneWidget);
     });
 
-    testWidgets('has trailing spacing when non-empty', (tester) async {
+    testWidgets('renders ratings in a wrap when non-empty', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -70,12 +69,8 @@ void main() {
         ),
       );
 
-      expect(
-        find.byWidgetPredicate(
-          (widget) => widget is SizedBox && widget.height == AppSpacing.lg,
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(Wrap), findsOneWidget);
+      expect(find.byType(RatingChip), findsOneWidget);
     });
   });
 }

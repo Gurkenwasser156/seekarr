@@ -8,11 +8,13 @@ import 'package:seekarr/core/theme.dart';
 import 'package:seekarr/core/utils/snack_bar_helper.dart';
 import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/floating_bottom_nav_bar.dart';
+import 'package:seekarr/features/settings/data/donation_service.dart';
 import 'package:seekarr/features/settings/data/service_connection_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/regions.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
+import 'package:seekarr/features/settings/presentation/widgets/donation_sheet.dart';
 
 class SettingsHomeScreen extends ConsumerWidget {
   const SettingsHomeScreen({super.key});
@@ -200,6 +202,13 @@ class SettingsHomeScreen extends ConsumerWidget {
             accentColor: AppColors.warning,
             onTap: () => _sendFeedback(context),
           ),
+          SettingsCard.grouped(
+            leading: const Icon(Icons.favorite_rounded),
+            title: 'Support Development',
+            subtitle: 'Buy me a coffee',
+            accentColor: AppColors.lidarr,
+            onTap: () => _openDonation(context),
+          ),
         ],
       ),
     ];
@@ -230,6 +239,34 @@ class SettingsHomeScreen extends ConsumerWidget {
       uri: _feedbackUri,
       failureMessage: 'Unable to open the email composer.',
     );
+  }
+
+  Future<void> _openDonation(BuildContext context) async {
+    if (DonationService.usesIAP) {
+      final useFallback = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.lg),
+          ),
+        ),
+        builder: (_) => const DonationSheet(),
+      );
+      // Sheet returned true when IAP products aren't available — open Ko-fi.
+      if (useFallback == true && context.mounted) {
+        final launched = await DonationService.launchKofi();
+        if (!launched && context.mounted) {
+          SnackBarHelper.info(context, 'Unable to open the donation page.');
+        }
+      }
+    } else {
+      final launched = await DonationService.launchKofi();
+      if (!launched && context.mounted) {
+        SnackBarHelper.info(context, 'Unable to open the donation page.');
+      }
+    }
   }
 
   Future<void> _launchExternalUri({

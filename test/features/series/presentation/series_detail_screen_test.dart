@@ -59,11 +59,7 @@ SonarrSeries _series({
       ],
   statistics:
       statistics ??
-      const {
-        'seasonCount': 1,
-        'episodeCount': 7,
-        'episodeFileCount': 7,
-      },
+      const {'seasonCount': 1, 'episodeCount': 7, 'episodeFileCount': 7},
   seriesType: 'standard',
   certification: 'TV-MA',
 );

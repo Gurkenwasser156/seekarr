@@ -48,6 +48,7 @@ dependencies:
   flutter_svg: ^2.2.3
   infinite_scroll_pagination: ^5.1.1
   url_launcher: ^6.3.2
+  in_app_purchase: ^3.2.0
 
 dependency_overrides:
   # path_provider_foundation 2.6.0 pulls in objective_c native assets,

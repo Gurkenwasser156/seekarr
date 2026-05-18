@@ -92,7 +92,8 @@ class MediaBrowseScaffold<T> extends ConsumerStatefulWidget {
       _MediaBrowseScaffoldState<T>();
 }
 
-class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>> {
+class _MediaBrowseScaffoldState<T>
+    extends ConsumerState<MediaBrowseScaffold<T>> {
   MediaBrowseFilter _selectedFilter = MediaBrowseFilter.all;
 
   @override
@@ -122,7 +123,8 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
                   ? IconButton(
                       icon: const Icon(Icons.arrow_back),
                       onPressed: () {
-                        ref.read(widget.searchQueryProvider.notifier).state = '';
+                        ref.read(widget.searchQueryProvider.notifier).state =
+                            '';
                       },
                       tooltip: 'Exit search',
                     )
@@ -152,7 +154,8 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
           if (!isSearching)
             _MediaBrowseFilterChips(
               selectedFilter: _selectedFilter,
-              color: widget.accentColor ?? Theme.of(context).colorScheme.primary,
+              color:
+                  widget.accentColor ?? Theme.of(context).colorScheme.primary,
               onSelected: (filter) {
                 setState(() {
                   _selectedFilter = filter;
@@ -270,9 +273,9 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
             children: [
               Text(
                 section.label,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: AppSpacing.md),
               LayoutBuilder(
@@ -286,7 +289,7 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
                   );
                   final tileSpacing = columns > 1
                       ? (constraints.maxWidth - (columns * tileWidth)) /
-                          (columns - 1)
+                            (columns - 1)
                       : 0.0;
 
                   return Wrap(
@@ -299,7 +302,9 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
                         itemIndex++
                       )
                         _BrowsePosterTile(
-                          title: widget.titleExtractor(section.items[itemIndex]),
+                          title: widget.titleExtractor(
+                            section.items[itemIndex],
+                          ),
                           subtitle: widget.subtitleExtractor(
                             section.items[itemIndex],
                           ),
@@ -353,28 +358,32 @@ class _MediaBrowseScaffoldState<T> extends ConsumerState<MediaBrowseScaffold<T>>
   }
 
   List<T> _filteredItems(List<T> items) {
-    final sortedItems = [...items]..sort((left, right) {
-      final bySortTitle = _sortKeyFor(left).compareTo(_sortKeyFor(right));
-      if (bySortTitle != 0) {
-        return bySortTitle;
-      }
-      return widget
-          .titleExtractor(left)
-          .toLowerCase()
-          .compareTo(widget.titleExtractor(right).toLowerCase());
-    });
+    final sortedItems = [...items]
+      ..sort((left, right) {
+        final bySortTitle = _sortKeyFor(left).compareTo(_sortKeyFor(right));
+        if (bySortTitle != 0) {
+          return bySortTitle;
+        }
+        return widget
+            .titleExtractor(left)
+            .toLowerCase()
+            .compareTo(widget.titleExtractor(right).toLowerCase());
+      });
 
-    return sortedItems.where((item) {
-      final status = _browseStatusFor(item);
-      return switch (_selectedFilter) {
-        MediaBrowseFilter.all => true,
-        MediaBrowseFilter.available =>
-          status == MediaStatus.available || status == MediaStatus.partial,
-        MediaBrowseFilter.missing => status == null || status == MediaStatus.missing,
-        MediaBrowseFilter.inQueue =>
-          status == MediaStatus.queued || status == MediaStatus.downloading,
-      };
-    }).toList(growable: false);
+    return sortedItems
+        .where((item) {
+          final status = _browseStatusFor(item);
+          return switch (_selectedFilter) {
+            MediaBrowseFilter.all => true,
+            MediaBrowseFilter.available =>
+              status == MediaStatus.available || status == MediaStatus.partial,
+            MediaBrowseFilter.missing =>
+              status == null || status == MediaStatus.missing,
+            MediaBrowseFilter.inQueue =>
+              status == MediaStatus.queued || status == MediaStatus.downloading,
+          };
+        })
+        .toList(growable: false);
   }
 
   List<_MediaBrowseSection<T>> _buildSections(List<T> items) {
@@ -580,10 +589,7 @@ class _BrowsePosterTile extends StatelessWidget {
                     Positioned(
                       left: 6,
                       bottom: 6,
-                      child: StatusBadge(
-                        status: status!,
-                        iconOnly: true,
-                      ),
+                      child: StatusBadge(status: status!, iconOnly: true),
                     ),
                 ],
               ),
