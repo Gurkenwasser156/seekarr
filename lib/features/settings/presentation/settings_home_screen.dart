@@ -105,12 +105,21 @@ class SettingsHomeScreen extends ConsumerWidget {
     WidgetRef ref,
     SettingsModel settings,
   ) {
+    final configured = ServiceKey.values
+        .where(
+          (s) =>
+              settings.urlFor(s).isNotEmpty && settings.apiKeyFor(s).isNotEmpty,
+        )
+        .toList();
+
+    if (configured.isEmpty) return [];
+
     return [
       const _SettingsSectionLabel('Services'),
       const SizedBox(height: AppSpacing.sm),
       SettingsGroupCard(
         children: [
-          for (final service in ServiceKey.values)
+          for (final service in configured)
             SettingsCard.grouped(
               leading: Icon(service.icon),
               title: service.title,

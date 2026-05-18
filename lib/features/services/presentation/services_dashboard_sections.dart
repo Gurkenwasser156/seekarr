@@ -25,6 +25,10 @@ class ServicesTrendingSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    if (settings.seerrUrl.isEmpty || settings.seerrApiKey.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return _PosterSection<MediaPreview>(
       title: 'Trending',
       service: ServiceKey.seerr,
@@ -50,6 +54,10 @@ class ServicesRecentlyAddedMoviesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    if (settings.radarrUrl.isEmpty || settings.radarrApiKey.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return _PosterSection<RadarrMovie>(
       title: 'Recently Added · Movies',
       service: ServiceKey.radarr,
@@ -82,6 +90,10 @@ class ServicesRecentlyAddedSeriesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    if (settings.sonarrUrl.isEmpty || settings.sonarrApiKey.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return _PosterSection<SonarrSeries>(
       title: 'Recently Added · Series',
       service: ServiceKey.sonarr,
@@ -114,6 +126,10 @@ class ServicesRecentRequestsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    if (settings.seerrUrl.isEmpty || settings.seerrApiKey.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final requests = ref.watch(servicesRequestsProvider);
 
     return _ListSection<SeerrRequest>(
@@ -134,6 +150,12 @@ class ServicesDownloadingSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    final hasDownloadService =
+        (settings.radarrUrl.isNotEmpty && settings.radarrApiKey.isNotEmpty) ||
+        (settings.sonarrUrl.isNotEmpty && settings.sonarrApiKey.isNotEmpty);
+    if (!hasDownloadService) return const SizedBox.shrink();
+
     final queue = ref.watch(servicesQueueProvider);
 
     return _ListSection<ServiceQueueItem>(

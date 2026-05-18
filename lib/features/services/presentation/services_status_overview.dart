@@ -37,18 +37,28 @@ class ServicesOnlineSummary extends ConsumerWidget {
   }
 }
 
-class ServiceStatusGrid extends StatelessWidget {
+class ServiceStatusGrid extends ConsumerWidget {
   const ServiceStatusGrid({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final services = ServiceKey.values;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(currentSettingsProvider);
+    final services = ServiceKey.values
+        .where(
+          (s) =>
+              settings.urlFor(s).isNotEmpty && settings.apiKeyFor(s).isNotEmpty,
+        )
+        .toList(growable: false);
+
+    if (services.isEmpty) return const SizedBox.shrink();
+
     final cols = (services.length / 2).ceil();
+    final rows = services.length > 1 ? 2 : 1;
     final screenWidth = MediaQuery.sizeOf(context).width;
     // Show first column fully + ~80% of the second column to hint scrolling.
     final cardWidth = (screenWidth - AppSpacing.lg - AppSpacing.sm) / 1.8;
     const cardHeight = 76.0;
-    const gridHeight = cardHeight * 2 + AppSpacing.sm;
+    final gridHeight = cardHeight * rows + (rows > 1 ? AppSpacing.sm : 0);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.md),
@@ -69,14 +79,19 @@ class ServiceStatusGrid extends StatelessWidget {
             return SizedBox(
               width: cardWidth,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(child: _ServiceStatusCard(service: top)),
-                  const SizedBox(height: AppSpacing.sm),
-                  Expanded(
-                    child: bottom != null
-                        ? _ServiceStatusCard(service: bottom)
-                        : const SizedBox.shrink(),
+                  SizedBox(
+                    height: cardHeight,
+                    child: _ServiceStatusCard(service: top),
                   ),
+                  if (bottom != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      height: cardHeight,
+                      child: _ServiceStatusCard(service: bottom),
+                    ),
+                  ],
                 ],
               ),
             );

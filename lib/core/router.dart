@@ -32,6 +32,8 @@ import 'package:seekarr/features/import/presentation/manual_import_folder_screen
 import 'package:seekarr/features/import/presentation/manual_import_match_screen.dart';
 import 'package:seekarr/features/import/presentation/manual_import_progress_screen.dart';
 import 'package:seekarr/features/import/presentation/manual_import_routes.dart';
+import 'package:seekarr/features/onboarding/data/onboarding_provider.dart';
+import 'package:seekarr/features/onboarding/presentation/onboarding_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -348,10 +350,25 @@ String _preserveQuery(Uri source, String path) {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final notifier = ref.watch(routerRefreshNotifierProvider);
+  final onboardingDone = ref.read(onboardingCompletedProvider);
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/services',
+    refreshListenable: notifier,
+    initialLocation: onboardingDone ? '/services' : '/onboarding',
+    redirect: (context, state) {
+      final done = ref.read(onboardingCompletedProvider);
+      final isOnboarding = state.matchedLocation == '/onboarding';
+      if (!done && !isOnboarding) return '/onboarding';
+      if (done && isOnboarding) return '/services';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
