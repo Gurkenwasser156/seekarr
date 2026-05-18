@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:seekarr/core/router.dart';
 import 'package:seekarr/core/theme.dart';
+import 'package:seekarr/features/onboarding/data/onboarding_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/data/settings_service.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
@@ -18,6 +19,7 @@ void main() async {
 
   await settingsService.migrateFromPlaintext();
   final initialSettings = await _loadInitialSettings(settingsService);
+  final onboardingCompleted = await settingsService.loadOnboardingComplete();
 
   runApp(
     ProviderScope(
@@ -25,6 +27,7 @@ void main() async {
         prefs: prefs,
         secureSettingsStore: secureSettingsStore,
         initialSettings: initialSettings,
+        onboardingCompleted: onboardingCompleted,
       ),
       child: const SeekarrApp(),
     ),
@@ -47,11 +50,13 @@ _buildProviderOverrides({
   required SharedPreferences prefs,
   required SecureSettingsStore secureSettingsStore,
   required SettingsModel initialSettings,
+  required bool onboardingCompleted,
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureSettingsStoreProvider.overrideWithValue(secureSettingsStore),
     initialSettingsProvider.overrideWithValue(initialSettings),
+    initialOnboardingCompletedProvider.overrideWithValue(onboardingCompleted),
   ];
 }
 

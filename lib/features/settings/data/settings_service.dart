@@ -38,6 +38,7 @@ class FlutterSecureSettingsStore implements SecureSettingsStore {
 class SettingsService {
   static const _kRegion = 'region';
   static const _kThemeMode = 'theme_mode';
+  static const _kOnboardingComplete = 'onboarding_complete';
 
   static const Map<ServiceKey, _ServiceStorageKeys> _serviceStorageKeys = {
     ServiceKey.seerr: _ServiceStorageKeys(
@@ -115,6 +116,14 @@ class SettingsService {
 
       await _prefs.remove(storageKeys.legacyApiKey);
     }
+  }
+
+  Future<bool> loadOnboardingComplete() async {
+    return _prefs.getBool(_kOnboardingComplete) ?? false;
+  }
+
+  Future<void> saveOnboardingComplete() async {
+    await _prefs.setBool(_kOnboardingComplete, true);
   }
 
   Future<SettingsModel> loadSettings() async {
