@@ -12,6 +12,7 @@ import 'package:seekarr/core/widgets/app_card.dart';
 import 'package:seekarr/core/widgets/async_value_widget.dart';
 import 'package:seekarr/core/widgets/content_card.dart';
 import 'package:seekarr/core/widgets/section_header.dart';
+import 'package:seekarr/core/widgets/shimmer_placeholder.dart';
 import 'package:seekarr/features/discover/domain/models/seerr_request.dart';
 import 'package:seekarr/features/movies/domain/models/radarr_movie.dart';
 import 'package:seekarr/features/series/domain/models/sonarr_series.dart';
@@ -141,6 +142,13 @@ class ServicesRecentRequestsSection extends ConsumerWidget {
       onAction: () => context.push(ServiceRoutes.seerrRequests),
       emptyLabel: 'No recent requests',
       itemsBuilder: (items) => items.take(3).map(_RequestRow.new).toList(),
+      loadingWidget: const Column(
+        children: [
+          _RequestRowSkeleton(),
+          _RequestRowSkeleton(),
+          _RequestRowSkeleton(),
+        ],
+      ),
     );
   }
 }
@@ -267,6 +275,10 @@ class _ListSection<T> extends StatelessWidget {
   final String emptyLabel;
   final List<Widget> Function(List<T> items) itemsBuilder;
 
+  /// Optional widget shown while [asyncValue] is loading.
+  /// Defaults to a centered [CircularProgressIndicator].
+  final Widget? loadingWidget;
+
   const _ListSection({
     required this.title,
     required this.service,
@@ -276,6 +288,7 @@ class _ListSection<T> extends StatelessWidget {
     required this.onAction,
     required this.emptyLabel,
     required this.itemsBuilder,
+    this.loadingWidget,
   });
 
   @override
@@ -295,6 +308,7 @@ class _ListSection<T> extends StatelessWidget {
           child: AsyncValueWidget<List<T>>(
             value: asyncValue,
             serviceName: serviceName,
+            loadingWidget: loadingWidget,
             data: (items) {
               final rows = itemsBuilder(items);
               if (rows.isEmpty) {
@@ -471,6 +485,47 @@ class _RequestRow extends StatelessWidget {
         id: id,
         heroTag: tag,
         posterUrl: posterUrl,
+      ),
+    );
+  }
+}
+
+/// Skeleton placeholder for a single [_RequestRow] while data is loading.
+class _RequestRowSkeleton extends StatelessWidget {
+  const _RequestRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard.surfaceOutlined(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            ShimmerPlaceholder(
+              width: 38,
+              height: 54,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerPlaceholder.text(width: 140),
+                  const SizedBox(height: AppSpacing.xs),
+                  ShimmerPlaceholder.text(width: 90),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ShimmerPlaceholder(
+              width: 110,
+              height: 26,
+              borderRadius: AppRadius.borderRadiusSm,
+            ),
+          ],
+        ),
       ),
     );
   }

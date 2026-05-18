@@ -15,7 +15,7 @@ void main() {
 
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('GENERAL'), findsOneWidget);
-      expect(find.text('SERVICES'), findsOneWidget);
+      expect(find.text('SERVICES'), findsNothing);
       expect(find.text('ABOUT'), findsOneWidget);
       expect(find.text('Seekarr v1.0.0'), findsNothing);
     });
@@ -29,43 +29,30 @@ void main() {
       expect(find.text('United Kingdom (GB)'), findsOneWidget);
     });
 
-    testWidgets('shows Not configured for empty service settings', (
+    testWidgets('dashboard navigates to the services settings screen', (
       tester,
     ) async {
       await _pumpSettingsHome(tester);
 
-      await tester.scrollUntilVisible(
-        find.text('Lidarr', skipOffstage: false),
-        300,
-      );
+      await tester.tap(find.text('Dashboard'));
       await tester.pumpAndSettle();
 
-      expect(
-        _settingsCard('Seerr', subtitle: 'Not configured'),
-        findsOneWidget,
-      );
-      expect(
-        _settingsCard('Radarr', subtitle: 'Not configured'),
-        findsOneWidget,
-      );
-      expect(
-        _settingsCard('Sonarr', subtitle: 'Not configured'),
-        findsOneWidget,
-      );
-      expect(
-        _settingsCard('Lidarr', subtitle: 'Not configured'),
-        findsOneWidget,
-      );
+      expect(find.text('ServicesPage'), findsOneWidget);
     });
 
-    testWidgets('shows the extracted host for configured services', (
+    testWidgets('shows configured services on the home screen', (
       tester,
     ) async {
       await _pumpSettingsHome(
         tester,
-        settings: const SettingsModel(radarrUrl: 'https://radarr.local:7878'),
+        settings: const SettingsModel(
+          radarrUrl: 'https://radarr.local:7878',
+          radarrApiKey: 'radarr-key',
+        ),
       );
 
+      expect(find.text('SERVICES'), findsOneWidget);
+      expect(_settingsCard('Radarr', subtitle: 'radarr.local:7878'), findsOneWidget);
       expect(find.text('radarr.local:7878'), findsOneWidget);
     });
 
@@ -83,7 +70,13 @@ void main() {
     testWidgets('tapping a service card navigates to its route', (
       tester,
     ) async {
-      await _pumpSettingsHome(tester);
+      await _pumpSettingsHome(
+        tester,
+        settings: const SettingsModel(
+          radarrUrl: 'https://radarr.local:7878',
+          radarrApiKey: 'radarr-key',
+        ),
+      );
 
       await tester.tap(find.text('Radarr'));
       await tester.pumpAndSettle();
@@ -107,7 +100,7 @@ void main() {
       await _pumpSettingsHome(tester);
 
       expect(find.byType(SettingsCard), findsAtLeastNWidgets(6));
-      expect(find.byType(SettingsGroupCard), findsNWidgets(3));
+      expect(find.byType(SettingsGroupCard), findsNWidgets(2));
 
       await tester.scrollUntilVisible(find.text('Send Feedback'), 300);
       await tester.pumpAndSettle();
@@ -132,6 +125,10 @@ Future<void> _pumpSettingsHome(
           GoRoute(
             path: 'region',
             builder: (_, __) => const Scaffold(body: Text('RegionPage')),
+          ),
+          GoRoute(
+            path: 'services',
+            builder: (_, __) => const Scaffold(body: Text('ServicesPage')),
           ),
           GoRoute(
             path: 'service/:service',

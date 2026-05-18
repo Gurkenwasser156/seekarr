@@ -1,7 +1,6 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:seekarr/core/router.dart';
@@ -14,7 +13,7 @@ import 'package:seekarr/features/settings/domain/settings_model.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final secureSettingsStore = _createSecureSettingsStore();
+  final secureSettingsStore = createSecureSettingsStore();
   final settingsService = SettingsService(prefs, secureSettingsStore);
 
   await settingsService.migrateFromPlaintext();
@@ -30,14 +29,6 @@ void main() async {
         onboardingCompleted: onboardingCompleted,
       ),
       child: const SeekarrApp(),
-    ),
-  );
-}
-
-SecureSettingsStore _createSecureSettingsStore() {
-  return FlutterSecureSettingsStore(
-    FlutterSecureStorage(
-      aOptions: const AndroidOptions(encryptedSharedPreferences: true),
     ),
   );
 }

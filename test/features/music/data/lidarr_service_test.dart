@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -163,6 +164,17 @@ void main() {
       await service.getReleases(artistId: 1, albumId: 10);
 
       expect(client.lastGetQueryParameters, {'artistId': 1, 'albumId': 10});
+    });
+
+    test('getReleases forwards the cancel token to ApiClient', () async {
+      client.getResponseData = const [];
+      final cancelToken = CancelToken();
+
+      await service.getReleases(artistId: 1, cancelToken: cancelToken);
+
+      expect(client.lastGetPath, '/api/v1/release');
+      expect(client.lastGetQueryParameters, {'artistId': 1});
+      expect(client.lastGetCancelToken, same(cancelToken));
     });
 
     test('grabRelease posts the release payload', () async {

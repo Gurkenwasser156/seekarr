@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/base_arr_service.dart';
@@ -54,6 +55,22 @@ void main() {
         'includeSeries': true,
         'includeEpisode': true,
       });
+    });
+
+    test('getReleases forwards the cancel token to ApiClient', () async {
+      final client = FakeApiClient()..getResponseData = const [];
+      final service = SonarrService(client);
+      final cancelToken = CancelToken();
+
+      await service.getReleases(
+        seriesId: 7,
+        seasonNumber: 2,
+        cancelToken: cancelToken,
+      );
+
+      expect(client.lastGetPath, '/api/v3/release');
+      expect(client.lastGetQueryParameters, {'seriesId': 7, 'seasonNumber': 2});
+      expect(client.lastGetCancelToken, same(cancelToken));
     });
 
     group('getSeriesByTvdbId', () {

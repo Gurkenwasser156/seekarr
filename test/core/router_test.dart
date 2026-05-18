@@ -9,6 +9,8 @@ import 'package:seekarr/features/movies/data/radarr_service.dart';
 import 'package:seekarr/features/movies/presentation/movie_detail_screen.dart';
 import 'package:seekarr/features/music/data/lidarr_service.dart';
 import 'package:seekarr/features/music/presentation/music_detail_screen.dart';
+import 'package:seekarr/features/onboarding/data/onboarding_provider.dart';
+import 'package:seekarr/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:seekarr/features/search/presentation/search_screen.dart';
 import 'package:seekarr/features/series/data/sonarr_service.dart';
 import 'package:seekarr/features/series/presentation/series_detail_screen.dart';
@@ -32,6 +34,45 @@ void main() {
 
       expect(router.state.uri.toString(), '/services');
       expect(find.byType(ServicesScreen), findsOneWidget);
+    });
+
+    testWidgets('starts on onboarding when onboarding is incomplete', (
+      tester,
+    ) async {
+      final container = await _pumpRouter(tester, onboardingCompleted: false);
+      final router = container.read(routerProvider);
+
+      expect(router.state.uri.toString(), '/onboarding');
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+    });
+
+    testWidgets(
+      'redirects protected routes to onboarding when onboarding is incomplete',
+      (tester) async {
+        final container = await _pumpRouter(tester, onboardingCompleted: false);
+        final router = container.read(routerProvider);
+
+        router.go('/search');
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.toString(), '/onboarding');
+        expect(find.byType(OnboardingScreen), findsOneWidget);
+        expect(find.byType(SearchScreen), findsNothing);
+      },
+    );
+
+    testWidgets('redirects to services when onboarding completes', (
+      tester,
+    ) async {
+      final container = await _pumpRouter(tester, onboardingCompleted: false);
+      final router = container.read(routerProvider);
+
+      container.read(onboardingCompletedProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.toString(), '/services');
+      expect(find.byType(ServicesScreen), findsOneWidget);
+      expect(find.byType(OnboardingScreen), findsNothing);
     });
 
     testWidgets('redirects invalid discover detail ids back to services', (
@@ -311,9 +352,13 @@ void main() {
 Future<ProviderContainer> _pumpRouter(
   WidgetTester tester, {
   SettingsModel settings = const SettingsModel(),
+  bool onboardingCompleted = true,
 }) async {
   final container = ProviderContainer(
     overrides: [
+      initialOnboardingCompletedProvider.overrideWith(
+        (ref) => onboardingCompleted,
+      ),
       currentSettingsProvider.overrideWith((ref) => settings),
       seerrServiceProvider.overrideWith((ref) => FakeSeerrService()),
       radarrServiceProvider.overrideWith((ref) => FakeRadarrService()),

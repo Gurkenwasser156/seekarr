@@ -74,10 +74,7 @@ class SettingsServicesScreen extends ConsumerWidget {
 }
 
 class _DeleteButton extends StatelessWidget {
-  const _DeleteButton({
-    required this.serviceName,
-    required this.onConfirm,
-  });
+  const _DeleteButton({required this.serviceName, required this.onConfirm});
 
   final String serviceName;
   final VoidCallback onConfirm;
