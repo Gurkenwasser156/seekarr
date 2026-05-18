@@ -144,7 +144,12 @@ void main() {
           requestedMovie = true;
           return null;
         },
-        initialMovie: _movie(id: 0, hasFile: false, monitored: false, path: null),
+        initialMovie: _movie(
+          id: 0,
+          hasFile: false,
+          monitored: false,
+          path: null,
+        ),
       );
       await tester.pumpAndSettle();
 

@@ -26,7 +26,8 @@ void main() {
       expect(find.text('OK Computer'), findsOneWidget);
       expect(find.text('1997'), findsOneWidget);
       expect(find.text('12 / 12 tracks'), findsOneWidget);
-      expect(find.byType(AppCard), findsOneWidget);
+      expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
+      expect(find.byType(MediaSearchPopupMenu), findsOneWidget);
       expect(find.byType(StatusBadge), findsOneWidget);
       expect(find.byType(ExpansionTile), findsOneWidget);
     });
@@ -43,11 +44,11 @@ void main() {
         ],
       );
 
-      expect(find.text('Available'), findsOneWidget);
-      expect(find.text('Partial'), findsOneWidget);
-      expect(find.text('Missing'), findsOneWidget);
-      expect(find.byType(AppCard), findsNWidgets(3));
+      expect(find.byType(ExpansionTile), findsNWidgets(3));
       expect(find.byType(StatusBadge), findsNWidgets(3));
+      expect(find.text('12 / 12 tracks'), findsOneWidget);
+      expect(find.text('6 / 12 tracks'), findsOneWidget);
+      expect(find.text('0 / 12 tracks'), findsOneWidget);
     });
 
     testWidgets('loads and sorts tracks when album expands', (tester) async {

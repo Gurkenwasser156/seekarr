@@ -1,37 +1,39 @@
 # Seekarr
 
-A Flutter mobile application for managing self-hosted media services.
-Supported services are: Seerr, Radarr, Sonarr, and Lidarr.
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
+![Platforms](https://img.shields.io/badge/platforms-Android%20%7C%20iOS%20%7C%20macOS-informational)
+![License](https://img.shields.io/badge/license-MIT-green)
+[![Ko-fi](https://img.shields.io/badge/support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/matthwlabs)
 
-## Project Notes
+A Flutter app for managing your self-hosted media stack from anywhere.  
+Supports **Seerr**, **Radarr**, **Sonarr**, and **Lidarr**.
 
-The main purpose of this project is to solve a personal need: to flawlessly manage my self-hosted *arr stack with my phone, from anywhere.
+## Support
 
-My priority with this app is the best coding quality possible. Any feedback and contribution will always be appreciated.
+If you find Seekarr useful, consider supporting me with a donation — it helps keep the project going!
 
-The application is under active development and contributions are welcome.
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matthwlabs)
 
-## Features
+---
 
-- **Discover**: Browse trending movies and TV shows via Seerr integration
-  - **Rich Details**: View backdrops, content ratings, watch providers, trailers, release dates, seasons, and collections
-  - **Manage Media**: View requests, delete media from Radarr/Sonarr, clear data
-- **Movies**: View and manage your Radarr movie library
-- **TV Series**: View and manage your Sonarr TV series library
-- **Music**: View and manage your Lidarr music library
-- **Search**: Search across all sections with always-visible search bars
-- **Activity**: Comprehensive task monitoring
-  - **Activity Tab**: Segmented sticky navigation for Queue, History, and Blocklist with full pagination fetching.
-  - **Wanted Tab**: Segmented sticky navigation for Missing and Cutoff Unmet with status text and pagination.
-  - **Queue Management**: Queue status normalization based on structured fields, with manual import placeholder actions.
-  - **History Cleanup**: Clean presentation showing date-only, size in GB, without noisy metadata.
-  - **Smart Search**: Wanted auto + interactive search actions using shared existing modules.
-  - **Hierarchical Sonarr**: Sonarr wanted presentation is structured by Series > Season > Episode, including per-episode search actions.
-- **Customization**: Choose appearance theme (Light, Dark, System) and configure which services to display in the navigation bar
-- **Multiplatform**: Currently working and tested for Android, iOS and MacOS
-- **Material Design 3**: Modern design with Seerr-inspired color palette
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Configuration](#configuration)
+- [Platform-specific Install](#platform-specific-install)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [About this project](#about-this-project)
+- [License](#license)
+
+---
 
 ## Screenshots
+
 ### Services
 <p align="center">
   <img src="screenshots/discover.PNG" width="300" alt="Discover screen" />
@@ -46,109 +48,155 @@ The application is under active development and contributions are welcome.
   <img src="screenshots/movies_details.PNG" width="300" alt="Movies details screen" />
 </p>
 
-### Activity Management 
+### Activity Management
 <p align="center">
-  <img src="screenshots/series_activity.PNG" width="300" alt="activity screen" />
-  <img src="screenshots/series_wanted.PNG" width="300" alt="wanted screen" />
+  <img src="screenshots/series_activity.PNG" width="300" alt="Activity screen" />
+  <img src="screenshots/series_wanted.PNG" width="300" alt="Wanted screen" />
 </p>
 
 ### Settings & Dark Mode
 <p align="center">
-  <img src="screenshots/settings_dark.PNG" width="300" alt="settings screen" />
-  <img src="screenshots/appearance_setting.PNG" width="300" alt="appearance screen" />
-  <img src="screenshots/service_settings_dark.PNG" width="300" alt="service settings dark screen" />
-  <img src="screenshots/discover_dark.PNG" width="300" alt="discover dark screen" />
-  <img src="screenshots/discover_details_dark.PNG" width="300" alt="discover details dark screen" />
+  <img src="screenshots/settings_dark.PNG" width="300" alt="Settings screen" />
+  <img src="screenshots/appearance_setting.PNG" width="300" alt="Appearance screen" />
+  <img src="screenshots/service_settings_dark.PNG" width="300" alt="Service settings dark screen" />
+  <img src="screenshots/discover_dark.PNG" width="300" alt="Discover dark screen" />
+  <img src="screenshots/discover_details_dark.PNG" width="300" alt="Discover details dark screen" />
 </p>
 
+---
 
+## Features
+
+- **Discover** — Browse trending movies and TV shows via Seerr integration
+  - Rich details: backdrops, content ratings, watch providers, trailers, release dates, seasons, collections
+  - Manage media: view requests, delete from Radarr/Sonarr, clear data
+- **Movies** — View and manage your Radarr movie library
+- **TV Series** — View and manage your Sonarr TV series library
+- **Music** — View and manage your Lidarr music library
+- **Search** — Cross-service search with always-visible search bars
+- **Activity** — Comprehensive task monitoring
+  - Queue, History, and Blocklist with sticky segmented navigation and full pagination
+  - Wanted: Missing and Cutoff Unmet with status text and pagination
+  - Queue status normalization based on structured fields
+  - Sonarr wanted items organized by Series → Season → Episode with per-episode search
+- **Customization** — Light, Dark, or System theme; configurable navigation bar services
+- **Multiplatform** — Tested on Android, iOS, and macOS
+- **Material Design 3** — Dynamic color support with a Seerr-inspired palette
+
+---
 
 ## Getting Started
 
-Before running Seekarr locally, make sure you have:
+### Prerequisites
 
-- A Flutter SDK version compatible with Dart `^3.10.0`
-- Xcode for iOS/macOS development
-- Android Studio and the Android SDK for Android development
-- Access to at least one supported self-hosted service:
-  - Seerr
-  - Radarr
-  - Sonarr
-  - Lidarr
+- Flutter SDK compatible with Dart `^3.10.0`
+- For **iOS / macOS**: Xcode
+- For **Android**: Android Studio and the Android SDK
+- At least one running self-hosted service: Seerr, Radarr, Sonarr, or Lidarr
 
-1. Clone this repository
-2. Run `flutter pub get`
-3. Run `flutter run`
+### Installation
 
-## Testing
-  
-Run unit tests:
 ```bash
-flutter test
+git clone https://github.com/your-username/seekarr.git
+cd seekarr
+flutter pub get
+flutter run
 ```
 
-## Platform-specific install
-### Android
-Find .apk file in Releases
+> Replace `your-username/seekarr` with the actual repository path.
 
-### MacOS
-Find .dmg file in Releases
-
-### iOS
-As of now, no distribution is available for direct installation on iOS.
-Please compile and install with the following commands:
-```
-flutter run --release
-```
+---
 
 ## Configuration
 
-Seekarr does not ship with any server credentials or default service configuration.
+Seekarr ships with no default credentials. After launching the app, open **Settings** and configure each service you want to use:
 
-After launching the app, open the Settings screen and configure the services you want to use:
+- **Seerr** — Base URL + API key
+- **Radarr** — Base URL + API key
+- **Sonarr** — Base URL + API key
+- **Lidarr** — Base URL + API key
+- Region preferences (where applicable)
 
-Seerr URL + API key
-Radarr URL + API key
-Sonarr URL + API key
-Lidarr URL + API key
-Region preferences where applicable
-API keys are stored locally on the device using secure storage.
+API keys are stored securely on the device using `flutter_secure_storage` and are never transmitted outside your local network.
 
+---
 
-## Technologies
+## Platform-specific Install
 
-- Flutter 3.x
-- Riverpod for state management
-- GoRouter for navigation
-- Dio for HTTP requests
-- CachedNetworkImage for image caching
+### Android
+Download the `.apk` file from the [Releases](../../releases) page.
 
-## Architecture / Development
+### macOS
+Download the `.dmg` file from the [Releases](../../releases) page.
 
-Seekarr uses a feature-first structure:
+### iOS
+No pre-built distribution is currently available for iOS. Build and install directly from source:
 
-- `lib/core/` for shared infrastructure, theme, routing, utilities, API helpers, and reusable widgets
-- `lib/features/<feature>/` for feature-specific code split into:
-  - `data/`
-  - `domain/`
-  - `presentation/`
+```bash
+flutter build ios --no-codesign
+```
 
-Main technical choices:
+Then open the resulting `.app` in Xcode and run it on your device or simulator.
 
-- Flutter for the app
-- Riverpod for state management
-- go_router for navigation
-- Dio for HTTP requests
+### Web, Linux, Windows
+Project scaffolding for these platforms exists, but they are **not officially tested or supported**.  
+Contributions to improve support on these platforms are welcome.
 
-**The main goals of the codebase are readability, modularity, and reusable UI components.**
+---
+
+## Architecture
+
+Seekarr follows a **feature-first layered architecture**:
+
+```
+lib/
+├── core/           # Shared infrastructure: theme, routing, API client, reusable widgets
+└── features/
+    ├── <feature>/
+    │   ├── data/         # Services and API calls
+    │   ├── domain/       # Models
+    │   └── presentation/ # Screens, providers, widgets
+    ├── activity/
+    ├── discover/
+    ├── movies/
+    ├── music/
+    ├── search/
+    ├── series/
+    └── settings/
+```
+
+**Key technical choices:**
+
+| Concern          | Library                  |
+| ---------------- | ------------------------ |
+| UI framework     | Flutter 3.x + Material 3 |
+| State management | Riverpod                 |
+| Navigation       | go_router                |
+| HTTP             | Dio                      |
+| Image caching    | cached_network_image     |
+| Dynamic color    | dynamic_color            |
+| Secure storage   | flutter_secure_storage   |
+
+**Goals:** readability, modularity, and reusable UI components built on a consistent design token system (`AppSpacing`, `AppRadius`, `AppAnimation`).
+
+---
 
 ## Contributing
-Contributions are **very** welcome.
-Anyway, I work on this project on my spare time and will take care of PRs, issues and discussions whenever I can.
 
-If you wish to work on a change, please open an issue first so the scope and direction can be discussed before implementation.
+Contributions are very welcome.
 
-For contribution guidelines, setup notes, and pull request expectations, see **CONTRIBUTING.md**.
+If you want to work on a change, please **open an issue first** to discuss scope and direction before implementation. I review PRs and issues in my spare time and will get to them as soon as I can.
+
+For setup notes, conventions, and pull request expectations, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## About this project
+
+Seekarr was born from a personal need: flawlessly managing a self-hosted *arr stack from a phone, from anywhere. It is built with a focus on getting the details right — polished interactions, honest error and empty states, and a test suite that keeps them that way — rather than on shipping fast.
+
+---
 
 ## License
-This project is licensed under the **MIT License**
+
+This project is licensed under the **[MIT License](LICENSE)**.

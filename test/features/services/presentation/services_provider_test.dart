@@ -197,38 +197,41 @@ void main() {
       expect(ids, {20, 21});
     });
 
-    test('resolves queued Lidarr artists from direct and album matches', () async {
-      final container = _container(
-        lidarrService: _QueueLidarrService(
-          items: [
-            {
-              'artist': {'id': 30, 'artistName': 'Direct Artist'},
+    test(
+      'resolves queued Lidarr artists from direct and album matches',
+      () async {
+        final container = _container(
+          lidarrService: _QueueLidarrService(
+            items: [
+              {
+                'artist': {'id': 30, 'artistName': 'Direct Artist'},
+              },
+              {'albumId': 40},
+            ],
+            artists: [
+              buildArtist(
+                id: 31,
+                artistName: 'Album Match',
+                statistics: const {'albumCount': 1},
+              ),
+              buildArtist(
+                id: 32,
+                artistName: 'Other Artist',
+                statistics: const {'albumCount': 1},
+              ),
+            ],
+            albumsByArtist: {
+              31: [buildAlbum(id: 40, title: 'Brat')],
+              32: [buildAlbum(id: 99, title: 'Other Album')],
             },
-            {'albumId': 40},
-          ],
-          artists: [
-            buildArtist(
-              id: 31,
-              artistName: 'Album Match',
-              statistics: const {'albumCount': 1},
-            ),
-            buildArtist(
-              id: 32,
-              artistName: 'Other Artist',
-              statistics: const {'albumCount': 1},
-            ),
-          ],
-          albumsByArtist: {
-            31: [buildAlbum(id: 40, title: 'Brat')],
-            32: [buildAlbum(id: 99, title: 'Other Album')],
-          },
-        ),
-      );
+          ),
+        );
 
-      final ids = await container.read(lidarrQueuedArtistIdsProvider.future);
+        final ids = await container.read(lidarrQueuedArtistIdsProvider.future);
 
-      expect(ids, {30, 31});
-    });
+        expect(ids, {30, 31});
+      },
+    );
   });
 }
 

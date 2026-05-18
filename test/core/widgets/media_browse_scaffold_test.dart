@@ -142,7 +142,9 @@ void main() {
       },
     );
 
-    testWidgets('filters grouped browse content by availability', (tester) async {
+    testWidgets('filters grouped browse content by availability', (
+      tester,
+    ) async {
       final libraryProvider = FutureProvider<List<String>>(
         (ref) async => ['Available Item', 'Missing Item'],
       );

@@ -190,10 +190,9 @@ Finder _contentCardWithImage(String imagePath) {
 }
 
 Finder _sectionHeaderTapTarget(String title) {
-  return find.ancestor(
-    of: find.text(title),
-    matching: find.byType(InkWell),
-  ).first;
+  return find
+      .ancestor(of: find.text(title), matching: find.byType(InkWell))
+      .first;
 }
 
 List<Override> _providerOverrides({

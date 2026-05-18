@@ -13,7 +13,7 @@ void main() {
 
       // Should render SizedBox.shrink()
       expect(find.byType(FileInfoSection), findsOneWidget);
-      expect(find.text('File Information'), findsNothing);
+      expect(find.text('File'), findsNothing);
     });
 
     testWidgets('renders path when provided', (tester) async {
@@ -23,11 +23,10 @@ void main() {
         ),
       );
 
-      expect(find.text('File Information'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
+      expect(find.text('Library path'), findsOneWidget);
       expect(find.text('/movies/Avatar'), findsOneWidget);
-      // folder_rounded in header, folder_outlined in info row
-      expect(find.byIcon(Icons.folder_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.storage_rounded), findsOneWidget);
     });
 
     testWidgets('renders filename when provided', (tester) async {
@@ -39,9 +38,9 @@ void main() {
         ),
       );
 
-      expect(find.text('File Information'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
       expect(find.text('Avatar.2009.1080p.mkv'), findsOneWidget);
-      expect(find.byIcon(Icons.description_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.storage_rounded), findsOneWidget);
     });
 
     testWidgets('renders both path and filename when provided', (tester) async {
@@ -56,9 +55,10 @@ void main() {
         ),
       );
 
-      expect(find.text('File Information'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
       expect(find.text('/movies/Avatar'), findsOneWidget);
       expect(find.text('Avatar.2009.1080p.mkv'), findsOneWidget);
+      expect(find.byIcon(Icons.storage_rounded), findsOneWidget);
     });
 
     testWidgets('handles long paths with ellipsis', (tester) async {
@@ -72,8 +72,8 @@ void main() {
         ),
       );
 
-      expect(find.text('File Information'), findsOneWidget);
-      // Text widget should handle overflow
+      expect(find.text('File'), findsOneWidget);
+      expect(find.text('Library path'), findsOneWidget);
       expect(find.byType(FileInfoSection), findsOneWidget);
     });
   });
