@@ -40,9 +40,7 @@ void main() {
       expect(find.text('ServicesPage'), findsOneWidget);
     });
 
-    testWidgets('shows configured services on the home screen', (
-      tester,
-    ) async {
+    testWidgets('shows configured services on the home screen', (tester) async {
       await _pumpSettingsHome(
         tester,
         settings: const SettingsModel(
@@ -52,7 +50,10 @@ void main() {
       );
 
       expect(find.text('SERVICES'), findsOneWidget);
-      expect(_settingsCard('Radarr', subtitle: 'radarr.local:7878'), findsOneWidget);
+      expect(
+        _settingsCard('Radarr', subtitle: 'radarr.local:7878'),
+        findsOneWidget,
+      );
       expect(find.text('radarr.local:7878'), findsOneWidget);
     });
 
