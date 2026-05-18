@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:seekarr/features/settings/data/settings_provider.dart';
-import 'package:seekarr/features/settings/data/settings_service.dart';
 
 /// Initial onboarding-complete value loaded from SharedPreferences before
 /// the app starts. Must be overridden in main.dart.

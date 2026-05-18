@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seekarr/features/settings/data/settings_service.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
@@ -10,11 +9,7 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 });
 
 final secureSettingsStoreProvider = Provider<SecureSettingsStore>((ref) {
-  return FlutterSecureSettingsStore(
-    FlutterSecureStorage(
-      aOptions: const AndroidOptions(encryptedSharedPreferences: true),
-    ),
-  );
+  return createSecureSettingsStore();
 });
 
 final initialSettingsProvider = Provider<SettingsModel>((ref) {

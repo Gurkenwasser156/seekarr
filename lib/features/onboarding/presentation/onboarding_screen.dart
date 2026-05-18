@@ -7,18 +7,14 @@ import 'package:seekarr/features/onboarding/data/onboarding_provider.dart';
 import 'package:seekarr/features/settings/data/service_connection_provider.dart';
 import 'package:seekarr/features/settings/data/settings_provider.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
-import 'package:seekarr/features/settings/domain/settings_model.dart';
 
 // ─── Design tokens (pixel-faithful to prototype) ───────────────────────────
 const _bg = Color(0xFF07080D);
-const _surface = Color(0xFF111521);
 const _border = Color(0xFF283247);
 const _fg = Color(0xFFF3F6FF);
 const _muted = Color(0xFF98A3B9);
 const _muted2 = Color(0xFF647089);
 const _accent = Color(0xFF6366F1);
-const _accentBorder = Color(0x426366F1); // rgba(99,102,241,.26)
-const _accentBg = Color(0x146366F1); // rgba(99,102,241,.08)
 const _success = Color(0xFF22C55E);
 const _screenPad = EdgeInsets.fromLTRB(22, 22, 22, 32);
 
@@ -79,7 +75,6 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
-  int _step = 0; // 0, 1, 2
 
   // Step-2 per-service state
   final Map<ServiceKey, bool> _enabled = {
@@ -105,9 +100,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     for (final c in _apiKeyCtrl.values) c.dispose();
     super.dispose();
   }
-
-  // Step-2 helpers
-  bool get _anyEnabled => _enabled.values.any((v) => v);
 
   bool _isServiceReady(ServiceKey k) =>
       _enabled[k]! &&
@@ -157,7 +149,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _goToStep(int step) {
-    setState(() => _step = step);
     _pageController.animateToPage(
       step,
       duration: const Duration(milliseconds: 320),
@@ -250,9 +241,7 @@ class _ProgressBar extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               gradient: active
-                  ? const LinearGradient(
-                      colors: [_accent, Color(0xFF818CF8)],
-                    )
+                  ? const LinearGradient(colors: [_accent, Color(0xFF818CF8)])
                   : null,
               color: active ? null : const Color(0x14FFFFFF),
             ),
@@ -277,11 +266,7 @@ class _WelcomeStep extends StatelessWidget {
         children: [
           const _ProgressBar(step: 0),
           const SizedBox(height: 18),
-          Expanded(
-            child: SingleChildScrollView(
-              child: _HeroCard(),
-            ),
-          ),
+          Expanded(child: SingleChildScrollView(child: _HeroCard())),
           const SizedBox(height: 16),
           _PrimaryButton(label: 'Continue', onPressed: onContinue),
         ],
@@ -618,9 +603,7 @@ class _ServiceCard extends StatelessWidget {
         border: Border.all(
           color: isEnabled ? _color.withValues(alpha: 0.28) : _border,
         ),
-        color: isEnabled
-            ? const Color(0xD5111521)
-            : const Color(0x94111521),
+        color: isEnabled ? const Color(0xD5111521) : const Color(0x94111521),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -798,13 +781,13 @@ class _ServiceConfig extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _VerifyButton(
-                      verifying: verifying,
-                      onTap: onVerify,
-                    ),
+                    child: _VerifyButton(verifying: verifying, onTap: onVerify),
                   ),
                   const SizedBox(width: 10),
-                  _VerifyStatusBadge(status: verifyStatus, verifying: verifying),
+                  _VerifyStatusBadge(
+                    status: verifyStatus,
+                    verifying: verifying,
+                  ),
                 ],
               ),
             ],
@@ -855,8 +838,9 @@ class _ConfigField extends StatelessWidget {
             controller: controller,
             obscureText: isPassword,
             keyboardType: isUrl ? TextInputType.url : TextInputType.text,
-            textInputAction:
-                isUrl ? TextInputAction.next : TextInputAction.done,
+            textInputAction: isUrl
+                ? TextInputAction.next
+                : TextInputAction.done,
             autocorrect: false,
             enableSuggestions: false,
             style: const TextStyle(
@@ -910,10 +894,7 @@ class _VerifyButton extends StatelessWidget {
             ? const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: _muted,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2, color: _muted),
               )
             : const Text(
                 'Verify service',
@@ -938,10 +919,7 @@ class _VerifyStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (verifying || status == null) {
-      return const SizedBox(
-        width: 90,
-        height: 42,
-      );
+      return const SizedBox(width: 90, height: 42);
     }
 
     final isOk = status == ServiceConnectionStatus.connected;
@@ -1057,14 +1035,12 @@ class _ReadyStep extends StatelessWidget {
                   ...configuredServices.asMap().entries.map((e) {
                     final idx = e.key;
                     final k = e.value;
-                    final isConnected = verifyStatus[k] == ServiceConnectionStatus.connected;
+                    final isConnected =
+                        verifyStatus[k] == ServiceConnectionStatus.connected;
                     return Column(
                       children: [
                         if (idx > 0)
-                          const Divider(
-                            height: 24,
-                            color: Color(0x14FFFFFF),
-                          ),
+                          const Divider(height: 24, color: Color(0x14FFFFFF)),
                         Row(
                           children: [
                             _ServiceDot(color: _serviceColors[k]),
@@ -1247,7 +1223,10 @@ class _AsyncButtonState extends State<_AsyncButton> {
         ? const SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
           )
         : Text(widget.label, style: _labelStyle);
 

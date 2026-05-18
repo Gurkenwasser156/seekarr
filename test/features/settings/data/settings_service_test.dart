@@ -68,6 +68,22 @@ void main() {
       expect(prefs.getString('radarr_api_key'), isNull);
     });
 
+    test('migrateFromPlaintext preserves existing secure seerr key', () async {
+      await secureStore.write(
+        key: 'secure_seerr_api_key',
+        value: 'existing-seerr-key',
+      );
+      await prefs.setString('jellyseerr_api_key', 'legacy-jellyseerr-key');
+
+      await service.migrateFromPlaintext();
+
+      expect(
+        await secureStore.read(key: 'secure_seerr_api_key'),
+        'existing-seerr-key',
+      );
+      expect(prefs.getString('jellyseerr_api_key'), isNull);
+    });
+
     test('saveSettings and loadSettings round-trip', () async {
       const settings = SettingsModel(
         seerrUrl: 'https://jelly.example.com',
@@ -112,6 +128,19 @@ void main() {
       expect(loaded.themeMode, AppThemeMode.system);
     });
 
+    test('loadSettings falls back to legacy Jellyseerr keys', () async {
+      await prefs.setString('jellyseerr_url', 'https://legacy.example.com');
+      await secureStore.write(
+        key: 'secure_jellyseerr_api_key',
+        value: 'legacy-seerr-key',
+      );
+
+      final loaded = await service.loadSettings();
+
+      expect(loaded.seerrUrl, 'https://legacy.example.com');
+      expect(loaded.seerrApiKey, 'legacy-seerr-key');
+    });
+
     test('saveSettings removes secure keys when values are empty', () async {
       const populatedSettings = SettingsModel(radarrApiKey: 'radarr-key');
       const clearedSettings = SettingsModel();
@@ -120,6 +149,14 @@ void main() {
       await service.saveSettings(clearedSettings);
 
       expect(await secureStore.read(key: 'secure_radarr_api_key'), isNull);
+    });
+
+    test('saveOnboardingComplete persists the onboarding flag', () async {
+      expect(await service.loadOnboardingComplete(), isFalse);
+
+      await service.saveOnboardingComplete();
+
+      expect(await service.loadOnboardingComplete(), isTrue);
     });
   });
 }

@@ -6,6 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seekarr/features/settings/domain/settings_model.dart';
 import 'package:seekarr/features/settings/domain/service_key.dart';
 
+SecureSettingsStore createSecureSettingsStore() {
+  return FlutterSecureSettingsStore(
+    FlutterSecureStorage(
+      // flutter_secure_storage 10.x migrates away from the old
+      // encryptedSharedPreferences path. Keep migration enabled for existing
+      // installs and write a backup during algorithm upgrades.
+      aOptions: AndroidOptions(migrateWithBackup: true),
+    ),
+  );
+}
+
 abstract interface class SecureSettingsStore {
   Future<String?> read({required String key});
 

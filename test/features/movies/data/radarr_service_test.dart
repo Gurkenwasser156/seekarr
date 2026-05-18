@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seekarr/core/api/base_arr_service.dart';
@@ -49,6 +50,18 @@ void main() {
         'pageSize': 20,
         'includeMovie': true,
       });
+    });
+
+    test('getReleases forwards the cancel token to ApiClient', () async {
+      final client = FakeApiClient()..getResponseData = const [];
+      final service = RadarrService(client);
+      final cancelToken = CancelToken();
+
+      await service.getReleases(42, cancelToken: cancelToken);
+
+      expect(client.lastGetPath, '/api/v3/release');
+      expect(client.lastGetQueryParameters, {'movieId': 42});
+      expect(client.lastGetCancelToken, same(cancelToken));
     });
 
     group('getMovieByTmdbId', () {
